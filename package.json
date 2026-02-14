@@ -1,0 +1,19 @@
+{
+  "name": "jove2d",
+  "version": "0.1.0",
+  "description": "A 2D game engine mirroring the love2d API, built with SDL3 and Bun",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "build-sdl3": "bash scripts/build-sdl3.sh"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

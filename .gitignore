@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Vendor build artifacts
+vendor/SDL3/
+vendor/love2d/
+
+# Build output
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Test artifacts
+tests/screenshots/actual/
