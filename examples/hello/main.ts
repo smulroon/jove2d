@@ -1,15 +1,20 @@
-// jove2d hello example — creates a window for 2 seconds then exits
+// jove2d hello example — uses the game loop API
 
-import { init, quit, createWindow, destroyWindow } from "../../src/jove/index.ts";
-import { SDL_WINDOW_RESIZABLE } from "../../src/sdl/types.ts";
+import jove from "../../src/index.ts";
 
-init();
+let frameCount = 0;
 
-const window = createWindow("Hello jove2d!", 800, 600, SDL_WINDOW_RESIZABLE);
-console.log("Window created! Closing in 2 seconds...");
+await jove.run({
+  load() {
+    jove.window.setTitle("Hello jove2d!");
+    console.log(`jove2d ${jove.getVersion()} — window opened!`);
+  },
 
-await Bun.sleep(2000);
+  update(dt) {
+    frameCount++;
+  },
 
-destroyWindow(window);
-quit();
-console.log("Done.");
+  draw() {
+    // Rendering will come later — for now the window just stays open
+  },
+});

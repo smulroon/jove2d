@@ -1,7 +1,7 @@
 // jove2d entry point
 
-import { init, quit, getVersion } from "./jove/index.ts";
+export { init, quit, getVersion, run, window } from "./jove/index.ts";
+export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./jove/types.ts";
 
-init();
-console.log(`SDL3 initialized successfully! (version ${getVersion()})`);
-quit();
+import * as jove from "./jove/index.ts";
+export default jove;
