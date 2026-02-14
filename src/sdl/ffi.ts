@@ -154,6 +154,49 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.pointer],
     returns: FFIType.bool,
   },
+
+  // --- Surface / Screenshot ---
+
+  // SDL_Surface* SDL_GetWindowSurface(SDL_Window* window)
+  SDL_GetWindowSurface: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // bool SDL_UpdateWindowSurface(SDL_Window* window)
+  SDL_UpdateWindowSurface: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SavePNG(SDL_Surface* surface, const char* file)
+  SDL_SavePNG: {
+    args: [FFIType.pointer, FFIType.cstring],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SaveBMP(SDL_Surface* surface, const char* file)
+  SDL_SaveBMP: {
+    args: [FFIType.pointer, FFIType.cstring],
+    returns: FFIType.bool,
+  },
+  // SDL_Surface* SDL_DuplicateSurface(SDL_Surface* surface)
+  SDL_DuplicateSurface: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // void SDL_DestroySurface(SDL_Surface* surface)
+  SDL_DestroySurface: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // bool SDL_LockSurface(SDL_Surface* surface)
+  SDL_LockSurface: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // void SDL_UnlockSurface(SDL_Surface* surface)
+  SDL_UnlockSurface: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
 });
 
 export default sdl;

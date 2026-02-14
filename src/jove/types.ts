@@ -29,6 +29,14 @@ export interface GameCallbacks {
   resize?(width: number, height: number): void;
 }
 
+/** Raw pixel data from a screenshot capture */
+export interface ImageData {
+  data: Uint8Array;
+  width: number;
+  height: number;
+  format: string; // e.g. "rgba8888", "bgra8888"
+}
+
 /** Discriminated union of jove events */
 export type JoveEvent =
   | { type: "quit" }

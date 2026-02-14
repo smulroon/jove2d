@@ -3,11 +3,13 @@
 import sdl from "../sdl/ffi.ts";
 import { SDL_INIT_VIDEO } from "../sdl/types.ts";
 import * as window from "./window.ts";
+import * as graphics from "./graphics.ts";
+import { _flushCaptures } from "./graphics.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window };
-export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./types.ts";
+export { window, graphics };
+export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 
 let _initialized = false;
 
@@ -98,6 +100,7 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
     // Update and draw
     callbacks.update?.(dt);
     callbacks.draw?.();
+    _flushCaptures();
 
     // Yield to event loop (~1ms sleep to prevent CPU spin)
     await Bun.sleep(1);

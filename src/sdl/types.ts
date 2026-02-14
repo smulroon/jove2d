@@ -5,6 +5,17 @@ import type { Pointer } from "bun:ffi";
 /** Opaque pointer to an SDL_Window */
 export type SDLWindow = Pointer;
 
+/** Opaque pointer to an SDL_Surface */
+export type SDLSurface = Pointer;
+
+// SDL_Surface struct offsets (64-bit Linux x86-64, from SDL_surface.h)
+// flags(u32,0) format(u32,4) w(i32,8) h(i32,12) pitch(i32,16) [4-byte pad] pixels(ptr,24)
+export const SDL_SURFACE_OFFSET_W = 8;
+export const SDL_SURFACE_OFFSET_H = 12;
+export const SDL_SURFACE_OFFSET_PITCH = 16;
+export const SDL_SURFACE_OFFSET_PIXELS = 24;
+export const SDL_SURFACE_OFFSET_FORMAT = 4;
+
 /** SDL_InitFlags (Uint32) */
 export const SDL_INIT_AUDIO = 0x00000010;
 export const SDL_INIT_VIDEO = 0x00000020;
