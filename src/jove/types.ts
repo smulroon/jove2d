@@ -27,6 +27,12 @@ export interface GameCallbacks {
   quit?(): boolean | void;
   focus?(hasFocus: boolean): void;
   resize?(width: number, height: number): void;
+  keypressed?(key: string, scancode: string, isRepeat: boolean): void;
+  keyreleased?(key: string, scancode: string): void;
+  mousepressed?(x: number, y: number, button: number, isTouch: boolean): void;
+  mousereleased?(x: number, y: number, button: number, isTouch: boolean): void;
+  mousemoved?(x: number, y: number, dx: number, dy: number): void;
+  wheelmoved?(x: number, y: number): void;
 }
 
 /** Raw pixel data from a screenshot capture */
@@ -48,4 +54,10 @@ export type JoveEvent =
   | { type: "restored" }
   | { type: "shown" }
   | { type: "hidden" }
-  | { type: "close" };
+  | { type: "close" }
+  | { type: "keypressed"; key: string; scancode: string; isRepeat: boolean }
+  | { type: "keyreleased"; key: string; scancode: string }
+  | { type: "mousepressed"; x: number; y: number; button: number; clicks: number }
+  | { type: "mousereleased"; x: number; y: number; button: number }
+  | { type: "mousemoved"; x: number; y: number; dx: number; dy: number }
+  | { type: "wheelmoved"; x: number; y: number };

@@ -57,5 +57,79 @@ export const SDL_EVENT_WINDOW_FOCUS_GAINED = 0x20e;
 export const SDL_EVENT_WINDOW_FOCUS_LOST = 0x20f;
 export const SDL_EVENT_WINDOW_CLOSE_REQUESTED = 0x210;
 
+/** Keyboard event constants */
+export const SDL_EVENT_KEY_DOWN = 0x300;
+export const SDL_EVENT_KEY_UP = 0x301;
+export const SDL_EVENT_TEXT_INPUT = 0x303;
+
+/** Mouse event constants */
+export const SDL_EVENT_MOUSE_MOTION = 0x400;
+export const SDL_EVENT_MOUSE_BUTTON_DOWN = 0x401;
+export const SDL_EVENT_MOUSE_BUTTON_UP = 0x402;
+export const SDL_EVENT_MOUSE_WHEEL = 0x403;
+
 /** Size of SDL_Event union in bytes */
 export const SDL_EVENT_SIZE = 128;
+
+/** SDL_KeyboardEvent struct offsets (x86-64) */
+export const SDL_KEYBOARD_EVENT_SCANCODE = 24;
+export const SDL_KEYBOARD_EVENT_KEY = 28;
+export const SDL_KEYBOARD_EVENT_MOD = 32;
+export const SDL_KEYBOARD_EVENT_DOWN = 36;
+export const SDL_KEYBOARD_EVENT_REPEAT = 37;
+
+/** SDL_MouseMotionEvent struct offsets */
+export const SDL_MOUSE_MOTION_STATE = 24;
+export const SDL_MOUSE_MOTION_X = 28;
+export const SDL_MOUSE_MOTION_Y = 32;
+export const SDL_MOUSE_MOTION_XREL = 36;
+export const SDL_MOUSE_MOTION_YREL = 40;
+
+/** SDL_MouseButtonEvent struct offsets */
+export const SDL_MOUSE_BUTTON_BUTTON = 24;
+export const SDL_MOUSE_BUTTON_DOWN = 25;
+export const SDL_MOUSE_BUTTON_CLICKS = 26;
+export const SDL_MOUSE_BUTTON_X = 28;
+export const SDL_MOUSE_BUTTON_Y = 32;
+
+/** SDL_MouseWheelEvent struct offsets */
+export const SDL_MOUSE_WHEEL_X = 24;
+export const SDL_MOUSE_WHEEL_Y = 28;
+export const SDL_MOUSE_WHEEL_DIR = 32;
+
+/** SDL_BlendMode constants */
+export const SDL_BLENDMODE_NONE = 0x00000000;
+export const SDL_BLENDMODE_BLEND = 0x00000001;
+
+/** Opaque pointer to an SDL_Renderer */
+export type SDLRenderer = Pointer;
+
+/**
+ * SDL scancode → love2d-style key name mapping.
+ * Based on SDL_Scancode enum values.
+ */
+export const SCANCODE_NAMES: Record<number, string> = {
+  4: "a", 5: "b", 6: "c", 7: "d", 8: "e", 9: "f", 10: "g", 11: "h",
+  12: "i", 13: "j", 14: "k", 15: "l", 16: "m", 17: "n", 18: "o", 19: "p",
+  20: "q", 21: "r", 22: "s", 23: "t", 24: "u", 25: "v", 26: "w", 27: "x",
+  28: "y", 29: "z",
+  30: "1", 31: "2", 32: "3", 33: "4", 34: "5", 35: "6", 36: "7", 37: "8",
+  38: "9", 39: "0",
+  40: "return", 41: "escape", 42: "backspace", 43: "tab", 44: "space",
+  45: "-", 46: "=", 47: "[", 48: "]", 49: "\\",
+  51: ";", 52: "'", 53: "`", 54: ",", 55: ".", 56: "/",
+  57: "capslock",
+  58: "f1", 59: "f2", 60: "f3", 61: "f4", 62: "f5", 63: "f6",
+  64: "f7", 65: "f8", 66: "f9", 67: "f10", 68: "f11", 69: "f12",
+  70: "printscreen", 71: "scrolllock", 72: "pause",
+  73: "insert", 74: "home", 75: "pageup",
+  76: "delete", 77: "end", 78: "pagedown",
+  79: "right", 80: "left", 81: "down", 82: "up",
+  83: "numlock",
+  84: "kp/", 85: "kp*", 86: "kp-", 87: "kp+", 88: "kpenter",
+  89: "kp1", 90: "kp2", 91: "kp3", 92: "kp4", 93: "kp5",
+  94: "kp6", 95: "kp7", 96: "kp8", 97: "kp9", 98: "kp0",
+  99: "kp.",
+  224: "lctrl", 225: "lshift", 226: "lalt", 227: "lgui",
+  228: "rctrl", 229: "rshift", 230: "ralt", 231: "rgui",
+};

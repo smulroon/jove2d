@@ -1,7 +1,7 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
 import { init, quit, window, graphics } from "../src/jove/index.ts";
-import { _flushCaptures } from "../src/jove/graphics.ts";
+import { _flushCaptures, _createRenderer, _destroyRenderer } from "../src/jove/graphics.ts";
 import type { ImageData } from "../src/jove/types.ts";
 
 const TMP_PNG = "/tmp/jove2d-test-screenshot.png";
@@ -13,6 +13,12 @@ function cleanup(...paths: string[]) {
   }
 }
 
+function setupWindowAndRenderer() {
+  init();
+  window.setMode(320, 240);
+  _createRenderer();
+}
+
 describe("jove.graphics.captureScreenshot", () => {
   afterEach(() => {
     cleanup(TMP_PNG, TMP_BMP);
@@ -20,8 +26,7 @@ describe("jove.graphics.captureScreenshot", () => {
   });
 
   test("saves PNG file", () => {
-    init();
-    window.setMode(320, 240);
+    setupWindowAndRenderer();
     cleanup(TMP_PNG);
 
     graphics.captureScreenshot(TMP_PNG);
@@ -31,8 +36,7 @@ describe("jove.graphics.captureScreenshot", () => {
   });
 
   test("saves BMP file", () => {
-    init();
-    window.setMode(320, 240);
+    setupWindowAndRenderer();
     cleanup(TMP_BMP);
 
     graphics.captureScreenshot(TMP_BMP);
@@ -42,8 +46,7 @@ describe("jove.graphics.captureScreenshot", () => {
   });
 
   test("callback receives valid ImageData", () => {
-    init();
-    window.setMode(320, 240);
+    setupWindowAndRenderer();
 
     let received: ImageData | null = null;
     graphics.captureScreenshot((img) => {
@@ -59,8 +62,7 @@ describe("jove.graphics.captureScreenshot", () => {
   });
 
   test("multiple captures execute in order", () => {
-    init();
-    window.setMode(320, 240);
+    setupWindowAndRenderer();
 
     const results: number[] = [];
     graphics.captureScreenshot(() => results.push(1));
@@ -72,15 +74,14 @@ describe("jove.graphics.captureScreenshot", () => {
 
   test("no window does not throw", () => {
     init();
-    // No window created
+    // No window/renderer created
     graphics.captureScreenshot("/tmp/jove2d-should-not-exist.png");
     expect(() => _flushCaptures()).not.toThrow();
     expect(existsSync("/tmp/jove2d-should-not-exist.png")).toBe(false);
   });
 
   test("file capture defaults to PNG for unknown extension", () => {
-    init();
-    window.setMode(320, 240);
+    setupWindowAndRenderer();
     const path = "/tmp/jove2d-test-screenshot.xyz";
     cleanup(path);
 

@@ -197,6 +197,115 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.pointer],
     returns: FFIType.void,
   },
+
+  // --- Renderer ---
+
+  // SDL_Renderer* SDL_CreateRenderer(SDL_Window* window, const char* name)
+  SDL_CreateRenderer: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // void SDL_DestroyRenderer(SDL_Renderer* renderer)
+  SDL_DestroyRenderer: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // bool SDL_SetRenderDrawColor(SDL_Renderer* renderer, u8 r, u8 g, u8 b, u8 a)
+  SDL_SetRenderDrawColor: {
+    args: [FFIType.pointer, FFIType.u8, FFIType.u8, FFIType.u8, FFIType.u8],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetRenderDrawColor(SDL_Renderer* renderer, u8* r, u8* g, u8* b, u8* a)
+  SDL_GetRenderDrawColor: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderClear(SDL_Renderer* renderer)
+  SDL_RenderClear: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderPresent(SDL_Renderer* renderer)
+  SDL_RenderPresent: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderPoint(SDL_Renderer* renderer, float x, float y)
+  SDL_RenderPoint: {
+    args: [FFIType.pointer, FFIType.f32, FFIType.f32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderLine(SDL_Renderer* renderer, float x1, float y1, float x2, float y2)
+  SDL_RenderLine: {
+    args: [FFIType.pointer, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.f32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderLines(SDL_Renderer* renderer, const SDL_FPoint* points, int count)
+  SDL_RenderLines: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderRect(SDL_Renderer* renderer, const SDL_FRect* rect)
+  SDL_RenderRect: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderFillRect(SDL_Renderer* renderer, const SDL_FRect* rect)
+  SDL_RenderFillRect: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderGeometry(SDL_Renderer* renderer, SDL_Texture* texture, const SDL_Vertex* vertices, int num_vertices, const int* indices, int num_indices)
+  SDL_RenderGeometry: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32, FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetRenderDrawBlendMode(SDL_Renderer* renderer, SDL_BlendMode blendMode)
+  SDL_SetRenderDrawBlendMode: {
+    args: [FFIType.pointer, FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderDebugText(SDL_Renderer* renderer, float x, float y, const char* str)
+  SDL_RenderDebugText: {
+    args: [FFIType.pointer, FFIType.f32, FFIType.f32, FFIType.cstring],
+    returns: FFIType.bool,
+  },
+  // SDL_Surface* SDL_RenderReadPixels(SDL_Renderer* renderer, const SDL_Rect* rect)
+  SDL_RenderReadPixels: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+
+  // --- Keyboard ---
+
+  // const bool* SDL_GetKeyboardState(int* numkeys)
+  SDL_GetKeyboardState: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // const char* SDL_GetKeyName(SDL_Keycode key)
+  SDL_GetKeyName: {
+    args: [FFIType.u32],
+    returns: FFIType.cstring,
+  },
+  // SDL_Keycode SDL_GetKeyFromScancode(SDL_Scancode scancode, SDL_Keymod modstate, bool key_event)
+  SDL_GetKeyFromScancode: {
+    args: [FFIType.i32, FFIType.u16, FFIType.bool],
+    returns: FFIType.u32,
+  },
+
+  // --- Mouse ---
+
+  // SDL_MouseButtonFlags SDL_GetMouseState(float* x, float* y)
+  SDL_GetMouseState: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.u32,
+  },
+  // void SDL_WarpMouseInWindow(SDL_Window* window, float x, float y)
+  SDL_WarpMouseInWindow: {
+    args: [FFIType.pointer, FFIType.f32, FFIType.f32],
+    returns: FFIType.void,
+  },
 });
 
 export default sdl;

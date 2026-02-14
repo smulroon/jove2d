@@ -4,11 +4,12 @@ import sdl from "../sdl/ffi.ts";
 import { SDL_INIT_VIDEO } from "../sdl/types.ts";
 import * as window from "./window.ts";
 import * as graphics from "./graphics.ts";
-import { _flushCaptures } from "./graphics.ts";
+import * as keyboard from "./keyboard.ts";
+import * as mouse from "./mouse.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics };
+export { window, graphics, keyboard, mouse };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 
 let _initialized = false;
@@ -24,6 +25,7 @@ export function init(flags: number = SDL_INIT_VIDEO): boolean {
 }
 
 export function quit(): void {
+  graphics._destroyRenderer();
   window.close();
   sdl.SDL_Quit();
   _initialized = false;
@@ -52,6 +54,9 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
       throw new Error(`Failed to create window: ${sdl.SDL_GetError()}`);
     }
   }
+
+  // Create renderer
+  graphics._createRenderer();
 
   // Call load() once
   if (callbacks.load) {
@@ -87,6 +92,24 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
         case "resize":
           callbacks.resize?.(event.width, event.height);
           break;
+        case "keypressed":
+          callbacks.keypressed?.(event.key, event.scancode, event.isRepeat);
+          break;
+        case "keyreleased":
+          callbacks.keyreleased?.(event.key, event.scancode);
+          break;
+        case "mousepressed":
+          callbacks.mousepressed?.(event.x, event.y, event.button, false);
+          break;
+        case "mousereleased":
+          callbacks.mousereleased?.(event.x, event.y, event.button, false);
+          break;
+        case "mousemoved":
+          callbacks.mousemoved?.(event.x, event.y, event.dx, event.dy);
+          break;
+        case "wheelmoved":
+          callbacks.wheelmoved?.(event.x, event.y);
+          break;
       }
     }
 
@@ -97,10 +120,15 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
     const dt = (now - lastTime) / 1000; // seconds
     lastTime = now;
 
+    // Begin frame (clear with background color)
+    graphics._beginFrame();
+
     // Update and draw
     callbacks.update?.(dt);
     callbacks.draw?.();
-    _flushCaptures();
+
+    // End frame (flush captures + present)
+    graphics._endFrame();
 
     // Yield to event loop (~1ms sleep to prevent CPU spin)
     await Bun.sleep(1);
