@@ -99,12 +99,14 @@ export type CompareMode = "greater" | "gequal" | "equal" | "notequal" | "less" |
 export type StencilAction = "replace" | "increment" | "decrement" | "incrementwrap" | "decrementwrap" | "invert";
 
 let _stencilCanvas: Canvas | null = null;        // normal: white inside mask, transparent outside
-let _stencilInvCanvas: Canvas | null = null;      // inverted: transparent inside mask, white outside
+let _stencilInvCanvas: Canvas | null = null;      // inverted: created lazily only when needed
 let _stencilContentCanvas: Canvas | null = null;
 let _stencilCompare: CompareMode | null = null;
 let _stencilValue: number = 0;
 let _stencilOrigCanvas: Canvas | null = null;
 let _stencilActive = false;
+let _stencilPendingFn: (() => void) | null = null; // stored for lazy inverted canvas
+let _stencilPendingKeep = false;
 
 /** SDL_PixelFormat enum → string mapping (common formats) */
 const PIXEL_FORMAT_NAMES: Record<number, string> = {
@@ -1693,12 +1695,10 @@ function _ensureStencilCanvas(): void {
     _stencilCanvas = newCanvas(w, h);
   }
 
+  // Inverted canvas is created lazily in _ensureStencilInvCanvas() only when needed
   if (_stencilInvCanvas && (_stencilInvCanvas._width !== w || _stencilInvCanvas._height !== h)) {
     _stencilInvCanvas.release();
     _stencilInvCanvas = null;
-  }
-  if (!_stencilInvCanvas) {
-    _stencilInvCanvas = newCanvas(w, h);
   }
 
   if (_stencilContentCanvas && (_stencilContentCanvas._width !== w || _stencilContentCanvas._height !== h)) {
@@ -1708,6 +1708,44 @@ function _ensureStencilCanvas(): void {
   if (!_stencilContentCanvas) {
     _stencilContentCanvas = newCanvas(w, h);
   }
+}
+
+/**
+ * Lazily prepare the inverted stencil canvas by replaying the stored fn.
+ * Only called when the compare mode actually needs the inverted mask.
+ */
+function _prepareInvertedStencil(): Canvas | null {
+  if (!_renderer || !_stencilPendingFn) return _stencilInvCanvas;
+
+  const mode = getMode();
+  if (!_stencilInvCanvas) {
+    _stencilInvCanvas = newCanvas(mode.width, mode.height);
+  }
+  if (!_stencilInvCanvas) return null;
+
+  // Save state
+  const savedCanvas = _activeCanvas;
+  const savedColor: [number, number, number, number] = [..._drawColor] as [number, number, number, number];
+  const savedBlend = _blendMode;
+
+  // Draw transparent holes on white background
+  setCanvas(_stencilInvCanvas);
+  if (!_stencilPendingKeep) {
+    sdl.SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+    sdl.SDL_RenderClear(_renderer);
+  }
+  setColor(0, 0, 0, 0);
+  setBlendMode("replace");
+  _stencilPendingFn();
+
+  // Restore state
+  setCanvas(savedCanvas);
+  _drawColor = savedColor;
+  _blendMode = savedBlend;
+  sdl.SDL_SetRenderDrawColor(_renderer, savedColor[0], savedColor[1], savedColor[2], savedColor[3]);
+  sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[savedBlend] ?? SDL_BLENDMODE_BLEND);
+
+  return _stencilInvCanvas;
 }
 
 /**
@@ -1732,7 +1770,7 @@ export function stencil(
   const savedBlend = _blendMode;
 
   if (_stencilCanvas) {
-    // --- Normal stencil: white shapes on transparent background ---
+    // Draw white shapes on transparent background to stencil canvas
     setCanvas(_stencilCanvas);
     if (!keepvalues) {
       sdl.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
@@ -1742,17 +1780,9 @@ export function stencil(
     setBlendMode("replace");
     fn();
 
-    // --- Inverted stencil: transparent holes on white background ---
-    if (_stencilInvCanvas) {
-      setCanvas(_stencilInvCanvas);
-      if (!keepvalues) {
-        sdl.SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
-        sdl.SDL_RenderClear(_renderer);
-      }
-      setColor(0, 0, 0, 0);
-      setBlendMode("replace");
-      fn();
-    }
+    // Store fn for lazy inverted canvas creation (only if setStencilTest needs it)
+    _stencilPendingFn = fn;
+    _stencilPendingKeep = keepvalues;
   } else {
     // No canvas support — still call fn() for side effects
     fn();
@@ -1796,9 +1826,16 @@ export function setStencilTest(comparemode?: CompareMode, comparevalue?: number)
         sdl.SDL_RenderTexture(_renderer, _stencilContentCanvas._texture, null, null);
       } else {
         // Pick the right mask canvas (normal or inverted)
-        const maskCanvas = useInverse ? _stencilInvCanvas : _stencilCanvas;
+        let maskCanvas: Canvas | null;
+        if (useInverse) {
+          // Lazily create inverted canvas from stored fn
+          maskCanvas = _prepareInvertedStencil();
+        } else {
+          maskCanvas = _stencilCanvas;
+        }
         if (maskCanvas) {
           // Step 1: Draw content onto mask canvas with MOD blend
+          // MOD: result_rgb = content_rgb * mask_rgb, result_alpha = mask_alpha
           setCanvas(maskCanvas);
           sdl.SDL_SetTextureBlendMode(_stencilContentCanvas._texture, SDL_BLENDMODE_MOD);
           sdl.SDL_RenderTexture(_renderer, _stencilContentCanvas._texture, null, null);
@@ -1814,6 +1851,7 @@ export function setStencilTest(comparemode?: CompareMode, comparevalue?: number)
     _stencilActive = false;
     _stencilCompare = null;
     _stencilValue = 0;
+    _stencilPendingFn = null;
 
     // Restore draw state
     const [dr, dg, db, da] = _drawColor;
