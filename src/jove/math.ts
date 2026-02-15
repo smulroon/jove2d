@@ -426,58 +426,105 @@ function _createTransformFromValues(
 
 /** Triangulate a simple polygon into triangles. Returns array of index triples. */
 export function triangulate(vertices: number[]): number[][] {
-  // Ear clipping triangulation for simple polygons
-  // Returns array of triangles, each triangle is [x1, y1, x2, y2, x3, y3]
-  // matching love2d's love.math.triangulate API
+  // Ear clipping triangulation matching love2d's algorithm.
+  // Uses linked-list prev/next arrays, detects winding, advances to next after clip.
+  // Returns array of triangles, each triangle is [x1, y1, x2, y2, x3, y3].
   const n = vertices.length / 2;
   if (n < 3) return [];
   if (n === 3) return [[vertices[0], vertices[1], vertices[2], vertices[3], vertices[4], vertices[5]]];
 
-  const indices: number[] = [];
-  for (let i = 0; i < n; i++) indices.push(i);
+  // Build circular linked list via next/prev index arrays
+  const nextIdx = new Array<number>(n);
+  const prevIdx = new Array<number>(n);
+  for (let i = 0; i < n; i++) {
+    nextIdx[i] = i + 1;
+    prevIdx[i] = i - 1;
+  }
+  nextIdx[n - 1] = 0;
+  prevIdx[0] = n - 1;
+
+  // Find leftmost vertex to determine winding
+  let lm = 0;
+  for (let i = 1; i < n; i++) {
+    if (vertices[i * 2] < vertices[lm * 2] ||
+        (vertices[i * 2] === vertices[lm * 2] && vertices[i * 2 + 1] < vertices[lm * 2 + 1])) {
+      lm = i;
+    }
+  }
+
+  // Check if CCW at leftmost vertex
+  const lmPrev = prevIdx[lm], lmNext = nextIdx[lm];
+  const isCCW = _isCCW(
+    vertices[lmPrev * 2], vertices[lmPrev * 2 + 1],
+    vertices[lm * 2], vertices[lm * 2 + 1],
+    vertices[lmNext * 2], vertices[lmNext * 2 + 1],
+  );
+
+  // If clockwise, swap prev/next to reverse traversal (matches love2d)
+  if (!isCCW) {
+    const tmp = nextIdx.slice();
+    for (let i = 0; i < n; i++) { nextIdx[i] = prevIdx[i]; prevIdx[i] = tmp[i]; }
+  }
 
   const triangles: number[][] = [];
+  let nVerts = n;
+  // LOVE2D COMPAT HACK: love2d's C++ ear clipper starts at index 1 instead of 0,
+  // likely a vestige of Lua's 1-based indexing. We match this to produce identical triangulations.
+  let current = 1;
+  let skipped = 0;
 
-  let remaining = n;
-  let i = 0;
-  let failsafe = remaining * 3;
-
-  while (remaining > 2 && failsafe > 0) {
-    failsafe--;
-    const prev = indices[(i - 1 + remaining) % remaining];
-    const curr = indices[i % remaining];
-    const next = indices[(i + 1) % remaining];
+  while (nVerts > 3) {
+    const prev = prevIdx[current];
+    const next = nextIdx[current];
 
     const ax = vertices[prev * 2], ay = vertices[prev * 2 + 1];
-    const bx = vertices[curr * 2], by = vertices[curr * 2 + 1];
+    const bx = vertices[current * 2], by = vertices[current * 2 + 1];
     const cx = vertices[next * 2], cy = vertices[next * 2 + 1];
 
-    // Check if ear (convex vertex with no other vertices inside)
-    const cross = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
-    if (cross > 0) {
+    if (_isCCW(ax, ay, bx, by, cx, cy)) {
       let isEar = true;
-      for (let j = 0; j < remaining; j++) {
-        const idx = indices[j];
-        if (idx === prev || idx === curr || idx === next) continue;
-        const px = vertices[idx * 2], py = vertices[idx * 2 + 1];
-        if (_pointInTriangle(px, py, ax, ay, bx, by, cx, cy)) {
+      let test = nextIdx[next];
+      while (test !== prev) {
+        const tx = vertices[test * 2], ty = vertices[test * 2 + 1];
+        if (_pointInTriangle(tx, ty, ax, ay, bx, by, cx, cy)) {
           isEar = false;
           break;
         }
+        test = nextIdx[test];
       }
       if (isEar) {
         triangles.push([ax, ay, bx, by, cx, cy]);
-        indices.splice(i % remaining, 1);
-        remaining--;
-        i = 0;
+        // Remove current vertex from linked list
+        nextIdx[prev] = next;
+        prevIdx[next] = prev;
+        nVerts--;
+        current = next;
+        skipped = 0;
         continue;
       }
     }
-    i++;
-    if (i >= remaining) i = 0;
+
+    current = nextIdx[current];
+    skipped++;
+    if (skipped > nVerts) break; // no ear found, bail
+  }
+
+  // Final triangle
+  if (nVerts === 3) {
+    const prev = prevIdx[current];
+    const next = nextIdx[current];
+    triangles.push([
+      vertices[prev * 2], vertices[prev * 2 + 1],
+      vertices[current * 2], vertices[current * 2 + 1],
+      vertices[next * 2], vertices[next * 2 + 1],
+    ]);
   }
 
   return triangles;
+}
+
+function _isCCW(ax: number, ay: number, bx: number, by: number, cx: number, cy: number): boolean {
+  return ((bx - ax) * (cy - ay) - (by - ay) * (cx - ax)) >= 0;
 }
 
 function _pointInTriangle(
