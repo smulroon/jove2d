@@ -210,10 +210,10 @@ describe("jove.math", () => {
       expect(tris.length).toBe(0);
     });
 
-    test("triangle returns single triangle", () => {
+    test("triangle returns single triangle with coordinates", () => {
       const tris = math.triangulate([0, 0, 10, 0, 5, 10]);
       expect(tris.length).toBe(1);
-      expect(tris[0]).toEqual([0, 1, 2]);
+      expect(tris[0]).toEqual([0, 0, 10, 0, 5, 10]);
     });
   });
 

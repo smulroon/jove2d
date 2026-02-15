@@ -95,14 +95,10 @@ await jove.run({
     ];
 
     for (let i = 0; i < triangles.length; i++) {
-      const [a, b, c] = triangles[i];
+      const tri = triangles[i];
       const [cr, cg, cb] = colors[i % colors.length];
       jove.graphics.setColor(cr, cg, cb, 80);
-      jove.graphics.polygon("fill",
-        polyVerts[a * 2], polyVerts[a * 2 + 1],
-        polyVerts[b * 2], polyVerts[b * 2 + 1],
-        polyVerts[c * 2], polyVerts[c * 2 + 1],
-      );
+      jove.graphics.polygon("fill", ...tri);
     }
 
     // --- 3D noise time slice ---

@@ -427,9 +427,11 @@ function _createTransformFromValues(
 /** Triangulate a simple polygon into triangles. Returns array of index triples. */
 export function triangulate(vertices: number[]): number[][] {
   // Ear clipping triangulation for simple polygons
+  // Returns array of triangles, each triangle is [x1, y1, x2, y2, x3, y3]
+  // matching love2d's love.math.triangulate API
   const n = vertices.length / 2;
   if (n < 3) return [];
-  if (n === 3) return [[0, 1, 2]];
+  if (n === 3) return [[vertices[0], vertices[1], vertices[2], vertices[3], vertices[4], vertices[5]]];
 
   const indices: number[] = [];
   for (let i = 0; i < n; i++) indices.push(i);
@@ -464,7 +466,7 @@ export function triangulate(vertices: number[]): number[][] {
         }
       }
       if (isEar) {
-        triangles.push([prev, curr, next]);
+        triangles.push([ax, ay, bx, by, cx, cy]);
         indices.splice(i % remaining, 1);
         remaining--;
         i = 0;
