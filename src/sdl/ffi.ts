@@ -372,6 +372,39 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     returns: FFIType.bool,
   },
 
+  // --- Cursors ---
+
+  // SDL_Cursor* SDL_CreateSystemCursor(SDL_SystemCursor id)
+  SDL_CreateSystemCursor: {
+    args: [FFIType.i32],
+    returns: FFIType.pointer,
+  },
+  // SDL_Cursor* SDL_CreateColorCursor(SDL_Surface* surface, int hot_x, int hot_y)
+  SDL_CreateColorCursor: {
+    args: [FFIType.pointer, FFIType.i32, FFIType.i32],
+    returns: FFIType.pointer,
+  },
+  // bool SDL_SetCursor(SDL_Cursor* cursor)
+  SDL_SetCursor: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // SDL_Cursor* SDL_GetCursor(void)
+  SDL_GetCursor: {
+    args: [],
+    returns: FFIType.pointer,
+  },
+  // void SDL_DestroyCursor(SDL_Cursor* cursor)
+  SDL_DestroyCursor: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // SDL_Surface* SDL_CreateSurfaceFrom(int width, int height, SDL_PixelFormat format, void* pixels, int pitch)
+  SDL_CreateSurfaceFrom: {
+    args: [FFIType.i32, FFIType.i32, FFIType.i32, FFIType.pointer, FFIType.i32],
+    returns: FFIType.pointer,
+  },
+
   // --- Textures ---
 
   // SDL_Texture* SDL_CreateTextureFromSurface(SDL_Renderer* renderer, SDL_Surface* surface)

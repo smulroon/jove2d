@@ -168,6 +168,28 @@ export type SDLRenderer = Pointer;
 /** Opaque pointer to an SDL_Texture */
 export type SDLTexture = Pointer;
 
+/** love2d cursor type names */
+export type CursorType =
+  | "arrow" | "ibeam" | "wait" | "crosshair" | "waitarrow"
+  | "sizenwse" | "sizenesw" | "sizewe" | "sizens" | "sizeall"
+  | "no" | "hand";
+
+/** Map from love2d cursor name → SDL_SystemCursor enum value */
+export const CURSOR_TYPE_TO_SDL: Record<CursorType, number> = {
+  arrow: 0,       // SDL_SYSTEM_CURSOR_DEFAULT
+  ibeam: 1,       // SDL_SYSTEM_CURSOR_TEXT
+  wait: 2,        // SDL_SYSTEM_CURSOR_WAIT
+  crosshair: 3,   // SDL_SYSTEM_CURSOR_CROSSHAIR
+  waitarrow: 4,   // SDL_SYSTEM_CURSOR_PROGRESS
+  sizenwse: 5,    // SDL_SYSTEM_CURSOR_NWSE_RESIZE
+  sizenesw: 6,    // SDL_SYSTEM_CURSOR_NESW_RESIZE
+  sizewe: 7,      // SDL_SYSTEM_CURSOR_EW_RESIZE
+  sizens: 8,      // SDL_SYSTEM_CURSOR_NS_RESIZE
+  sizeall: 9,     // SDL_SYSTEM_CURSOR_MOVE
+  no: 10,         // SDL_SYSTEM_CURSOR_NOT_ALLOWED
+  hand: 11,       // SDL_SYSTEM_CURSOR_POINTER
+};
+
 /**
  * SDL scancode → love2d-style key name mapping.
  * Based on SDL_Scancode enum values.

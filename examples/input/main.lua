@@ -9,6 +9,8 @@ local mouseLabel = ""
 local typedText = ""
 local cursorVisible = true
 local mouseGrabbed = false
+local cursorTypes = {"arrow", "ibeam", "hand", "crosshair", "wait", "no"}
+local cursorIndex = 1
 
 function love.load()
   love.window.setTitle("Input Example")
@@ -65,8 +67,9 @@ function love.draw()
 
   -- Mouse state info
   love.graphics.setColor(180/255, 180/255, 180/255)
-  love.graphics.print("Cursor visible: " .. tostring(cursorVisible) .. " (V to toggle)", 10, 540)
-  love.graphics.print("Mouse grabbed: " .. tostring(mouseGrabbed) .. " (G to toggle)", 10, 560)
+  love.graphics.print("Cursor visible: " .. tostring(cursorVisible) .. " (V to toggle)", 10, 520)
+  love.graphics.print("Mouse grabbed: " .. tostring(mouseGrabbed) .. " (G to toggle)", 10, 540)
+  love.graphics.print("Cursor type: " .. cursorTypes[cursorIndex] .. " (C to cycle)", 10, 560)
   love.graphics.print("Key repeat: OFF (only initial presses shown)", 10, 580)
 end
 
@@ -81,6 +84,9 @@ function love.keypressed(key, scancode, isRepeat)
   elseif key == "g" then
     mouseGrabbed = not mouseGrabbed
     love.mouse.setGrabbed(mouseGrabbed)
+  elseif key == "c" then
+    cursorIndex = cursorIndex % #cursorTypes + 1
+    love.mouse.setCursor(love.mouse.getSystemCursor(cursorTypes[cursorIndex]))
   elseif key == "backspace" then
     typedText = typedText:sub(1, -2)
   end

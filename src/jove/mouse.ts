@@ -1,7 +1,10 @@
 // jove2d mouse module — mirrors love.mouse API
 
-import { ptr, read } from "bun:ffi";
+import { ptr, read, type Pointer } from "bun:ffi";
 import sdl from "../sdl/ffi.ts";
+import { CURSOR_TYPE_TO_SDL, SDL_PIXELFORMAT_RGBA8888 } from "../sdl/types.ts";
+import type { CursorType } from "../sdl/types.ts";
+import type { ImageData } from "./types.ts";
 import { _getSDLWindow } from "./window.ts";
 
 // Pre-allocated out-param buffers for x/y (float)
@@ -92,4 +95,127 @@ export function getRelativeMode(): boolean {
   const win = _getSDLWindow();
   if (!win) return false;
   return sdl.SDL_GetWindowRelativeMouseMode(win);
+}
+
+// --- Cursor support ---
+
+/** A mouse cursor (system or custom image). */
+export interface Cursor {
+  _ptr: Pointer;
+  _type: "system" | "image";
+  release(): void;
+}
+
+let _currentCursor: Cursor | null = null;
+const _systemCursorCache = new Map<string, Cursor>();
+
+/** Set the mouse X coordinate (keeps current Y). */
+export function setX(x: number): void {
+  setPosition(x, getY());
+}
+
+/** Set the mouse Y coordinate (keeps current X). */
+export function setY(y: number): void {
+  setPosition(getX(), y);
+}
+
+/** Check if cursor functionality is supported (always true on desktop). */
+export function isCursorSupported(): boolean {
+  return true;
+}
+
+/** Get a system cursor by love2d name. Cached — same object returned for same type. */
+export function getSystemCursor(cursorType: CursorType): Cursor {
+  const cached = _systemCursorCache.get(cursorType);
+  if (cached) return cached;
+
+  const sdlId = CURSOR_TYPE_TO_SDL[cursorType];
+  if (sdlId === undefined) {
+    throw new Error(`Unknown cursor type: ${cursorType}`);
+  }
+
+  const cursorPtr = sdl.SDL_CreateSystemCursor(sdlId);
+  if (!cursorPtr) {
+    throw new Error(`SDL_CreateSystemCursor failed: ${sdl.SDL_GetError()}`);
+  }
+
+  const cursor: Cursor = {
+    _ptr: cursorPtr,
+    _type: "system",
+    release() {
+      sdl.SDL_DestroyCursor(this._ptr);
+    },
+  };
+  _systemCursorCache.set(cursorType, cursor);
+  return cursor;
+}
+
+/**
+ * Set the active mouse cursor.
+ * Call with no arguments to reset to the default arrow cursor.
+ */
+export function setCursor(cursor?: Cursor): void {
+  if (!cursor) {
+    // Reset to default
+    const arrow = getSystemCursor("arrow");
+    sdl.SDL_SetCursor(arrow._ptr);
+    _currentCursor = null;
+    return;
+  }
+  sdl.SDL_SetCursor(cursor._ptr);
+  _currentCursor = cursor;
+}
+
+/** Get the currently active cursor, or null if using the default. */
+export function getCursor(): Cursor | null {
+  return _currentCursor;
+}
+
+/**
+ * Create a custom cursor from ImageData.
+ * @param imageData — RGBA pixel data with width/height
+ * @param hotX — hotspot X offset (default 0)
+ * @param hotY — hotspot Y offset (default 0)
+ */
+export function newCursor(imageData: ImageData, hotX: number = 0, hotY: number = 0): Cursor {
+  const { data, width, height } = imageData;
+  const pitch = width * 4;
+
+  // Create a temporary surface from the pixel data
+  // ptr() must be called fresh since data is a JS-written buffer
+  const surface = sdl.SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), pitch);
+  if (!surface) {
+    throw new Error(`SDL_CreateSurfaceFrom failed: ${sdl.SDL_GetError()}`);
+  }
+
+  const cursorPtr = sdl.SDL_CreateColorCursor(surface, hotX, hotY);
+  sdl.SDL_DestroySurface(surface); // SDL copies the surface data
+
+  if (!cursorPtr) {
+    throw new Error(`SDL_CreateColorCursor failed: ${sdl.SDL_GetError()}`);
+  }
+
+  return {
+    _ptr: cursorPtr,
+    _type: "image",
+    release() {
+      sdl.SDL_DestroyCursor(this._ptr);
+    },
+  };
+}
+
+/** Internal: destroy all cached cursors. Called from quit(). */
+export function _destroyCursors(): void {
+  // Reset to default first
+  const defaultCursor = _systemCursorCache.get("arrow");
+  if (defaultCursor) {
+    sdl.SDL_SetCursor(defaultCursor._ptr);
+  }
+  _currentCursor = null;
+
+  // Destroy all cached system cursors
+  for (const cursor of _systemCursorCache.values()) {
+    sdl.SDL_DestroyCursor(cursor._ptr);
+  }
+  _systemCursorCache.clear();
 }

@@ -13,7 +13,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.event | **4/6 Complete** | Missing `pump` (internal), `wait` (rarely used) |
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
-| love.mouse | **11/18 Mostly done** | Missing cursors, setX/setY |
+| love.mouse | **18/18 Complete** | All functions implemented |
 | love.math | **12/16 Mostly done** | Missing BezierCurve, color byte conversion, RNG state |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
@@ -85,14 +85,14 @@ Grouped by priority based on impact for typical 2D game development.
 - `newVideo` — needs video decoder library (P4)
 - `newArrayImage` / `newCubeImage` — advanced texture types (P4)
 
-### love.mouse — missing functions
+### ~~love.mouse — missing functions~~ DONE
 
-**Should add:**
-- `newCursor` — create cursor from ImageData
-- `setCursor` / `getCursor` — set/get active cursor
-- `getSystemCursor` — system cursor types (hand, crosshair, resize, etc.)
-- `isCursorSupported` — trivial check (always true on desktop)
-- `setX` / `setY` — set individual coordinates (trivial wrappers)
+~~**Should add:**~~
+- ~~`newCursor` — create cursor from ImageData~~
+- ~~`setCursor` / `getCursor` — set/get active cursor~~
+- ~~`getSystemCursor` — system cursor types (hand, crosshair, resize, etc.)~~
+- ~~`isCursorSupported` — trivial check (always true on desktop)~~
+- ~~`setX` / `setY` — set individual coordinates (trivial wrappers)~~
 
 ### love.math — missing functions
 
@@ -240,7 +240,7 @@ Grouped by priority based on impact for typical 2D game development.
 1. ~~**SDL_image**~~ DONE
 2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
 3. ~~**Graphics quick wins**~~ DONE — defaultFilter, transformPoint, inverseTransformPoint, intersectScissor, getStackDepth, reset (colorMask is JS-side tracking only)
-4. **Mouse cursors** — newCursor, system cursors
+4. ~~**Mouse cursors**~~ DONE — newCursor, system cursors, setX/setY, isCursorSupported
 5. **Math gaps** — colorFromBytes/colorToBytes, BezierCurve
 6. **SpriteBatch** — performance for tile maps and particle systems
 7. **Shaders** — visual effects (depends on SDL3 GPU API investigation)

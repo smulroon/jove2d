@@ -18,6 +18,7 @@ import type { GameCallbacks } from "./types.ts";
 export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, event };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 export type { Font } from "./font.ts";
+export type { Cursor } from "./mouse.ts";
 
 let _initialized = false;
 
@@ -44,6 +45,7 @@ export function init(flags: number = SDL_INIT_VIDEO): boolean {
 }
 
 export function quit(): void {
+  mouse._destroyCursors();
   audio._quit();
   graphics._destroyRenderer();
   window.close();

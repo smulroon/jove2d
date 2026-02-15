@@ -10,6 +10,8 @@ let mouseLabel = "";
 let typedText = "";
 let cursorVisible = true;
 let mouseGrabbed = false;
+const cursorTypes = ["arrow", "ibeam", "hand", "crosshair", "wait", "no"] as const;
+let cursorIndex = 0;
 
 await jove.run({
   load() {
@@ -67,8 +69,9 @@ await jove.run({
 
     // Mouse state info
     jove.graphics.setColor(180, 180, 180);
-    jove.graphics.print(`Cursor visible: ${cursorVisible} (V to toggle)`, 10, 540);
-    jove.graphics.print(`Mouse grabbed: ${mouseGrabbed} (G to toggle)`, 10, 560);
+    jove.graphics.print(`Cursor visible: ${cursorVisible} (V to toggle)`, 10, 520);
+    jove.graphics.print(`Mouse grabbed: ${mouseGrabbed} (G to toggle)`, 10, 540);
+    jove.graphics.print(`Cursor type: ${cursorTypes[cursorIndex]} (C to cycle)`, 10, 560);
     jove.graphics.print("Key repeat: OFF (only initial presses shown)", 10, 580);
   },
 
@@ -83,6 +86,9 @@ await jove.run({
     } else if (key === "g") {
       mouseGrabbed = !mouseGrabbed;
       jove.mouse.setGrabbed(mouseGrabbed);
+    } else if (key === "c") {
+      cursorIndex = (cursorIndex + 1) % cursorTypes.length;
+      jove.mouse.setCursor(jove.mouse.getSystemCursor(cursorTypes[cursorIndex]));
     } else if (key === "backspace") {
       typedText = typedText.slice(0, -1);
     }
