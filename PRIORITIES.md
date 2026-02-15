@@ -244,7 +244,7 @@ Grouped by priority based on impact for typical 2D game development.
 5. ~~**Math gaps**~~ DONE — colorFromBytes/colorToBytes, BezierCurve, getRandomState/setRandomState
 6. ~~**SpriteBatch**~~ DONE — performance for tile maps and particle systems
 7. ~~**Shaders**~~ DONE — custom fragment shaders via SDL_GPURenderState + SPIR-V compilation
-8. **ParticleSystem** — depends on SpriteBatch
+8. ~~**ParticleSystem**~~ DONE — SoA layout, compact-swap pool, full love2d API (~50 methods)
 9. **Audio improvements** — global controls, pitch, OGG/MP3 via SDL_mixer
 10. **Mesh** — custom geometry
 11. **Stencil** — masking operations

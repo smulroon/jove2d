@@ -32,6 +32,8 @@ import { _getSDLWindow, getMode } from "./window.ts";
 import type { ImageData } from "./types.ts";
 import type { Shader } from "./shader.ts";
 import { createShader } from "./shader.ts";
+import type { ParticleSystem } from "./particles.ts";
+import { createParticleSystem } from "./particles.ts";
 
 export type FilterMode = "nearest" | "linear";
 
@@ -507,6 +509,12 @@ export function newSpriteBatch(image: Image, maxSprites: number = 1000): SpriteB
   return batch;
 }
 
+/** Create a new ParticleSystem for particle effects. */
+export function newParticleSystem(image: Image, maxParticles: number = 1000): ParticleSystem | null {
+  if (!_renderer) return null;
+  return createParticleSystem(image, maxParticles);
+}
+
 /** Build the repeating index pattern for N sprites: [0,1,2, 0,2,3, 4,5,6, 4,6,7, ...] */
 function _buildIndexPattern(numSprites: number): Int32Array {
   const data = new Int32Array(numSprites * INDICES_PER_SPRITE);
@@ -627,6 +635,93 @@ function _drawSpriteBatch(
   );
 }
 
+// Scratch buffer for transforming particle vertices at draw time
+let _particleScratch = new Float32Array(0);
+
+/** Render a ParticleSystem with optional draw-level transform and global transform. */
+function _drawParticleSystem(
+  ps: ParticleSystem,
+  x: number, y: number, r: number,
+  sx: number, sy: number,
+  ox: number, oy: number,
+): void {
+  if (!_renderer) return;
+
+  const data = ps._getVertexData();
+  if (!data) return;
+
+  const { vertices, indices, numVerts, numIndices } = data;
+  const numFloats = numVerts * 8;
+
+  const hasDrawTransform = x !== 0 || y !== 0 || r !== 0 || sx !== 1 || sy !== 1 || ox !== 0 || oy !== 0;
+  const hasGlobalTransform = !_isIdentity();
+
+  if (!hasDrawTransform && !hasGlobalTransform) {
+    // Fast path: no transforms, render directly
+    const [cr, cg, cb, ca] = _drawColor;
+    sdl.SDL_SetTextureColorModFloat(ps._texture, cr / 255, cg / 255, cb / 255);
+    sdl.SDL_SetTextureAlphaModFloat(ps._texture, ca / 255);
+    sdl.SDL_RenderGeometry(
+      _renderer, ps._texture,
+      ptr(vertices), numVerts,
+      ptr(indices), numIndices,
+    );
+    return;
+  }
+
+  // Ensure scratch buffer is large enough
+  if (_particleScratch.length < numFloats) {
+    _particleScratch = new Float32Array(numFloats);
+  }
+
+  const dcos = Math.cos(r);
+  const dsin = Math.sin(r);
+
+  for (let i = 0; i < numVerts; i++) {
+    const srcOff = i * 8;
+    const dstOff = i * 8;
+
+    let vx = vertices[srcOff + 0];
+    let vy = vertices[srcOff + 1];
+
+    if (hasDrawTransform) {
+      vx -= ox;
+      vy -= oy;
+      const scx = vx * sx;
+      const scy = vy * sy;
+      vx = scx * dcos - scy * dsin + x;
+      vy = scx * dsin + scy * dcos + y;
+    }
+
+    if (hasGlobalTransform) {
+      const [tx, ty] = _transformPoint(vx, vy);
+      vx = tx;
+      vy = ty;
+    }
+
+    _particleScratch[dstOff + 0] = vx;
+    _particleScratch[dstOff + 1] = vy;
+    // Copy color + UV unchanged
+    _particleScratch[dstOff + 2] = vertices[srcOff + 2];
+    _particleScratch[dstOff + 3] = vertices[srcOff + 3];
+    _particleScratch[dstOff + 4] = vertices[srcOff + 4];
+    _particleScratch[dstOff + 5] = vertices[srcOff + 5];
+    _particleScratch[dstOff + 6] = vertices[srcOff + 6];
+    _particleScratch[dstOff + 7] = vertices[srcOff + 7];
+  }
+
+  const [cr, cg, cb, ca] = _drawColor;
+  sdl.SDL_SetTextureColorModFloat(ps._texture, cr / 255, cg / 255, cb / 255);
+  sdl.SDL_SetTextureAlphaModFloat(ps._texture, ca / 255);
+
+  // Call ptr() fresh for each render (bun:ffi caveat — JS wrote to scratch)
+  sdl.SDL_RenderGeometry(
+    _renderer, ps._texture,
+    ptr(_particleScratch), numVerts,
+    ptr(indices), numIndices,
+  );
+}
+
 // ============================================================
 // Image loading
 // ============================================================
@@ -675,14 +770,14 @@ export function newImage(path: string): Image | null {
 // ============================================================
 
 /**
- * Draw a drawable (Image, Canvas, or SpriteBatch) at the given position with optional transform.
+ * Draw a drawable (Image, Canvas, SpriteBatch, or ParticleSystem) at the given position with optional transform.
  *
  * Overloads:
  * - draw(drawable, x, y, r, sx, sy, ox, oy)
  * - draw(drawable, quad, x, y, r, sx, sy, ox, oy)
  */
 export function draw(
-  drawable: Image | SpriteBatch,
+  drawable: Image | SpriteBatch | ParticleSystem,
   quadOrX?: Quad | number,
   xOrY?: number,
   yOrR?: number,
@@ -693,6 +788,23 @@ export function draw(
   oyOrKx?: number,
 ): void {
   if (!_renderer || !drawable?._texture) return;
+
+  // Apply current blend mode to the texture (SDL_RenderGeometry / SDL_RenderTexture
+  // use the texture's blend mode, not the renderer's draw blend mode)
+  sdl.SDL_SetTextureBlendMode(drawable._texture, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+
+  // ParticleSystem path — no quad overload, just positional args
+  if ("_isParticleSystem" in drawable && drawable._isParticleSystem) {
+    const x = (quadOrX as number) ?? 0;
+    const y = xOrY ?? 0;
+    const r = yOrR ?? 0;
+    const sx = rOrSx ?? 1;
+    const sy = sxOrSy ?? sx;
+    const ox = syOrOx ?? 0;
+    const oy = oxOrOy ?? 0;
+    _drawParticleSystem(drawable, x, y, r, sx, sy, ox, oy);
+    return;
+  }
 
   // SpriteBatch path — no quad overload, just positional args
   if ("_isSpriteBatch" in drawable && drawable._isSpriteBatch) {

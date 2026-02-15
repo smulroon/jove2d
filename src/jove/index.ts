@@ -21,6 +21,7 @@ export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
 export type { BezierCurve } from "./math.ts";
 export type { SpriteBatch } from "./graphics.ts";
+export type { ParticleSystem } from "./particles.ts";
 export type { Shader } from "./shader.ts";
 
 let _initialized = false;
