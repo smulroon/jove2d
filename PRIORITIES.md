@@ -17,7 +17,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.math | **16/16 Complete** | All functions implemented |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
-| love.graphics | **~65/97 Core done** | Primitives/transforms/shaders/batching/mesh done; missing particles as graphics, stencil |
+| love.graphics | **~68/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil done; missing newText, applyTransform |
 | love.audio | **14/26 Core done** | WAV playback, global controls, pitch, looping, seek/tell, clone; no OGG/MP3, effects, or positional audio |
 
 ---
@@ -64,7 +64,7 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`newParticleSystem`~~ DONE — particle effects (in particles.ts)
 - ~~`newMesh`~~ DONE — custom vertex geometry (fan/strip/triangles/points, vertex map, textured/untextured)
 - `newText` — cached text object
-- `setStencilTest` / `stencil` — stencil buffer operations
+- ~~`setStencilTest` / `stencil`~~ DONE — stencil masking via canvas-based simulation (binary mask)
 - `applyTransform` / `replaceTransform` — apply Transform object to stack
 
 **P3 — Useful for specific cases:**
@@ -254,7 +254,7 @@ Grouped by priority based on impact for typical 2D game development.
 8. ~~**ParticleSystem**~~ DONE — SoA layout, compact-swap pool, full love2d API (~50 methods)
 9. ~~**Audio improvements**~~ DONE — global controls, pitch, looping, seek/tell, clone, getDuration (OGG/MP3 deferred)
 10. ~~**Mesh**~~ DONE — custom vertex geometry (fan/strip/triangles/points, vertex map, textured/untextured)
-11. **Stencil** — masking operations
+11. ~~**Stencil**~~ DONE — canvas-based stencil simulation with custom blend modes (binary mask)
 12. **love.data** — compression/encoding utilities
 13. **Filesystem gaps** — mount/unmount, File objects
 14. **Joystick** — gamepad support

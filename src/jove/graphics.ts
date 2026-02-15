@@ -94,6 +94,18 @@ const _scissorBuf = new Int32Array(4);
 let _scissorEnabled = false;
 let _scissor: [number, number, number, number] | null = null;
 
+// Stencil state (canvas-based simulation)
+export type CompareMode = "greater" | "gequal" | "equal" | "notequal" | "less" | "lequal" | "always" | "never";
+export type StencilAction = "replace" | "increment" | "decrement" | "incrementwrap" | "decrementwrap" | "invert";
+
+let _stencilCanvas: Canvas | null = null;        // normal: white inside mask, transparent outside
+let _stencilInvCanvas: Canvas | null = null;      // inverted: transparent inside mask, white outside
+let _stencilContentCanvas: Canvas | null = null;
+let _stencilCompare: CompareMode | null = null;
+let _stencilValue: number = 0;
+let _stencilOrigCanvas: Canvas | null = null;
+let _stencilActive = false;
+
 /** SDL_PixelFormat enum → string mapping (common formats) */
 const PIXEL_FORMAT_NAMES: Record<number, string> = {
   0x16161804: "xrgb8888",
@@ -1526,6 +1538,13 @@ export function _createRenderer(): void {
 
 /** Destroy the renderer. */
 export function _destroyRenderer(): void {
+  // Clean up stencil canvases
+  if (_stencilCanvas) { _stencilCanvas.release(); _stencilCanvas = null; }
+  if (_stencilInvCanvas) { _stencilInvCanvas.release(); _stencilInvCanvas = null; }
+  if (_stencilContentCanvas) { _stencilContentCanvas.release(); _stencilContentCanvas = null; }
+  _stencilActive = false;
+  _stencilCompare = null;
+
   // Clean up active shader
   _activeShader = null;
 
@@ -1653,6 +1672,207 @@ export function setScissor(x?: number, y?: number, w?: number, h?: number): void
 /** Get the current scissor rectangle, or null if not set. */
 export function getScissor(): [number, number, number, number] | null {
   return _scissor ? [..._scissor] as [number, number, number, number] : null;
+}
+
+// ============================================================
+// Stencil (canvas-based simulation)
+// ============================================================
+
+function _ensureStencilCanvas(): void {
+  if (!_renderer) return;
+  const mode = getMode();
+  const w = mode.width;
+  const h = mode.height;
+
+  // Recreate if size changed or doesn't exist
+  if (_stencilCanvas && (_stencilCanvas._width !== w || _stencilCanvas._height !== h)) {
+    _stencilCanvas.release();
+    _stencilCanvas = null;
+  }
+  if (!_stencilCanvas) {
+    _stencilCanvas = newCanvas(w, h);
+  }
+
+  if (_stencilInvCanvas && (_stencilInvCanvas._width !== w || _stencilInvCanvas._height !== h)) {
+    _stencilInvCanvas.release();
+    _stencilInvCanvas = null;
+  }
+  if (!_stencilInvCanvas) {
+    _stencilInvCanvas = newCanvas(w, h);
+  }
+
+  if (_stencilContentCanvas && (_stencilContentCanvas._width !== w || _stencilContentCanvas._height !== h)) {
+    _stencilContentCanvas.release();
+    _stencilContentCanvas = null;
+  }
+  if (!_stencilContentCanvas) {
+    _stencilContentCanvas = newCanvas(w, h);
+  }
+}
+
+/**
+ * Draw geometry into the stencil buffer. Mirrors love.graphics.stencil().
+ * Uses canvas-based simulation: shapes drawn by fn() write to an internal stencil canvas.
+ *
+ * Limitations: Only binary masking (shape vs no-shape). Multi-level stencil values
+ * (increment/decrement) are approximated. "invert" action not supported.
+ */
+export function stencil(
+  fn: () => void,
+  action: StencilAction = "replace",
+  value: number = 1,
+  keepvalues: boolean = false,
+): void {
+  if (!_renderer) return;
+  _ensureStencilCanvas();
+
+  // Save state
+  const savedCanvas = _activeCanvas;
+  const savedColor: [number, number, number, number] = [..._drawColor] as [number, number, number, number];
+  const savedBlend = _blendMode;
+
+  if (_stencilCanvas) {
+    // --- Normal stencil: white shapes on transparent background ---
+    setCanvas(_stencilCanvas);
+    if (!keepvalues) {
+      sdl.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
+      sdl.SDL_RenderClear(_renderer);
+    }
+    setColor(255, 255, 255, 255);
+    setBlendMode("replace");
+    fn();
+
+    // --- Inverted stencil: transparent holes on white background ---
+    if (_stencilInvCanvas) {
+      setCanvas(_stencilInvCanvas);
+      if (!keepvalues) {
+        sdl.SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+        sdl.SDL_RenderClear(_renderer);
+      }
+      setColor(0, 0, 0, 0);
+      setBlendMode("replace");
+      fn();
+    }
+  } else {
+    // No canvas support — still call fn() for side effects
+    fn();
+  }
+
+  // Restore state
+  setCanvas(savedCanvas);
+  _drawColor = savedColor;
+  _blendMode = savedBlend;
+  if (_renderer) {
+    sdl.SDL_SetRenderDrawColor(_renderer, savedColor[0], savedColor[1], savedColor[2], savedColor[3]);
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[savedBlend] ?? SDL_BLENDMODE_BLEND);
+  }
+}
+
+/**
+ * Enable or disable stencil testing. Mirrors love.graphics.setStencilTest().
+ *
+ * When enabled, subsequent drawing is captured to an internal canvas. When disabled,
+ * the captured content is composited with the stencil mask and drawn to the actual target.
+ *
+ * Call with no arguments to disable stencil testing.
+ */
+export function setStencilTest(comparemode?: CompareMode, comparevalue?: number): void {
+  if (!_renderer) return;
+
+  if (comparemode === undefined) {
+    // Disable stencil test
+    if (!_stencilActive) return;
+
+    // Composite: apply stencil mask to content via MOD blend, then draw to screen
+    if (_stencilContentCanvas && _stencilCanvas) {
+      const useInverse = _needsInverseMask(_stencilCompare!, _stencilValue);
+
+      if (_stencilCompare === "never") {
+        // Nothing passes — don't draw content at all
+      } else if (_stencilCompare === "always") {
+        // Everything passes — draw content directly to original target
+        setCanvas(_stencilOrigCanvas);
+        sdl.SDL_SetTextureBlendMode(_stencilContentCanvas._texture, SDL_BLENDMODE_BLEND);
+        sdl.SDL_RenderTexture(_renderer, _stencilContentCanvas._texture, null, null);
+      } else {
+        // Pick the right mask canvas (normal or inverted)
+        const maskCanvas = useInverse ? _stencilInvCanvas : _stencilCanvas;
+        if (maskCanvas) {
+          // Step 1: Draw content onto mask canvas with MOD blend
+          setCanvas(maskCanvas);
+          sdl.SDL_SetTextureBlendMode(_stencilContentCanvas._texture, SDL_BLENDMODE_MOD);
+          sdl.SDL_RenderTexture(_renderer, _stencilContentCanvas._texture, null, null);
+
+          // Step 2: Draw masked result to original target
+          setCanvas(_stencilOrigCanvas);
+          sdl.SDL_SetTextureBlendMode(maskCanvas._texture, SDL_BLENDMODE_BLEND);
+          sdl.SDL_RenderTexture(_renderer, maskCanvas._texture, null, null);
+        }
+      }
+    }
+
+    _stencilActive = false;
+    _stencilCompare = null;
+    _stencilValue = 0;
+
+    // Restore draw state
+    const [dr, dg, db, da] = _drawColor;
+    sdl.SDL_SetRenderDrawColor(_renderer, dr, dg, db, da);
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+    return;
+  }
+
+  // Enable stencil test
+  _ensureStencilCanvas();
+
+  _stencilCompare = comparemode;
+  _stencilValue = comparevalue ?? 0;
+  _stencilOrigCanvas = _activeCanvas;
+  _stencilActive = true;
+
+  if (_stencilContentCanvas) {
+    // Redirect rendering to content canvas
+    setCanvas(_stencilContentCanvas);
+    sdl.SDL_SetRenderDrawColor(_renderer, 0, 0, 0, 0);
+    sdl.SDL_RenderClear(_renderer);
+
+    // Restore draw color/blend for user drawing
+    const [dr, dg, db, da] = _drawColor;
+    sdl.SDL_SetRenderDrawColor(_renderer, dr, dg, db, da);
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+  }
+}
+
+/** Get the current stencil test settings. Returns ["always", 0] if disabled. */
+export function getStencilTest(): [CompareMode, number] {
+  if (!_stencilActive || !_stencilCompare) return ["always", 0];
+  return [_stencilCompare, _stencilValue];
+}
+
+/**
+ * Determine if we need the inverted mask blend for a given compare mode + value.
+ * Normal mask: keep content where stencil is drawn (alpha > 0)
+ * Inverted mask: keep content where stencil is NOT drawn (alpha == 0)
+ */
+function _needsInverseMask(compare: CompareMode, value: number): boolean {
+  // For binary stencil (0 or 1):
+  // "greater" + 0: pass where stencil > 0 → normal mask
+  // "gequal" + 1: pass where stencil >= 1 → normal mask
+  // "equal" + 0: pass where stencil == 0 → inverted mask
+  // "equal" + 1: pass where stencil == 1 → normal mask (with value > 0)
+  // "notequal" + 0: pass where stencil != 0 → normal mask
+  // "notequal" + 1: pass where stencil != 1 → inverted mask
+  // "less" + 1: pass where stencil < 1 → inverted mask
+  // "lequal" + 0: pass where stencil <= 0 → inverted mask
+  switch (compare) {
+    case "greater": return false;   // pass where drawn
+    case "gequal": return value > 1; // if value > 1, nothing passes → inverse is closest
+    case "equal": return value === 0; // pass where NOT drawn
+    case "notequal": return value !== 0; // if comparing to non-zero, pass where NOT drawn
+    case "less": return true;        // pass where stencil < value → not drawn
+    case "lequal": return value === 0; // pass where stencil <= 0 → not drawn
+    default: return false;
+  }
 }
 
 // ============================================================
@@ -1791,6 +2011,7 @@ export function reset(): void {
   _pointSize = 1;
   _lineStyle = "rough";
   setScissor();
+  if (_stencilActive) setStencilTest(); // disable stencil
   _transform = [1, 0, 0, 1, 0, 0];
   _transformStack.length = 0;
   setCanvas(null);
