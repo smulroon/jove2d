@@ -10,15 +10,27 @@ Grouped by priority based on impact for typical 2D game development.
 | love2d module | jove2d coverage | Notes |
 |---|---|---|
 | love.timer | **6/6 Complete** | All functions implemented |
-| love.event | **4/6 Complete** | Missing `pump` (internal), `wait` (rarely used) |
-| love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
-| love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.mouse | **18/18 Complete** | All functions implemented |
 | love.math | **16/16 Complete** | All functions implemented |
+| love.data | **5/5 Complete** | compress/decompress, encode/decode, hash, ByteData |
+| love.joystick | **~16/17 Complete** | Full gamepad support, vibration, hot-plug; needs real device testing |
+| love.event | **4/6 Complete** | Missing `pump` (internal), `wait` (rarely used) |
+| love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
-| love.filesystem | **19/31 Mostly done** | Added directory queries, mount/unmount, File handle, FileData; remaining gaps are Lua-specific |
-| love.graphics | **~68/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil done; missing newText, applyTransform |
+| love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
+| love.physics | **~45/60 Core done** | Box2D v3.1.1; World/Body/Fixture/5 joint types/queries/contacts; missing advanced joints, preSolve |
+| love.graphics | **~71/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil done; missing newText, applyTransform |
+| love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **14/26 Core done** | WAV playback, global controls, pitch, looping, seek/tell, clone; no OGG/MP3, effects, or positional audio |
+| love.touch | **Not implemented** | Mobile-only (P4) |
+| love.thread | **Not implemented** | Bun async usually sufficient (P4) |
+| love.video | **Not implemented** | Needs video decoder (P4) |
+| love.sound | **Not implemented** | Data-level audio APIs (P3) |
+| love.image | **Not implemented** | Data-level image APIs (P3) |
+| love.font | **Inline** | Integrated into graphics module; standalone module not needed |
+| love.sensor | **Not planned** | Mobile-only |
+
+**Summary: 13/20 modules implemented, 7 at 100%, 10 at 75%+**
 
 ---
 
@@ -87,28 +99,9 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### ~~love.mouse — missing functions~~ DONE
 
-~~**Should add:**~~
-- ~~`newCursor` — create cursor from ImageData~~
-- ~~`setCursor` / `getCursor` — set/get active cursor~~
-- ~~`getSystemCursor` — system cursor types (hand, crosshair, resize, etc.)~~
-- ~~`isCursorSupported` — trivial check (always true on desktop)~~
-- ~~`setX` / `setY` — set individual coordinates (trivial wrappers)~~
-
 ### ~~love.math — missing functions~~ DONE
 
-~~**Should add:**~~
-- ~~`colorFromBytes` / `colorToBytes` — convert 0-255 to 0-1 and back~~
-- ~~`newBezierCurve` — bezier curve object (evaluate, render, getDerivative)~~
-- ~~`getRandomState` / `setRandomState` — RNG state serialization for replays~~
-
 ### ~~love.filesystem — missing functions~~ DONE
-
-**Done:**
-- ~~`getWorkingDirectory`~~ — current working directory
-- ~~`getUserDirectory`~~ — home directory path
-- ~~`getAppdataDirectory`~~ — app data path
-- ~~`mount` / `unmount`~~ — directory-based search path (no zip support)
-- ~~`newFile` / `newFileData`~~ — File handle (open/read/write/seek/tell/close) + FileData wrapper
 
 **Lua-specific (skip):**
 - `load` — load Lua chunk (N/A for TypeScript)
@@ -147,6 +140,29 @@ Grouped by priority based on impact for typical 2D game development.
 - `getRecordingDevices` — microphone input (niche)
 - `setMixWithSystem` — iOS-only
 
+### love.physics — missing functions
+
+**Done:**
+- ~~World create/destroy, gravity, step, body count, getBodies~~ — core world management
+- ~~Body position/angle/velocity, forces/impulses/torque~~ — full body dynamics
+- ~~Body type (static/dynamic/kinematic), bullet, active, awake, fixedRotation~~ — body properties
+- ~~Body gravityScale, linearDamping, angularDamping, sleepingAllowed~~ — advanced body properties
+- ~~Body getMass, getMassData, getInertia, world/local point conversion~~ — mass and coordinate queries
+- ~~Circle, box, polygon, edge, chain shapes~~ — all shape types
+- ~~Fixture density/friction/restitution/sensor/filter~~ — fixture properties
+- ~~Distance, revolute, prismatic, weld, mouse joints~~ — 5 joint types
+- ~~beginContact, endContact, postSolve callbacks~~ — contact event dispatch
+- ~~AABB query, ray cast~~ — world queries
+- ~~Meter scaling (setMeter/getMeter)~~ — pixel↔meter conversion
+
+**Phase 2 (future):**
+- Remaining joint types: gear, motor, pulley, rope, wheel, friction
+- Joint-specific methods: anchors, reaction force/torque, limits/motors (partially done for revolute/prismatic)
+- preSolve callback (Box2D v3 uses `b2PreSolveFcn` on shapes — more complex than v2)
+- `Body:setMassData` — override mass properties
+- Contact positions/impulses in postSolve
+- WASM fallback backend
+
 ### love.event — missing functions
 
 - `pump` — manual event pump (jove uses `pollEvents` internally; not needed)
@@ -165,15 +181,14 @@ Grouped by priority based on impact for typical 2D game development.
 
 ## New Modules (not yet implemented)
 
-### Priority 1 — High Impact
+### ~~Priority 1 — High Impact~~ DONE
 
 #### ~~Image format support (PNG/JPG via SDL_image)~~ DONE
-- ~~**Current**: BMP only via `SDL_LoadBMP`~~
 - **Implemented**: PNG, JPG, GIF, WebP, SVG, QOI loading via SDL_image
 - `ffi_image.ts` with lazy dlopen, graceful fallback to BMP-only
 - `bun run build-sdl_image` to build from source
 
-### Priority 2 — Important for Many Games
+### ~~Priority 2 — Important for Many Games~~ DONE
 
 #### ~~love.data~~ DONE
 - **Implemented**: `compress`/`decompress` (zlib, gzip, deflate), `encode`/`decode` (base64, hex), `hash` (md5, sha1, sha224, sha256, sha384, sha512), `ByteData`
@@ -181,11 +196,13 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### Priority 3 — Useful for Specific Game Types
 
-#### love.physics (Box2D)
-- **Current**: Not implemented
-- **Needed**: World, Body, Fixture, Shape (circle/polygon/edge/chain), Joints, collision callbacks
-- **Approach**: Bind Box2D via FFI, or use a WASM port
-- **Why P3**: Only needed for physics-based games. Many 2D games don't use it.
+#### ~~love.physics (Box2D)~~ DONE
+- **Implemented**: Box2D v3.1.1 via thin C wrapper (`box2d_jove.c`) for bun:ffi struct compatibility
+- World, Body, Fixture (wraps b2ShapeId), Shape, Joint (distance/revolute/prismatic/weld/mouse), Contact
+- Contact events (beginContact, endContact, postSolve via hit events)
+- AABB query, ray cast
+- Meter scaling (default 30px/m, matching love2d)
+- `bun run build-box2d` to build from source
 
 #### ~~Joystick / Gamepad (love.joystick)~~ DONE
 - **Implemented**: Joystick detection, axes/buttons/hats, gamepad mapping (standard button/axis names), vibration, hot-plug events
@@ -240,7 +257,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 ---
 
-## Implementation Order Suggestion
+## Implementation Order (completed)
 
 1. ~~**SDL_image**~~ DONE
 2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
@@ -256,4 +273,12 @@ Grouped by priority based on impact for typical 2D game development.
 12. ~~**love.data**~~ DONE — compression/encoding utilities
 13. ~~**Filesystem gaps**~~ DONE — directory queries, mount/unmount, File handle, FileData
 14. ~~**Joystick**~~ DONE — gamepad support via SDL3 joystick/gamepad API
-15. **Physics** — Box2D integration
+15. ~~**Physics**~~ DONE — Box2D v3.1.1 integration via C wrapper
+
+## Suggested Next Steps
+
+16. **Audio codecs** — OGG/MP3 via SDL_mixer or stb_vorbis
+17. **love.graphics newText** — cached text object for performance
+18. **love.graphics applyTransform** — apply Transform object to stack
+19. **love.image** — ImageData pixel manipulation for procedural content
+20. **Physics Phase 2** — remaining joint types, preSolve, advanced contact info
