@@ -15,7 +15,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.mouse | **11/18 Mostly done** | Missing cursors, setX/setY |
 | love.math | **12/16 Mostly done** | Missing BezierCurve, color byte conversion, RNG state |
-| love.window | **21/36 Mostly done** | Missing vsync, icon, display info, message box |
+| love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
 | love.graphics | **~40/97 Core done** | Primitives/transforms done; missing shaders, batching, mesh, particles |
 | love.audio | **3/26 Minimal** | WAV playback only; no global controls, effects, or positional audio |
@@ -26,17 +26,19 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### love.window — missing functions
 
-**Should add (useful on desktop):**
-- `getVSync` / `setVSync` — VSync control (SDL bindings already exist in ffi.ts!)
-- `setIcon` / `getIcon` — window icon from ImageData
-- `getDisplayCount` — number of monitors
-- `getDisplayName` — monitor name string
-- `getFullscreenModes` — available resolutions list
-- `fromPixels` / `toPixels` — DPI coordinate conversion
-- `hasMouseFocus` — mouse-in-window check
-- `showMessageBox` — native dialog box
-- `requestAttention` — flash taskbar
-- `updateMode` — resize without recreating window
+**Done:**
+- ~~`getVSync` / `setVSync`~~ — VSync control
+- ~~`getDisplayCount`~~ — number of monitors
+- ~~`getDisplayName`~~ — monitor name string
+- ~~`getFullscreenModes`~~ — available resolutions list
+- ~~`fromPixels` / `toPixels`~~ — DPI coordinate conversion
+- ~~`hasMouseFocus`~~ — mouse-in-window check
+- ~~`showMessageBox`~~ — native dialog box
+- ~~`requestAttention`~~ — flash taskbar
+- ~~`updateMode`~~ — resize without recreating window
+
+**Should add:**
+- `setIcon` / `getIcon` — window icon from ImageData (FFI binding exists, needs ImageData type)
 
 **Low priority (mobile/niche):**
 - `getDisplayOrientation` — mobile-only
@@ -233,7 +235,7 @@ Grouped by priority based on impact for typical 2D game development.
 ## Implementation Order Suggestion
 
 1. ~~**SDL_image**~~ DONE
-2. **Window gaps** — vsync, icon, display info (quick wins, SDL bindings exist)
+2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
 3. **Graphics quick wins** — defaultFilter, colorMask, transformPoint, reset, intersectScissor
 4. **Mouse cursors** — newCursor, system cursors
 5. **Math gaps** — colorFromBytes/colorToBytes, BezierCurve
