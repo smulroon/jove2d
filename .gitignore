@@ -5,6 +5,7 @@ node_modules/
 vendor/SDL3/
 vendor/SDL_ttf/
 vendor/SDL_image/
+vendor/box2d/
 vendor/love2d/
 
 # Build output

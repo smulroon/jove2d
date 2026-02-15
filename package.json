@@ -9,7 +9,20 @@
     "typescript": "^5"
   },
   "description": "A 2D game engine mirroring the love2d API, built with SDL3 and Bun",
-  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/smulroon/jove2d.git"
+  },
+  "homepage": "https://github.com/smulroon/jove2d",
+  "keywords": [
+    "game-engine",
+    "2d",
+    "love2d",
+    "sdl3",
+    "bun",
+    "typescript"
+  ],
   "scripts": {
     "start": "bun run src/index.ts",
     "test": "bun test",
