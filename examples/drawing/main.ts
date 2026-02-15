@@ -1,4 +1,4 @@
-// jove2d drawing example — colored shapes and text
+// jove2d drawing example — all primitives, blend modes, scissor, and transform stack
 
 import jove from "../../src/index.ts";
 
@@ -15,40 +15,145 @@ await jove.run({
   },
 
   draw() {
+    // --- Row 1: Basic shapes ---
+
     // Red filled rectangle
     jove.graphics.setColor(220, 50, 50);
-    jove.graphics.rectangle("fill", 50, 50, 150, 100);
+    jove.graphics.rectangle("fill", 20, 30, 120, 80);
 
     // Green outlined rectangle
     jove.graphics.setColor(50, 220, 50);
-    jove.graphics.rectangle("line", 250, 50, 150, 100);
+    jove.graphics.rectangle("line", 160, 30, 120, 80);
 
     // Blue filled circle (pulsing)
-    const radius = 50 + Math.sin(t * 2) * 10;
+    const radius = 40 + Math.sin(t * 2) * 8;
     jove.graphics.setColor(50, 100, 220);
-    jove.graphics.circle("fill", 400, 350, radius);
+    jove.graphics.circle("fill", 360, 70, radius);
 
     // Yellow outlined circle
     jove.graphics.setColor(220, 220, 50);
-    jove.graphics.circle("line", 200, 350, 60);
+    jove.graphics.circle("line", 470, 70, 40);
 
-    // White diagonal line
-    jove.graphics.setColor(255, 255, 255);
-    jove.graphics.line(0, 0, 800, 600);
+    // --- Row 2: New primitives ---
 
-    // Cyan multi-segment line
+    // Cyan filled ellipse
     jove.graphics.setColor(50, 220, 220);
-    jove.graphics.line(600, 50, 700, 150, 650, 250, 750, 200);
+    jove.graphics.ellipse("fill", 80, 190, 60, 35);
 
-    // Magenta points
+    // Magenta outlined ellipse
     jove.graphics.setColor(220, 50, 220);
-    for (let i = 0; i < 20; i++) {
-      jove.graphics.point(500 + i * 10, 500);
+    jove.graphics.ellipse("line", 230, 190, 50, 30);
+
+    // Orange filled arc (pie slice)
+    jove.graphics.setColor(255, 160, 50);
+    jove.graphics.arc("fill", 370, 190, 45, 0, Math.PI * 1.5);
+
+    // Pink outlined arc
+    jove.graphics.setColor(255, 128, 180);
+    jove.graphics.arc("line", 480, 190, 45, -Math.PI / 4, Math.PI / 2);
+
+    // --- Row 3: Polygon, lines, points ---
+
+    // Green filled polygon (diamond)
+    jove.graphics.setColor(100, 220, 100);
+    jove.graphics.polygon("fill", 80, 280, 130, 310, 80, 360, 30, 310);
+
+    // White outlined polygon (pentagon)
+    jove.graphics.setColor(255, 255, 255);
+    const cx = 230, cy = 320, pr = 40;
+    const pentVerts: number[] = [];
+    for (let i = 0; i < 5; i++) {
+      const a = (i / 5) * Math.PI * 2 - Math.PI / 2;
+      pentVerts.push(cx + Math.cos(a) * pr, cy + Math.sin(a) * pr);
+    }
+    jove.graphics.polygon("line", ...pentVerts);
+
+    // Multi-segment line
+    jove.graphics.setColor(50, 220, 220);
+    jove.graphics.line(310, 280, 370, 350, 340, 360, 400, 290);
+
+    // Multiple points
+    jove.graphics.setColor(255, 200, 50);
+    for (let i = 0; i < 30; i++) {
+      jove.graphics.point(430 + (i % 10) * 8, 290 + Math.floor(i / 10) * 8);
     }
 
-    // White text
+    // --- Row 4: Transform stack demo ---
+
+    jove.graphics.push();
+    jove.graphics.translate(150, 450);
+    jove.graphics.rotate(t * 0.5);
+
+    // Spinning rectangle
+    jove.graphics.setColor(255, 100, 100);
+    jove.graphics.rectangle("fill", -30, -20, 60, 40);
+
+    // Spinning circle on the rectangle
+    jove.graphics.setColor(255, 255, 100);
+    jove.graphics.circle("fill", 0, 0, 8);
+    jove.graphics.pop();
+
+    // Scaled drawing
+    jove.graphics.push();
+    jove.graphics.translate(350, 450);
+    const s = 0.7 + Math.sin(t * 3) * 0.3;
+    jove.graphics.scale(s, s);
+    jove.graphics.setColor(100, 200, 255);
+    jove.graphics.rectangle("fill", -25, -25, 50, 50);
+    jove.graphics.pop();
+
+    // Sheared drawing
+    jove.graphics.push();
+    jove.graphics.translate(500, 450);
+    jove.graphics.shear(Math.sin(t) * 0.3, 0);
+    jove.graphics.setColor(200, 100, 255);
+    jove.graphics.rectangle("fill", -25, -25, 50, 50);
+    jove.graphics.pop();
+
+    // --- Row 5: Scissor demo ---
+    jove.graphics.setScissor(560, 280, 200, 80);
+    jove.graphics.setColor(100, 255, 100);
+    jove.graphics.rectangle("fill", 540, 260, 240, 120); // Clipped to scissor
     jove.graphics.setColor(255, 255, 255);
-    jove.graphics.print("jove2d drawing primitives!", 10, 10);
+    jove.graphics.print("clipped region", 570, 310);
+    jove.graphics.setScissor(); // Disable
+
+    // --- Row 5: Blend mode labels ---
+    jove.graphics.setColor(180, 180, 180);
+    jove.graphics.print("Blend: alpha(default) | add | multiply", 560, 380);
+
+    // Alpha blend (default)
+    jove.graphics.setBlendMode("alpha");
+    jove.graphics.setColor(255, 0, 0, 128);
+    jove.graphics.rectangle("fill", 560, 400, 50, 50);
+    jove.graphics.setColor(0, 0, 255, 128);
+    jove.graphics.rectangle("fill", 580, 420, 50, 50);
+
+    // Additive blend
+    jove.graphics.setBlendMode("add");
+    jove.graphics.setColor(255, 0, 0, 128);
+    jove.graphics.rectangle("fill", 650, 400, 50, 50);
+    jove.graphics.setColor(0, 0, 255, 128);
+    jove.graphics.rectangle("fill", 670, 420, 50, 50);
+
+    // Reset blend
+    jove.graphics.setBlendMode("alpha");
+
+    // --- HUD ---
+    jove.graphics.setColor(255, 255, 255);
+    jove.graphics.print("jove2d drawing primitives", 10, 10);
+    jove.graphics.print(`FPS: ${jove.timer.getFPS()}`, 700, 10);
     jove.graphics.print(`time: ${t.toFixed(1)}s`, 10, 580);
+
+    // Labels
+    jove.graphics.setColor(160, 160, 160);
+    jove.graphics.print("rect  rect   circle circle", 20, 120);
+    jove.graphics.print("ellipse ellipse  arc    arc", 20, 230);
+    jove.graphics.print("polygon pentagon line  points", 20, 370);
+    jove.graphics.print("rotate     scale     shear", 100, 490);
+  },
+
+  keypressed(key) {
+    if (key === "escape") jove.window.close();
   },
 });

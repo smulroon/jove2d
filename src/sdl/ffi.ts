@@ -306,6 +306,304 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.pointer, FFIType.f32, FFIType.f32],
     returns: FFIType.void,
   },
+  // bool SDL_ShowCursor(void)
+  SDL_ShowCursor: {
+    args: [],
+    returns: FFIType.bool,
+  },
+  // bool SDL_HideCursor(void)
+  SDL_HideCursor: {
+    args: [],
+    returns: FFIType.bool,
+  },
+  // bool SDL_CursorVisible(void)
+  SDL_CursorVisible: {
+    args: [],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetWindowMouseGrab(SDL_Window* window, bool grabbed)
+  SDL_SetWindowMouseGrab: {
+    args: [FFIType.pointer, FFIType.bool],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetWindowMouseGrab(SDL_Window* window)
+  SDL_GetWindowMouseGrab: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetWindowRelativeMouseMode(SDL_Window* window, bool enabled)
+  SDL_SetWindowRelativeMouseMode: {
+    args: [FFIType.pointer, FFIType.bool],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetWindowRelativeMouseMode(SDL_Window* window)
+  SDL_GetWindowRelativeMouseMode: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+
+  // --- Textures ---
+
+  // SDL_Texture* SDL_CreateTextureFromSurface(SDL_Renderer* renderer, SDL_Surface* surface)
+  SDL_CreateTextureFromSurface: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // void SDL_DestroyTexture(SDL_Texture* texture)
+  SDL_DestroyTexture: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // bool SDL_RenderTexture(SDL_Renderer* renderer, SDL_Texture* texture, const SDL_FRect* srcrect, const SDL_FRect* dstrect)
+  SDL_RenderTexture: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderTextureRotated(SDL_Renderer* renderer, SDL_Texture* texture, const SDL_FRect* srcrect, const SDL_FRect* dstrect, double angle, const SDL_FPoint* center, SDL_FlipMode flip)
+  SDL_RenderTextureRotated: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.f64, FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetTextureSize(SDL_Texture* texture, float* w, float* h)
+  SDL_GetTextureSize: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetTextureBlendMode(SDL_Texture* texture, SDL_BlendMode blendMode)
+  SDL_SetTextureBlendMode: {
+    args: [FFIType.pointer, FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetTextureAlphaModFloat(SDL_Texture* texture, float alpha)
+  SDL_SetTextureAlphaModFloat: {
+    args: [FFIType.pointer, FFIType.f32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetTextureColorModFloat(SDL_Texture* texture, float r, float g, float b)
+  SDL_SetTextureColorModFloat: {
+    args: [FFIType.pointer, FFIType.f32, FFIType.f32, FFIType.f32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetTextureScaleMode(SDL_Texture* texture, SDL_ScaleMode scaleMode)
+  SDL_SetTextureScaleMode: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+
+  // --- Render targets ---
+
+  // SDL_Texture* SDL_CreateTexture(SDL_Renderer* renderer, SDL_PixelFormat format, SDL_TextureAccess access, int w, int h)
+  SDL_CreateTexture: {
+    args: [FFIType.pointer, FFIType.u32, FFIType.i32, FFIType.i32, FFIType.i32],
+    returns: FFIType.pointer,
+  },
+  // bool SDL_SetRenderTarget(SDL_Renderer* renderer, SDL_Texture* texture)
+  SDL_SetRenderTarget: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // SDL_Texture* SDL_GetRenderTarget(SDL_Renderer* renderer)
+  SDL_GetRenderTarget: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+
+  // --- Surface loading ---
+
+  // SDL_Surface* SDL_LoadBMP(const char* file)
+  SDL_LoadBMP: {
+    args: [FFIType.cstring],
+    returns: FFIType.pointer,
+  },
+  // SDL_Surface* SDL_CreateSurface(int width, int height, SDL_PixelFormat format)
+  SDL_CreateSurface: {
+    args: [FFIType.i32, FFIType.i32, FFIType.u32],
+    returns: FFIType.pointer,
+  },
+  // bool SDL_SetSurfaceColorKey(SDL_Surface* surface, bool enabled, Uint32 key)
+  SDL_SetSurfaceColorKey: {
+    args: [FFIType.pointer, FFIType.bool, FFIType.u32],
+    returns: FFIType.bool,
+  },
+
+  // --- Scissor / Clipping ---
+
+  // bool SDL_SetRenderClipRect(SDL_Renderer* renderer, const SDL_Rect* rect)
+  SDL_SetRenderClipRect: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetRenderClipRect(SDL_Renderer* renderer, SDL_Rect* rect)
+  SDL_GetRenderClipRect: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderClipEnabled(SDL_Renderer* renderer)
+  SDL_RenderClipEnabled: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+
+  // --- Blend mode ---
+
+  // bool SDL_GetRenderDrawBlendMode(SDL_Renderer* renderer, SDL_BlendMode* blendMode)
+  SDL_GetRenderDrawBlendMode: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+
+  // --- VSync ---
+
+  // bool SDL_SetRenderVSync(SDL_Renderer* renderer, int vsync)
+  SDL_SetRenderVSync: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetRenderVSync(SDL_Renderer* renderer, int* vsync)
+  SDL_GetRenderVSync: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+
+  // --- Clipboard ---
+
+  // bool SDL_SetClipboardText(const char* text)
+  SDL_SetClipboardText: {
+    args: [FFIType.cstring],
+    returns: FFIType.bool,
+  },
+  // const char* SDL_GetClipboardText(void)
+  SDL_GetClipboardText: {
+    args: [],
+    returns: FFIType.cstring,
+  },
+  // bool SDL_HasClipboardText(void)
+  SDL_HasClipboardText: {
+    args: [],
+    returns: FFIType.bool,
+  },
+
+  // --- Text input ---
+
+  // bool SDL_StartTextInput(SDL_Window* window)
+  SDL_StartTextInput: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_StopTextInput(SDL_Window* window)
+  SDL_StopTextInput: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_TextInputActive(SDL_Window* window)
+  SDL_TextInputActive: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+
+  // --- Audio ---
+
+  // SDL_AudioDeviceID SDL_OpenAudioDevice(SDL_AudioDeviceID devid, const SDL_AudioSpec* spec)
+  SDL_OpenAudioDevice: {
+    args: [FFIType.u32, FFIType.pointer],
+    returns: FFIType.u32,
+  },
+  // void SDL_CloseAudioDevice(SDL_AudioDeviceID devid)
+  SDL_CloseAudioDevice: {
+    args: [FFIType.u32],
+    returns: FFIType.void,
+  },
+  // bool SDL_LoadWAV(const char* path, SDL_AudioSpec* spec, Uint8** audio_buf, Uint32* audio_len)
+  SDL_LoadWAV: {
+    args: [FFIType.cstring, FFIType.pointer, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // SDL_AudioStream* SDL_CreateAudioStream(const SDL_AudioSpec* src_spec, const SDL_AudioSpec* dst_spec)
+  SDL_CreateAudioStream: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // void SDL_DestroyAudioStream(SDL_AudioStream* stream)
+  SDL_DestroyAudioStream: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // bool SDL_PutAudioStreamData(SDL_AudioStream* stream, const void* buf, int len)
+  SDL_PutAudioStreamData: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_FlushAudioStream(SDL_AudioStream* stream)
+  SDL_FlushAudioStream: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_ClearAudioStream(SDL_AudioStream* stream)
+  SDL_ClearAudioStream: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_BindAudioStream(SDL_AudioDeviceID devid, SDL_AudioStream* stream)
+  SDL_BindAudioStream: {
+    args: [FFIType.u32, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // void SDL_UnbindAudioStream(SDL_AudioStream* stream)
+  SDL_UnbindAudioStream: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // bool SDL_PauseAudioStreamDevice(SDL_AudioStream* stream)
+  SDL_PauseAudioStreamDevice: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_ResumeAudioStreamDevice(SDL_AudioStream* stream)
+  SDL_ResumeAudioStreamDevice: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetAudioStreamGain(SDL_AudioStream* stream, float gain)
+  SDL_SetAudioStreamGain: {
+    args: [FFIType.pointer, FFIType.f32],
+    returns: FFIType.bool,
+  },
+  // float SDL_GetAudioStreamGain(SDL_AudioStream* stream)
+  SDL_GetAudioStreamGain: {
+    args: [FFIType.pointer],
+    returns: FFIType.f32,
+  },
+
+  // --- Memory ---
+
+  // void SDL_free(void* mem)
+  SDL_free: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+
+  // --- System info ---
+
+  // const char* SDL_GetPlatform(void)
+  SDL_GetPlatform: {
+    args: [],
+    returns: FFIType.cstring,
+  },
+  // int SDL_GetNumLogicalCPUCores(void)
+  SDL_GetNumLogicalCPUCores: {
+    args: [],
+    returns: FFIType.i32,
+  },
+  // bool SDL_OpenURL(const char* url)
+  SDL_OpenURL: {
+    args: [FFIType.cstring],
+    returns: FFIType.bool,
+  },
+  // SDL_PowerState SDL_GetPowerInfo(int* seconds, int* percent)
+  SDL_GetPowerInfo: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.i32,
+  },
 });
 
 export default sdl;

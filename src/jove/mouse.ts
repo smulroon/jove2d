@@ -51,3 +51,45 @@ export function setPosition(x: number, y: number): void {
   if (!win) return;
   sdl.SDL_WarpMouseInWindow(win, x, y);
 }
+
+/** Show or hide the mouse cursor. */
+export function setVisible(visible: boolean): void {
+  if (visible) {
+    sdl.SDL_ShowCursor();
+  } else {
+    sdl.SDL_HideCursor();
+  }
+}
+
+/** Check if the mouse cursor is visible. */
+export function isVisible(): boolean {
+  return sdl.SDL_CursorVisible();
+}
+
+/** Set whether the mouse is grabbed (confined to the window). */
+export function setGrabbed(grabbed: boolean): void {
+  const win = _getSDLWindow();
+  if (!win) return;
+  sdl.SDL_SetWindowMouseGrab(win, grabbed);
+}
+
+/** Check if the mouse is grabbed. */
+export function isGrabbed(): boolean {
+  const win = _getSDLWindow();
+  if (!win) return false;
+  return sdl.SDL_GetWindowMouseGrab(win);
+}
+
+/** Set relative mouse mode (infinite mouse movement, for FPS-style controls). */
+export function setRelativeMode(enable: boolean): void {
+  const win = _getSDLWindow();
+  if (!win) return;
+  sdl.SDL_SetWindowRelativeMouseMode(win, enable);
+}
+
+/** Check if relative mouse mode is enabled. */
+export function getRelativeMode(): boolean {
+  const win = _getSDLWindow();
+  if (!win) return false;
+  return sdl.SDL_GetWindowRelativeMouseMode(win);
+}

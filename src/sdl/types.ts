@@ -100,9 +100,62 @@ export const SDL_MOUSE_WHEEL_DIR = 32;
 /** SDL_BlendMode constants */
 export const SDL_BLENDMODE_NONE = 0x00000000;
 export const SDL_BLENDMODE_BLEND = 0x00000001;
+export const SDL_BLENDMODE_ADD = 0x00000002;
+export const SDL_BLENDMODE_MOD = 0x00000004;
+export const SDL_BLENDMODE_MUL = 0x00000008;
+
+/** SDL_FlipMode constants */
+export const SDL_FLIP_NONE = 0;
+export const SDL_FLIP_HORIZONTAL = 1;
+export const SDL_FLIP_VERTICAL = 2;
+
+/** SDL_TextureAccess constants */
+export const SDL_TEXTUREACCESS_STATIC = 0;
+export const SDL_TEXTUREACCESS_STREAMING = 1;
+export const SDL_TEXTUREACCESS_TARGET = 2;
+
+/** SDL_ScaleMode constants */
+export const SDL_SCALEMODE_NEAREST = 0;
+export const SDL_SCALEMODE_LINEAR = 1;
+
+/** SDL_PixelFormat constants */
+export const SDL_PIXELFORMAT_RGBA8888 = 0x16362004;
+export const SDL_PIXELFORMAT_ARGB8888 = 0x16862004;
+export const SDL_PIXELFORMAT_ABGR8888 = 0x16462004;
+
+/** SDL_TextInputEvent offsets (x86-64) — text pointer at offset 24 */
+export const SDL_TEXT_INPUT_TEXT = 24;
+
+/** SDL_DropEvent offsets (x86-64) */
+export const SDL_EVENT_DROP_FILE = 0x1000;
+export const SDL_EVENT_DROP_TEXT = 0x1001;
+export const SDL_EVENT_DROP_BEGIN = 0x1002;
+export const SDL_EVENT_DROP_COMPLETE = 0x1003;
+export const SDL_DROP_EVENT_SOURCE = 32;
+export const SDL_DROP_EVENT_DATA = 40;
+
+/** SDL audio constants */
+export const SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK = 0xFFFFFFFF;
+export const SDL_AUDIO_S16 = 0x8010;
+export const SDL_AUDIO_F32 = 0x8120;
+
+/** SDL_PowerState constants */
+export const SDL_POWERSTATE_ERROR = -1;
+export const SDL_POWERSTATE_UNKNOWN = 0;
+export const SDL_POWERSTATE_ON_BATTERY = 1;
+export const SDL_POWERSTATE_NO_BATTERY = 2;
+export const SDL_POWERSTATE_CHARGING = 3;
+export const SDL_POWERSTATE_CHARGED = 4;
+
+/** VSync constants */
+export const SDL_RENDERER_VSYNC_DISABLED = 0;
+export const SDL_RENDERER_VSYNC_ADAPTIVE = -1;
 
 /** Opaque pointer to an SDL_Renderer */
 export type SDLRenderer = Pointer;
+
+/** Opaque pointer to an SDL_Texture */
+export type SDLTexture = Pointer;
 
 /**
  * SDL scancode → love2d-style key name mapping.

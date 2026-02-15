@@ -6,16 +6,34 @@ import * as window from "./window.ts";
 import * as graphics from "./graphics.ts";
 import * as keyboard from "./keyboard.ts";
 import * as mouse from "./mouse.ts";
+import * as timer from "./timer.ts";
+import * as filesystem from "./filesystem.ts";
+import * as math from "./math.ts";
+import * as system from "./system.ts";
+import * as audio from "./audio.ts";
+import * as event from "./event.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics, keyboard, mouse };
+export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, event };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 
 let _initialized = false;
 
+/** Detect WSL2 and force X11 — SDL3's Wayland backend hangs on WSLg. */
+function _applyPlatformWorkarounds(): void {
+  if (process.env.SDL_VIDEODRIVER) return; // user already set it
+  try {
+    const release = require("fs").readFileSync("/proc/version", "utf8");
+    if (/microsoft|wsl/i.test(release)) {
+      process.env.SDL_VIDEODRIVER = "x11";
+    }
+  } catch {}
+}
+
 export function init(flags: number = SDL_INIT_VIDEO): boolean {
   if (_initialized) return true;
+  _applyPlatformWorkarounds();
   const ok = sdl.SDL_Init(flags);
   if (!ok) {
     throw new Error(`SDL_Init failed: ${sdl.SDL_GetError()}`);
@@ -25,6 +43,7 @@ export function init(flags: number = SDL_INIT_VIDEO): boolean {
 }
 
 export function quit(): void {
+  audio._quit();
   graphics._destroyRenderer();
   window.close();
   sdl.SDL_Quit();
@@ -58,19 +77,27 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
   // Create renderer
   graphics._createRenderer();
 
+  // Initialize timer
+  timer._init();
+
+  // Initialize audio (non-fatal if it fails)
+  audio._init();
+
   // Call load() once
   if (callbacks.load) {
     await callbacks.load();
   }
 
-  let lastTime = performance.now();
   let running = true;
 
   while (running && window.isOpen()) {
+    // Step the timer (updates dt, FPS)
+    const dt = timer.step();
+
     // Poll and dispatch events
     const events = pollEvents();
-    for (const event of events) {
-      switch (event.type) {
+    for (const ev of events) {
+      switch (ev.type) {
         case "quit":
         case "close": {
           let shouldQuit = true;
@@ -87,38 +114,47 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
           break;
         }
         case "focus":
-          callbacks.focus?.(event.hasFocus);
+          callbacks.focus?.(ev.hasFocus);
           break;
         case "resize":
-          callbacks.resize?.(event.width, event.height);
+          callbacks.resize?.(ev.width, ev.height);
           break;
         case "keypressed":
-          callbacks.keypressed?.(event.key, event.scancode, event.isRepeat);
+          if (!keyboard._shouldFilterRepeat(ev.isRepeat)) {
+            callbacks.keypressed?.(ev.key, ev.scancode, ev.isRepeat);
+          }
           break;
         case "keyreleased":
-          callbacks.keyreleased?.(event.key, event.scancode);
+          callbacks.keyreleased?.(ev.key, ev.scancode);
           break;
         case "mousepressed":
-          callbacks.mousepressed?.(event.x, event.y, event.button, false);
+          callbacks.mousepressed?.(ev.x, ev.y, ev.button, false);
           break;
         case "mousereleased":
-          callbacks.mousereleased?.(event.x, event.y, event.button, false);
+          callbacks.mousereleased?.(ev.x, ev.y, ev.button, false);
           break;
         case "mousemoved":
-          callbacks.mousemoved?.(event.x, event.y, event.dx, event.dy);
+          callbacks.mousemoved?.(ev.x, ev.y, ev.dx, ev.dy);
           break;
         case "wheelmoved":
-          callbacks.wheelmoved?.(event.x, event.y);
+          callbacks.wheelmoved?.(ev.x, ev.y);
+          break;
+        case "textinput":
+          callbacks.textinput?.(ev.text);
+          break;
+        case "filedropped":
+          callbacks.filedropped?.(ev.path);
+          break;
+        case "shown":
+          callbacks.visible?.(true);
+          break;
+        case "hidden":
+          callbacks.visible?.(false);
           break;
       }
     }
 
     if (!running) break;
-
-    // Calculate delta time
-    const now = performance.now();
-    const dt = (now - lastTime) / 1000; // seconds
-    lastTime = now;
 
     // Begin frame (clear with background color)
     graphics._beginFrame();

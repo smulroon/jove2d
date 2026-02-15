@@ -33,6 +33,9 @@ export interface GameCallbacks {
   mousereleased?(x: number, y: number, button: number, isTouch: boolean): void;
   mousemoved?(x: number, y: number, dx: number, dy: number): void;
   wheelmoved?(x: number, y: number): void;
+  textinput?(text: string): void;
+  filedropped?(path: string): void;
+  visible?(visible: boolean): void;
 }
 
 /** Raw pixel data from a screenshot capture */
@@ -60,4 +63,6 @@ export type JoveEvent =
   | { type: "mousepressed"; x: number; y: number; button: number; clicks: number }
   | { type: "mousereleased"; x: number; y: number; button: number }
   | { type: "mousemoved"; x: number; y: number; dx: number; dy: number }
-  | { type: "wheelmoved"; x: number; y: number };
+  | { type: "wheelmoved"; x: number; y: number }
+  | { type: "textinput"; text: string }
+  | { type: "filedropped"; path: string };
