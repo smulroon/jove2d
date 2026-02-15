@@ -26,6 +26,7 @@ export type { ParticleSystem } from "./particles.ts";
 export type { Shader } from "./shader.ts";
 export type { Source } from "./audio.ts";
 export type { ByteData } from "./data.ts";
+export type { File, FileData } from "./filesystem.ts";
 
 let _initialized = false;
 
@@ -69,35 +70,10 @@ export function getVersion(): string {
 }
 
 /**
- * Main game loop — mirrors love.run().
- * Auto-initializes SDL and creates a default 800x600 window if none is open.
+ * Synchronous game loop — extracted from run() so the JIT can fully optimize
+ * the hot while-loop without async state machine overhead.
  */
-export async function run(callbacks: GameCallbacks): Promise<void> {
-  // Auto-init SDL if needed
-  init();
-
-  // Create default window if none is open (matches love2d defaults)
-  if (!window.isOpen()) {
-    const ok = window.setMode(800, 600, { resizable: true });
-    if (!ok) {
-      throw new Error(`Failed to create window: ${sdl.SDL_GetError()}`);
-    }
-  }
-
-  // Create renderer
-  graphics._createRenderer();
-
-  // Initialize timer
-  timer._init();
-
-  // Initialize audio (non-fatal if it fails)
-  audio._init();
-
-  // Call load() once
-  if (callbacks.load) {
-    await callbacks.load();
-  }
-
+function _gameLoop(callbacks: GameCallbacks): void {
   let running = true;
 
   while (running && window.isOpen()) {
@@ -179,9 +155,43 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
     // End frame (flush captures + present)
     graphics._endFrame();
 
-    // Yield to event loop (~1ms sleep to prevent CPU spin)
-    await Bun.sleep(1);
+    // Match love2d: SDL_Delay(1) — native nanosleep, prevents CPU spin
+    sdl.SDL_Delay(1);
   }
+}
+
+/**
+ * Main game loop — mirrors love.run().
+ * Auto-initializes SDL and creates a default 800x600 window if none is open.
+ */
+export async function run(callbacks: GameCallbacks): Promise<void> {
+  // Auto-init SDL if needed
+  init();
+
+  // Create default window if none is open (matches love2d defaults)
+  if (!window.isOpen()) {
+    const ok = window.setMode(800, 600, { resizable: true });
+    if (!ok) {
+      throw new Error(`Failed to create window: ${sdl.SDL_GetError()}`);
+    }
+  }
+
+  // Create renderer
+  graphics._createRenderer();
+
+  // Initialize timer
+  timer._init();
+
+  // Initialize audio (non-fatal if it fails)
+  audio._init();
+
+  // Call load() once (may be async)
+  if (callbacks.load) {
+    await callbacks.load();
+  }
+
+  // Run the synchronous game loop (JIT-friendly — no async overhead)
+  _gameLoop(callbacks);
 
   // Cleanup
   quit();

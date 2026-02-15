@@ -12,6 +12,7 @@ export type { ParticleSystem } from "./jove/particles.ts";
 export type { Shader } from "./jove/shader.ts";
 export type { Source } from "./jove/audio.ts";
 export type { ByteData } from "./jove/data.ts";
+export type { File, FileData } from "./jove/filesystem.ts";
 
 import * as jove from "./jove/index.ts";
 export default jove;

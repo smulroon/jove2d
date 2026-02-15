@@ -760,6 +760,11 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.pointer],
     returns: FFIType.void,
   },
+  // void SDL_Delay(Uint32 ms)
+  SDL_Delay: {
+    args: [FFIType.u32],
+    returns: FFIType.void,
+  },
 });
 
 export default sdl;

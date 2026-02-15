@@ -16,7 +16,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.mouse | **18/18 Complete** | All functions implemented |
 | love.math | **16/16 Complete** | All functions implemented |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
-| love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
+| love.filesystem | **19/31 Mostly done** | Added directory queries, mount/unmount, File handle, FileData; remaining gaps are Lua-specific |
 | love.graphics | **~68/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil done; missing newText, applyTransform |
 | love.audio | **14/26 Core done** | WAV playback, global controls, pitch, looping, seek/tell, clone; no OGG/MP3, effects, or positional audio |
 
@@ -101,14 +101,14 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`newBezierCurve` — bezier curve object (evaluate, render, getDerivative)~~
 - ~~`getRandomState` / `setRandomState` — RNG state serialization for replays~~
 
-### love.filesystem — missing functions
+### ~~love.filesystem — missing functions~~ DONE
 
-**Should add (useful):**
-- `getWorkingDirectory` — current working directory
-- `getUserDirectory` — home directory path
-- `getAppdataDirectory` — app data path
-- `mount` / `unmount` — virtual filesystem / zip archive support
-- `newFile` / `newFileData` — file handle objects with streaming reads
+**Done:**
+- ~~`getWorkingDirectory`~~ — current working directory
+- ~~`getUserDirectory`~~ — home directory path
+- ~~`getAppdataDirectory`~~ — app data path
+- ~~`mount` / `unmount`~~ — directory-based search path (no zip support)
+- ~~`newFile` / `newFileData`~~ — File handle (open/read/write/seek/tell/close) + FileData wrapper
 
 **Lua-specific (skip):**
 - `load` — load Lua chunk (N/A for TypeScript)
@@ -254,6 +254,6 @@ Grouped by priority based on impact for typical 2D game development.
 10. ~~**Mesh**~~ DONE — custom vertex geometry (fan/strip/triangles/points, vertex map, textured/untextured)
 11. ~~**Stencil**~~ DONE — canvas-based stencil simulation with custom blend modes (binary mask)
 12. ~~**love.data**~~ DONE — compression/encoding utilities
-13. **Filesystem gaps** — mount/unmount, File objects
+13. ~~**Filesystem gaps**~~ DONE — directory queries, mount/unmount, File handle, FileData
 14. **Joystick** — gamepad support
 15. **Physics** — Box2D integration

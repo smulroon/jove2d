@@ -1479,9 +1479,9 @@ export function _createRenderer(): void {
   if (!win) return;
 
   // Try GPU renderer first (enables shader support)
-  // Skip GPU renderer attempt if using dummy video driver (crashes in headless mode)
+  // Skip if dummy driver (crashes) or JOVE_NO_GPU is set (for benchmarking)
   const videoDriver = process.env.SDL_VIDEODRIVER;
-  if (videoDriver !== "dummy") {
+  if (videoDriver !== "dummy" && !process.env.JOVE_NO_GPU) {
     try {
       // Step 1: Create GPU device requesting SPIRV format (Vulkan backend)
       const device = sdl.SDL_CreateGPUDevice(
