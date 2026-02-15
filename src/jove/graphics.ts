@@ -6,6 +6,7 @@ import type { Pointer } from "bun:ffi";
 import { resolve } from "path";
 import sdl from "../sdl/ffi.ts";
 import { loadTTF } from "../sdl/ffi_ttf.ts";
+import { loadImage } from "../sdl/ffi_image.ts";
 import { _createFont } from "./font.ts";
 import type { Font } from "./font.ts";
 import {
@@ -50,6 +51,9 @@ const BLEND_NAME_TO_SDL: Record<BlendModeName, number> = {
   replace: SDL_BLENDMODE_NONE,
   screen: SDL_BLENDMODE_MOD,
 };
+
+// SDL_image state
+let _img: ReturnType<typeof loadImage> = null;
 
 // TTF state
 let _ttf: ReturnType<typeof loadTTF> = null;
@@ -275,15 +279,26 @@ const _texHBuf = new Float32Array(1);
 const _texWPtr = ptr(_texWBuf);
 const _texHPtr = ptr(_texHBuf);
 
-/** Load an image from a BMP file and return an Image object. */
+/** Load an image file and return an Image object. Supports PNG, JPG, WebP, etc. when SDL_image is available; falls back to BMP-only. */
 export function newImage(path: string): Image | null {
   if (!_renderer) return null;
-  const surface = sdl.SDL_LoadBMP(Buffer.from(path + "\0")) as Pointer | null;
-  if (!surface) return null;
 
-  const texture = sdl.SDL_CreateTextureFromSurface(_renderer, surface) as SDLTexture | null;
-  sdl.SDL_DestroySurface(surface);
-  if (!texture) return null;
+  let texture: SDLTexture | null = null;
+
+  // Try SDL_image first (supports PNG, JPG, WebP, GIF, etc.)
+  if (!_img) _img = loadImage();
+  if (_img) {
+    texture = _img.IMG_LoadTexture(_renderer, Buffer.from(path + "\0")) as SDLTexture | null;
+  }
+
+  // Fallback to SDL_LoadBMP for BMP files
+  if (!texture) {
+    const surface = sdl.SDL_LoadBMP(Buffer.from(path + "\0")) as Pointer | null;
+    if (!surface) return null;
+    texture = sdl.SDL_CreateTextureFromSurface(_renderer, surface) as SDLTexture | null;
+    sdl.SDL_DestroySurface(surface);
+    if (!texture) return null;
+  }
 
   sdl.SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
