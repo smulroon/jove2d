@@ -1,6 +1,6 @@
 // jove2d event system — polls SDL events and returns typed JoveEvent objects
 
-import { ptr, read } from "bun:ffi";
+import { ptr, read, CString } from "bun:ffi";
 import type { Pointer } from "bun:ffi";
 import sdl from "../sdl/ffi.ts";
 import {
@@ -159,7 +159,7 @@ function mapEvent(eventType: number, p: Pointer): JoveEvent | null {
       const textPtr = read.ptr(p, SDL_TEXT_INPUT_TEXT);
       if (!textPtr) return null;
       // Read the text as a cstring
-      const text = new Bun.CString(textPtr);
+      const text = new CString(textPtr);
       return { type: "textinput", text: text.toString() };
     }
 
