@@ -15,7 +15,8 @@
     "test": "bun test",
     "build-sdl3": "bash scripts/build-sdl3.sh",
     "build-sdl_ttf": "bash scripts/build-sdl_ttf.sh",
-    "build-sdl_image": "bash scripts/build-sdl_image.sh"
+    "build-sdl_image": "bash scripts/build-sdl_image.sh",
+    "build-box2d": "bash scripts/build-box2d.sh"
   },
   "type": "module"
 }

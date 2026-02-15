@@ -14,10 +14,11 @@ import * as audio from "./audio.ts";
 import * as data from "./data.ts";
 import * as event from "./event.ts";
 import * as joystick from "./joystick.ts";
+import * as physics from "./physics.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick };
+export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick, physics };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
@@ -29,6 +30,7 @@ export type { Source } from "./audio.ts";
 export type { ByteData } from "./data.ts";
 export type { File, FileData } from "./filesystem.ts";
 export type { Joystick } from "./joystick.ts";
+export type { World, Body, Fixture, Shape, Joint, Contact } from "./physics.ts";
 
 let _initialized = false;
 
@@ -237,6 +239,9 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
 
   // Initialize joystick (enumerate already-connected devices)
   joystick._init();
+
+  // Initialize physics (lazy — just checks if Box2D lib is available)
+  physics._init();
 
   // Call load() once (may be async)
   if (callbacks.load) {
