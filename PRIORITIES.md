@@ -18,7 +18,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
 | love.graphics | **~45/97 Core done** | Primitives/transforms/shaders/batching done; missing mesh, particles |
-| love.audio | **3/26 Minimal** | WAV playback only; no global controls, effects, or positional audio |
+| love.audio | **14/26 Core done** | WAV playback, global controls, pitch, looping, seek/tell, clone; no OGG/MP3, effects, or positional audio |
 
 ---
 
@@ -120,11 +120,18 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### love.audio — missing functions
 
-**Should add (core):**
-- `pause()` / `play()` / `stop()` — global pause/play/stop all sources
-- `getActiveSourceCount` — count playing sources
-- Pitch shifting on Source — currently stored but not applied
-- Proper seek/tell on Source — currently simplified
+**Done:**
+- ~~`pause()` / `play()` / `stop()`~~ — global pause/play/stop all sources
+- ~~`getActiveSourceCount`~~ — count playing sources
+- ~~Pitch shifting on Source~~ — via SDL_SetAudioStreamFrequencyRatio
+- ~~Proper seek/tell on Source~~ — byte-offset math on static source buffer
+- ~~`getDuration()`~~ — audio length in seconds
+- ~~`clone()`~~ — copy source sharing audio data
+- ~~`type()`~~ — source type method (love2d compat)
+- ~~`isStopped()` / `isPaused()`~~ — state queries
+- ~~Looping~~ — poll SDL_GetAudioStreamAvailable, re-queue when empty
+- ~~Master volume propagation~~ — setVolume iterates all sources
+- ~~Auto-stop finished sources~~ — _updateSources per frame
 
 **P2 (format support):**
 - OGG/MP3/FLAC decoding — needs SDL_mixer or similar
@@ -245,7 +252,7 @@ Grouped by priority based on impact for typical 2D game development.
 6. ~~**SpriteBatch**~~ DONE — performance for tile maps and particle systems
 7. ~~**Shaders**~~ DONE — custom fragment shaders via SDL_GPURenderState + SPIR-V compilation
 8. ~~**ParticleSystem**~~ DONE — SoA layout, compact-swap pool, full love2d API (~50 methods)
-9. **Audio improvements** — global controls, pitch, OGG/MP3 via SDL_mixer
+9. ~~**Audio improvements**~~ DONE — global controls, pitch, looping, seek/tell, clone, getDuration (OGG/MP3 deferred)
 10. **Mesh** — custom geometry
 11. **Stencil** — masking operations
 12. **love.data** — compression/encoding utilities

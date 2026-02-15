@@ -10,6 +10,7 @@ export type { Font } from "./jove/font.ts";
 export type { SpriteBatch } from "./jove/graphics.ts";
 export type { ParticleSystem } from "./jove/particles.ts";
 export type { Shader } from "./jove/shader.ts";
+export type { Source } from "./jove/audio.ts";
 
 import * as jove from "./jove/index.ts";
 export default jove;

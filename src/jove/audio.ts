@@ -22,6 +22,9 @@ let _initialized = false;
 const _deviceSpec = new Int32Array(3); // format, channels, freq
 const _deviceSpecPtr = ptr(_deviceSpec);
 
+// Source tracking for global operations
+const _sources = new Set<Source>();
+
 /** Initialize the audio subsystem. Called internally. Device opened lazily on first use. */
 export function _init(): boolean {
   if (_initialized) return true;
@@ -43,6 +46,11 @@ function _ensureDevice(): boolean {
 /** Shut down the audio system. Called internally. */
 export function _quit(): void {
   if (!_initialized) return;
+  // Release all tracked sources
+  for (const source of _sources) {
+    source.release();
+  }
+  _sources.clear();
   if (_deviceId) {
     sdl.SDL_CloseAudioDevice(_deviceId);
     _deviceId = 0;
@@ -50,17 +58,27 @@ export function _quit(): void {
   _initialized = false;
 }
 
+/** Poll all playing sources for end-of-stream / looping. Call once per frame. */
+export function _updateSources(): void {
+  for (const source of _sources) {
+    source._poll();
+  }
+}
+
 // ============================================================
 // Source type
 // ============================================================
 
 export type SourceType = "static" | "stream";
+type SourceState = "stopped" | "playing" | "paused";
 
 export interface Source {
   play(): void;
   pause(): void;
   stop(): void;
   isPlaying(): boolean;
+  isStopped(): boolean;
+  isPaused(): boolean;
   setVolume(volume: number): void;
   getVolume(): number;
   setLooping(looping: boolean): void;
@@ -69,8 +87,16 @@ export interface Source {
   getPitch(): number;
   seek(position: number): void;
   tell(): number;
+  getDuration(): number;
+  clone(): Source;
+  type(): SourceType;
   release(): void;
+  /** @internal */
+  _poll(): void;
+  /** @internal */
   _type: SourceType;
+  /** @internal */
+  _applyMasterVolume(): void;
 }
 
 /** Load a WAV file and create an audio source. */
@@ -116,98 +142,219 @@ function _createSource(
   format: number,
   channels: number,
   freq: number,
-  type: SourceType,
+  sourceType: SourceType,
 ): Source {
   let _stream: Pointer | null = null;
-  let _playing = false;
+  let _state: SourceState = "stopped";
   let _volume = 1.0;
   let _looping = false;
   let _pitch = 1.0;
-  let _position = 0;
 
-  // Create audio stream from source spec to device spec (let SDL handle conversion)
+  // Compute bytes per second for seek/tell/duration
+  const bytesPerSample = format === SDL_AUDIO_F32 ? 4 : 2;
+  const _bytesPerSecond = freq * channels * bytesPerSample;
+
+  // Create audio stream from source spec (let SDL handle conversion when bound to device)
   const srcSpec = new Int32Array([format, channels, freq]);
-  // For dst spec, use same format to avoid conversion issues
-  // SDL will convert as needed when bound to device
   const dstSpec = new Int32Array([format, channels, freq]);
 
   _stream = sdl.SDL_CreateAudioStream(ptr(srcSpec), ptr(dstSpec)) as Pointer | null;
   if (!_stream) return null as any;
 
-  function _loadData(): void {
+  function _loadData(byteOffset: number = 0): void {
     if (!_stream) return;
     sdl.SDL_ClearAudioStream(_stream);
-    const dataPtr = ptr(audioData);
-    sdl.SDL_PutAudioStreamData(_stream, dataPtr, audioData.length);
+    const offset = Math.min(byteOffset, audioData.length);
+    if (offset > 0) {
+      const sliced = audioData.subarray(offset);
+      sdl.SDL_PutAudioStreamData(_stream, ptr(sliced), sliced.length);
+    } else {
+      sdl.SDL_PutAudioStreamData(_stream, ptr(audioData), audioData.length);
+    }
+    sdl.SDL_FlushAudioStream(_stream);
+  }
+
+  function _bind(): void {
+    if (!_stream || !_deviceId) return;
+    sdl.SDL_BindAudioStream(_deviceId, _stream);
+  }
+
+  function _unbind(): void {
+    if (!_stream) return;
+    sdl.SDL_UnbindAudioStream(_stream);
+  }
+
+  function _applyGain(): void {
+    if (!_stream) return;
+    sdl.SDL_SetAudioStreamGain(_stream, _volume * _masterVolume);
+  }
+
+  function _applyPitch(): void {
+    if (!_stream) return;
+    sdl.SDL_SetAudioStreamFrequencyRatio(_stream, _pitch);
   }
 
   const source: Source = {
-    _type: type,
+    _type: sourceType,
+
     play() {
       if (!_stream || !_deviceId) return;
-      if (!_playing) {
+      if (_state === "playing") {
+        // love2d: play() on playing source rewinds
+        _unbind();
         _loadData();
-        sdl.SDL_BindAudioStream(_deviceId, _stream);
-        sdl.SDL_SetAudioStreamGain(_stream, _volume * _masterVolume);
+        _bind();
+        _applyGain();
+        _applyPitch();
         sdl.SDL_ResumeAudioStreamDevice(_stream);
-        _playing = true;
+        return;
       }
+      if (_state === "paused") {
+        // Resume from pause
+        sdl.SDL_ResumeAudioStreamDevice(_stream);
+        _state = "playing";
+        return;
+      }
+      // stopped → playing
+      _loadData();
+      _bind();
+      _applyGain();
+      _applyPitch();
+      sdl.SDL_ResumeAudioStreamDevice(_stream);
+      _state = "playing";
     },
+
     pause() {
-      if (!_stream || !_playing) return;
+      if (!_stream || _state !== "playing") return;
       sdl.SDL_PauseAudioStreamDevice(_stream);
-      _playing = false;
+      _state = "paused";
     },
+
     stop() {
-      if (!_stream) return;
-      sdl.SDL_UnbindAudioStream(_stream);
+      if (!_stream || _state === "stopped") return;
+      _unbind();
       sdl.SDL_ClearAudioStream(_stream);
-      _playing = false;
-      _position = 0;
+      _state = "stopped";
     },
+
     isPlaying() {
-      return _playing;
+      return _state === "playing";
     },
+
+    isStopped() {
+      return _state === "stopped";
+    },
+
+    isPaused() {
+      return _state === "paused";
+    },
+
     setVolume(volume: number) {
       _volume = Math.max(0, Math.min(1, volume));
-      if (_stream) {
-        sdl.SDL_SetAudioStreamGain(_stream, _volume * _masterVolume);
-      }
+      _applyGain();
     },
+
     getVolume() {
       return _volume;
     },
+
     setLooping(looping: boolean) {
       _looping = looping;
     },
+
     isLooping() {
       return _looping;
     },
+
     setPitch(pitch: number) {
-      _pitch = pitch;
-      // SDL3 doesn't have per-stream pitch control built-in
-      // This would require resampling — stored as state for future implementation
+      _pitch = Math.max(0.01, pitch); // SDL3 requires ratio > 0
+      _applyPitch();
     },
+
     getPitch() {
       return _pitch;
     },
+
     seek(position: number) {
-      _position = position;
-      // Seeking requires reloading data from offset — simplified implementation
+      if (!_stream) return;
+      const byteOffset = Math.max(0, Math.floor(position * _bytesPerSecond));
+      // Align to frame boundary (channels * bytesPerSample)
+      const frameSize = channels * bytesPerSample;
+      const aligned = byteOffset - (byteOffset % frameSize);
+      if (_state === "playing") {
+        _unbind();
+        _loadData(aligned);
+        _bind();
+        _applyGain();
+        _applyPitch();
+        sdl.SDL_ResumeAudioStreamDevice(_stream);
+      } else if (_state === "paused") {
+        _loadData(aligned);
+        // Stay paused — data is queued but device stays paused
+      } else {
+        // Stopped: just queue data from offset, don't play
+        _loadData(aligned);
+      }
     },
-    tell() {
-      return _position;
+
+    tell(): number {
+      if (!_stream || _state === "stopped") return 0;
+      // Estimate position: total duration minus remaining audio in stream
+      const available = sdl.SDL_GetAudioStreamAvailable(_stream);
+      const totalSeconds = audioData.length / _bytesPerSecond;
+      const remainingSeconds = Math.max(0, available) / _bytesPerSecond;
+      return Math.max(0, totalSeconds - remainingSeconds);
     },
+
+    getDuration(): number {
+      return audioData.length / _bytesPerSecond;
+    },
+
+    clone(): Source {
+      const cloned = _createSource(audioData, format, channels, freq, sourceType);
+      cloned.setVolume(_volume);
+      cloned.setPitch(_pitch);
+      cloned.setLooping(_looping);
+      return cloned;
+    },
+
+    type(): SourceType {
+      return sourceType;
+    },
+
     release() {
       if (_stream) {
-        sdl.SDL_UnbindAudioStream(_stream);
+        _unbind();
         sdl.SDL_DestroyAudioStream(_stream);
         _stream = null;
       }
-      _playing = false;
+      _state = "stopped";
+      _sources.delete(source);
+    },
+
+    _poll() {
+      if (_state !== "playing" || !_stream) return;
+      const available = sdl.SDL_GetAudioStreamAvailable(_stream);
+      if (available <= 0) {
+        if (_looping) {
+          // Re-queue audio data for loop
+          sdl.SDL_PutAudioStreamData(_stream, ptr(audioData), audioData.length);
+          sdl.SDL_FlushAudioStream(_stream);
+        } else {
+          // Auto-stop when playback finished
+          _unbind();
+          sdl.SDL_ClearAudioStream(_stream);
+          _state = "stopped";
+        }
+      }
+    },
+
+    _applyMasterVolume() {
+      _applyGain();
     },
   };
 
+  _sources.add(source);
   return source;
 }
 
@@ -215,12 +362,57 @@ function _createSource(
 // Global audio controls
 // ============================================================
 
-/** Set the master volume (0.0 to 1.0). */
+/** Set the master volume (0.0 to 1.0). Propagates to all sources. */
 export function setVolume(volume: number): void {
   _masterVolume = Math.max(0, Math.min(1, volume));
+  for (const source of _sources) {
+    source._applyMasterVolume();
+  }
 }
 
 /** Get the master volume. */
 export function getVolume(): number {
   return _masterVolume;
+}
+
+/** Get the number of currently playing sources. */
+export function getActiveSourceCount(): number {
+  let count = 0;
+  for (const source of _sources) {
+    if (source.isPlaying()) count++;
+  }
+  return count;
+}
+
+/** Pause all currently playing sources (no args). */
+export function pause(): void {
+  for (const source of _sources) {
+    if (source.isPlaying()) {
+      source.pause();
+    }
+  }
+}
+
+/** Resume/play: with no args, resumes all paused sources. With a source arg, plays that source. */
+export function play(source?: Source): void {
+  if (source) {
+    source.play();
+    return;
+  }
+  for (const s of _sources) {
+    if (s.isPaused()) {
+      s.play();
+    }
+  }
+}
+
+/** Stop all sources (no args) or a specific source. */
+export function stop(source?: Source): void {
+  if (source) {
+    source.stop();
+    return;
+  }
+  for (const s of _sources) {
+    s.stop();
+  }
 }

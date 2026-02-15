@@ -646,6 +646,21 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.pointer],
     returns: FFIType.f32,
   },
+  // bool SDL_SetAudioStreamFrequencyRatio(SDL_AudioStream* stream, float ratio)
+  SDL_SetAudioStreamFrequencyRatio: {
+    args: [FFIType.pointer, FFIType.f32],
+    returns: FFIType.bool,
+  },
+  // float SDL_GetAudioStreamFrequencyRatio(SDL_AudioStream* stream)
+  SDL_GetAudioStreamFrequencyRatio: {
+    args: [FFIType.pointer],
+    returns: FFIType.f32,
+  },
+  // int SDL_GetAudioStreamAvailable(SDL_AudioStream* stream)
+  SDL_GetAudioStreamAvailable: {
+    args: [FFIType.pointer],
+    returns: FFIType.i32,
+  },
 
   // --- Memory ---
 

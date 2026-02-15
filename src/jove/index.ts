@@ -23,6 +23,7 @@ export type { BezierCurve } from "./math.ts";
 export type { SpriteBatch } from "./graphics.ts";
 export type { ParticleSystem } from "./particles.ts";
 export type { Shader } from "./shader.ts";
+export type { Source } from "./audio.ts";
 
 let _initialized = false;
 
@@ -165,6 +166,9 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
 
     // Begin frame (clear with background color)
     graphics._beginFrame();
+
+    // Poll audio sources (looping, auto-stop)
+    audio._updateSources();
 
     // Update and draw
     callbacks.update?.(dt);
