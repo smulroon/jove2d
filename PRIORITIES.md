@@ -175,11 +175,9 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### Priority 2 — Important for Many Games
 
-#### love.data
-- **Current**: Not implemented
-- **Needed**: `compress`/`decompress`, `encode`/`decode` (base64, hex), `hash`, ByteData
-- **Approach**: Use Bun's built-in Buffer/crypto APIs
-- **Why P2**: Save file compression, network data encoding, asset hashing.
+#### ~~love.data~~ DONE
+- **Implemented**: `compress`/`decompress` (zlib, gzip, deflate), `encode`/`decode` (base64, hex), `hash` (md5, sha1, sha224, sha256, sha384, sha512), `ByteData`
+- Uses Bun's built-in zlib, Buffer, and CryptoHasher APIs — no external dependencies
 
 ### Priority 3 — Useful for Specific Game Types
 
@@ -255,7 +253,7 @@ Grouped by priority based on impact for typical 2D game development.
 9. ~~**Audio improvements**~~ DONE — global controls, pitch, looping, seek/tell, clone, getDuration (OGG/MP3 deferred)
 10. ~~**Mesh**~~ DONE — custom vertex geometry (fan/strip/triangles/points, vertex map, textured/untextured)
 11. ~~**Stencil**~~ DONE — canvas-based stencil simulation with custom blend modes (binary mask)
-12. **love.data** — compression/encoding utilities
+12. ~~**love.data**~~ DONE — compression/encoding utilities
 13. **Filesystem gaps** — mount/unmount, File objects
 14. **Joystick** — gamepad support
 15. **Physics** — Box2D integration

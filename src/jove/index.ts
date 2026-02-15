@@ -11,11 +11,12 @@ import * as filesystem from "./filesystem.ts";
 import * as math from "./math.ts";
 import * as system from "./system.ts";
 import * as audio from "./audio.ts";
+import * as data from "./data.ts";
 import * as event from "./event.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, event };
+export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
@@ -24,6 +25,7 @@ export type { SpriteBatch, Mesh } from "./graphics.ts";
 export type { ParticleSystem } from "./particles.ts";
 export type { Shader } from "./shader.ts";
 export type { Source } from "./audio.ts";
+export type { ByteData } from "./data.ts";
 
 let _initialized = false;
 
