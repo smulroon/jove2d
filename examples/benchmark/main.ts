@@ -58,6 +58,7 @@ type BodyInfo = { body: ReturnType<typeof jove.physics.newBody>; kind: "circle" 
 let world: ReturnType<typeof jove.physics.newWorld>;
 const bodies: BodyInfo[] = [];
 let bumpSource: Source | null = null;
+const soundPool: Source[] = [];
 let wavPath = "";
 let batch: SpriteBatch | null = null;
 const particles: ParticleSystem[] = [];
@@ -79,6 +80,11 @@ await jove.run({
     wavPath = join(tmpdir(), "jove2d-bump.wav");
     writeFileSync(wavPath, generateBumpWav());
     bumpSource = jove.audio.newSource(wavPath, "static");
+    if (bumpSource) {
+      for (let i = 0; i < MAX_SOUNDS; i++) {
+        soundPool.push(bumpSource.clone());
+      }
+    }
 
     // --- Physics world + walls ---
     world = jove.physics.newWorld(0, 9.81 * 30);
@@ -183,12 +189,16 @@ await jove.run({
           particleIdx++;
         }
 
-        // Play sound
-        if (!muted && bumpSource && jove.audio.getActiveSourceCount() < MAX_SOUNDS) {
-          const clone = bumpSource.clone();
-          clone.setPitch(0.8 + Math.random() * 0.6);
-          clone.setVolume(0.3);
-          clone.play();
+        // Play sound (reuse from pool)
+        if (!muted && soundPool.length > 0) {
+          for (const s of soundPool) {
+            if (s.isStopped()) {
+              s.setPitch(0.8 + Math.random() * 0.6);
+              s.setVolume(0.3);
+              s.play();
+              break;
+            }
+          }
         }
       },
     });

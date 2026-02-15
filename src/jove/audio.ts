@@ -60,8 +60,16 @@ export function _quit(): void {
 
 /** Poll all playing sources for end-of-stream / looping. Call once per frame. */
 export function _updateSources(): void {
+  let toRelease: Source[] | null = null;
   for (const source of _sources) {
-    source._poll();
+    if (source._poll()) {
+      (toRelease ??= []).push(source);
+    }
+  }
+  if (toRelease) {
+    for (const source of toRelease) {
+      source.release();
+    }
   }
 }
 
@@ -91,8 +99,8 @@ export interface Source {
   clone(): Source;
   type(): SourceType;
   release(): void;
-  /** @internal */
-  _poll(): void;
+  /** @internal — returns true if source finished and should be auto-released */
+  _poll(): boolean;
   /** @internal */
   _type: SourceType;
   /** @internal */
@@ -198,7 +206,15 @@ function _createSource(
     _type: sourceType,
 
     play() {
-      if (!_stream || !_deviceId) return;
+      if (!_deviceId) return;
+      // Recreate stream if it was auto-released after finishing
+      if (!_stream) {
+        const newSrcSpec = new Int32Array([format, channels, freq]);
+        const newDstSpec = new Int32Array([format, channels, freq]);
+        _stream = sdl.SDL_CreateAudioStream(ptr(newSrcSpec), ptr(newDstSpec)) as Pointer | null;
+        if (!_stream) return;
+        _sources.add(source);
+      }
       if (_state === "playing") {
         // love2d: play() on playing source rewinds
         _unbind();
@@ -332,8 +348,8 @@ function _createSource(
       _sources.delete(source);
     },
 
-    _poll() {
-      if (_state !== "playing" || !_stream) return;
+    _poll(): boolean {
+      if (_state !== "playing" || !_stream) return false;
       const available = sdl.SDL_GetAudioStreamAvailable(_stream);
       if (available <= 0) {
         if (_looping) {
@@ -341,12 +357,14 @@ function _createSource(
           sdl.SDL_PutAudioStreamData(_stream, ptr(audioData), audioData.length);
           sdl.SDL_FlushAudioStream(_stream);
         } else {
-          // Auto-stop when playback finished
+          // Auto-stop when playback finished — signal for auto-release
           _unbind();
           sdl.SDL_ClearAudioStream(_stream);
           _state = "stopped";
+          return true;
         }
       }
+      return false;
     },
 
     _applyMasterVolume() {

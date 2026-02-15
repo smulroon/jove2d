@@ -15,6 +15,7 @@ local FRAME_HISTORY = 120
 local world
 local bodies = {}
 local bumpSource = nil
+local soundPool = {}
 local batch = nil
 local particles = {}
 local particleIdx = 1
@@ -114,6 +115,11 @@ function love.load()
     local wavData = generateBumpWav()
     love.filesystem.write("benchmark-bump.wav", wavData)
     bumpSource = love.audio.newSource("benchmark-bump.wav", "static")
+    if bumpSource then
+      for i = 1, MAX_SOUNDS do
+        soundPool[i] = bumpSource:clone()
+      end
+    end
   end
 
   -- Physics world + walls
@@ -150,12 +156,16 @@ function love.load()
       particleIdx = particleIdx + 1
     end
 
-    -- Play sound
-    if not muted and bumpSource and love.audio and love.audio.getActiveSourceCount() < MAX_SOUNDS then
-      local clone = bumpSource:clone()
-      clone:setPitch(0.8 + math.random() * 0.6)
-      clone:setVolume(0.3)
-      clone:play()
+    -- Play sound (reuse from pool)
+    if not muted and #soundPool > 0 then
+      for _, s in ipairs(soundPool) do
+        if not s:isPlaying() then
+          s:setPitch(0.8 + math.random() * 0.6)
+          s:setVolume(0.3)
+          s:play()
+          break
+        end
+      end
     end
   end)
 
