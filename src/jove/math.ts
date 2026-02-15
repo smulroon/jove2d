@@ -69,6 +69,8 @@ export interface RandomGenerator {
   randomNormal(stddev?: number, mean?: number): number;
   setSeed(seed: number): void;
   getSeed(): number;
+  getState(): string;
+  setState(state: string): void;
 }
 
 /** Create an independent random number generator. */
@@ -119,6 +121,15 @@ export function newRandomGenerator(seed?: number): RandomGenerator {
     },
     getSeed(): number {
       return state[0];
+    },
+    getState(): string {
+      return state.map(v => (v >>> 0).toString(16).padStart(8, "0")).join("");
+    },
+    setState(s: string): void {
+      if (s.length !== 32) throw new Error("Invalid random state");
+      for (let i = 0; i < 4; i++) {
+        state[i] = parseInt(s.slice(i * 8, i * 8 + 8), 16) >>> 0;
+      }
     },
   };
 }
@@ -570,4 +581,252 @@ export function gammaToLinear(c: number): number {
 export function linearToGamma(c: number): number {
   if (c <= 0.0031308) return c * 12.92;
   return 1.055 * Math.pow(c, 1.0 / 2.4) - 0.055;
+}
+
+// --- RNG state serialization ---
+
+/** Get the global RNG state as a 32-char hex string. */
+export function getRandomState(): string {
+  return _seed.map(v => (v >>> 0).toString(16).padStart(8, "0")).join("");
+}
+
+/** Set the global RNG state from a 32-char hex string. */
+export function setRandomState(state: string): void {
+  if (state.length !== 32) throw new Error("Invalid random state");
+  for (let i = 0; i < 4; i++) {
+    _seed[i] = parseInt(state.slice(i * 8, i * 8 + 8), 16) >>> 0;
+  }
+}
+
+// --- Color byte conversion ---
+
+/** Convert 0-255 color values to 0-1 range. */
+export function colorFromBytes(r: number, g: number, b: number, a?: number): number[] {
+  if (a !== undefined) return [r / 255, g / 255, b / 255, a / 255];
+  return [r / 255, g / 255, b / 255];
+}
+
+/** Convert 0-1 color values to 0-255 range. */
+export function colorToBytes(r: number, g: number, b: number, a?: number): number[] {
+  if (a !== undefined) return [Math.floor(r * 255 + 0.5), Math.floor(g * 255 + 0.5), Math.floor(b * 255 + 0.5), Math.floor(a * 255 + 0.5)];
+  return [Math.floor(r * 255 + 0.5), Math.floor(g * 255 + 0.5), Math.floor(b * 255 + 0.5)];
+}
+
+// --- BezierCurve ---
+
+export interface BezierCurve {
+  evaluate(t: number): [number, number];
+  render(depth?: number): number[];
+  renderSegment(startT: number, endT: number, depth?: number): number[];
+  getDerivative(): BezierCurve;
+  getControlPoint(index: number): [number, number];
+  setControlPoint(index: number, x: number, y: number): void;
+  insertControlPoint(x: number, y: number, index?: number): void;
+  removeControlPoint(index: number): void;
+  getControlPointCount(): number;
+  getDegree(): number;
+  getSegment(t1: number, t2: number): BezierCurve;
+  translate(dx: number, dy: number): void;
+  rotate(angle: number, ox?: number, oy?: number): void;
+  scale(s: number, ox?: number, oy?: number): void;
+}
+
+/** Create a new Bezier curve from control points [x1, y1, x2, y2, ...]. */
+export function newBezierCurve(points: number[]): BezierCurve {
+  if (points.length < 4 || points.length % 2 !== 0) {
+    throw new Error("Need at least 2 control points (4 numbers)");
+  }
+  // Internal copy of control points
+  const cp = points.slice();
+
+  function evaluateAt(t: number, pts: number[]): [number, number] {
+    // De Casteljau's algorithm
+    const n = pts.length / 2;
+    const work = pts.slice();
+    for (let r = 1; r < n; r++) {
+      for (let i = 0; i < n - r; i++) {
+        work[i * 2] = (1 - t) * work[i * 2] + t * work[(i + 1) * 2];
+        work[i * 2 + 1] = (1 - t) * work[i * 2 + 1] + t * work[(i + 1) * 2 + 1];
+      }
+    }
+    return [work[0], work[1]];
+  }
+
+  function subdivide(pts: number[], depth: number, out: number[]): void {
+    if (depth <= 0) {
+      // Add the endpoint
+      const [x, y] = evaluateAt(1, pts);
+      out.push(x, y);
+      return;
+    }
+    // Split at t=0.5 using de Casteljau
+    const n = pts.length / 2;
+    const left: number[] = [];
+    const right: number[] = [];
+    const work = pts.slice();
+
+    left.push(work[0], work[1]);
+    right.push(work[(n - 1) * 2], work[(n - 1) * 2 + 1]);
+
+    for (let r = 1; r < n; r++) {
+      for (let i = 0; i < n - r; i++) {
+        work[i * 2] = 0.5 * work[i * 2] + 0.5 * work[(i + 1) * 2];
+        work[i * 2 + 1] = 0.5 * work[i * 2 + 1] + 0.5 * work[(i + 1) * 2 + 1];
+      }
+      left.push(work[0], work[1]);
+      right.push(work[(n - 1 - r) * 2], work[(n - 1 - r) * 2 + 1]);
+    }
+
+    // Reverse right to get correct order
+    const rightOrdered: number[] = [];
+    for (let i = right.length / 2 - 1; i >= 0; i--) {
+      rightOrdered.push(right[i * 2], right[i * 2 + 1]);
+    }
+
+    subdivide(left, depth - 1, out);
+    subdivide(rightOrdered, depth - 1, out);
+  }
+
+  function getSegmentPoints(t1: number, t2: number): number[] {
+    // Use de Casteljau to extract a sub-curve from t1 to t2
+    // First split at t1, take right part; then split that at adjusted t2
+    const n = cp.length / 2;
+
+    // Split at t1 → right half
+    let work = cp.slice();
+    const rightPts: number[] = [];
+    for (let r = 1; r < n; r++) {
+      rightPts.push(work[(n - r) * 2], work[(n - r) * 2 + 1]); // will be reversed
+      for (let i = 0; i < n - r; i++) {
+        work[i * 2] = (1 - t1) * work[i * 2] + t1 * work[(i + 1) * 2];
+        work[i * 2 + 1] = (1 - t1) * work[i * 2 + 1] + t1 * work[(i + 1) * 2 + 1];
+      }
+    }
+    // Right half control points: work[0] + collected from top-right of triangle
+    // Actually let me redo this properly.
+
+    // Split at t1
+    function splitAt(pts: number[], t: number): { left: number[]; right: number[] } {
+      const nn = pts.length / 2;
+      const w = pts.slice();
+      const left: number[] = [w[0], w[1]];
+      const right: number[] = [w[(nn - 1) * 2], w[(nn - 1) * 2 + 1]];
+
+      for (let r = 1; r < nn; r++) {
+        for (let i = 0; i < nn - r; i++) {
+          w[i * 2] = (1 - t) * w[i * 2] + t * w[(i + 1) * 2];
+          w[i * 2 + 1] = (1 - t) * w[i * 2 + 1] + t * w[(i + 1) * 2 + 1];
+        }
+        left.push(w[0], w[1]);
+        right.push(w[(nn - 1 - r) * 2], w[(nn - 1 - r) * 2 + 1]);
+      }
+
+      // Reverse right
+      const ro: number[] = [];
+      for (let i = right.length / 2 - 1; i >= 0; i--) {
+        ro.push(right[i * 2], right[i * 2 + 1]);
+      }
+      return { left, right: ro };
+    }
+
+    const { right: afterT1 } = splitAt(cp, t1);
+    // Now split afterT1 at adjusted parameter
+    const adjustedT2 = t1 < 1 ? (t2 - t1) / (1 - t1) : 0;
+    const { left: segment } = splitAt(afterT1, adjustedT2);
+    return segment;
+  }
+
+  const curve: BezierCurve = {
+    evaluate(t: number): [number, number] {
+      return evaluateAt(t, cp);
+    },
+
+    render(depth: number = 5): number[] {
+      const out: number[] = [cp[0], cp[1]]; // Start point
+      subdivide(cp, depth, out);
+      return out;
+    },
+
+    renderSegment(startT: number, endT: number, depth: number = 5): number[] {
+      const segPts = getSegmentPoints(startT, endT);
+      const out: number[] = [segPts[0], segPts[1]];
+      subdivide(segPts, depth, out);
+      return out;
+    },
+
+    getDerivative(): BezierCurve {
+      const n = cp.length / 2;
+      if (n < 2) throw new Error("Cannot get derivative of curve with less than 2 control points");
+      const degree = n - 1;
+      const deriv: number[] = [];
+      for (let i = 0; i < degree; i++) {
+        deriv.push(
+          degree * (cp[(i + 1) * 2] - cp[i * 2]),
+          degree * (cp[(i + 1) * 2 + 1] - cp[i * 2 + 1]),
+        );
+      }
+      return newBezierCurve(deriv);
+    },
+
+    getControlPoint(index: number): [number, number] {
+      if (index < 0 || index >= cp.length / 2) throw new Error("Control point index out of range");
+      return [cp[index * 2], cp[index * 2 + 1]];
+    },
+
+    setControlPoint(index: number, x: number, y: number): void {
+      if (index < 0 || index >= cp.length / 2) throw new Error("Control point index out of range");
+      cp[index * 2] = x;
+      cp[index * 2 + 1] = y;
+    },
+
+    insertControlPoint(x: number, y: number, index?: number): void {
+      const i = index !== undefined ? index : cp.length / 2;
+      cp.splice(i * 2, 0, x, y);
+    },
+
+    removeControlPoint(index: number): void {
+      if (cp.length / 2 <= 2) throw new Error("Cannot remove: need at least 2 control points");
+      if (index < 0 || index >= cp.length / 2) throw new Error("Control point index out of range");
+      cp.splice(index * 2, 2);
+    },
+
+    getControlPointCount(): number {
+      return cp.length / 2;
+    },
+
+    getDegree(): number {
+      return cp.length / 2 - 1;
+    },
+
+    getSegment(t1: number, t2: number): BezierCurve {
+      return newBezierCurve(getSegmentPoints(t1, t2));
+    },
+
+    translate(dx: number, dy: number): void {
+      for (let i = 0; i < cp.length; i += 2) {
+        cp[i] += dx;
+        cp[i + 1] += dy;
+      }
+    },
+
+    rotate(angle: number, ox: number = 0, oy: number = 0): void {
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      for (let i = 0; i < cp.length; i += 2) {
+        const x = cp[i] - ox;
+        const y = cp[i + 1] - oy;
+        cp[i] = x * cos - y * sin + ox;
+        cp[i + 1] = x * sin + y * cos + oy;
+      }
+    },
+
+    scale(s: number, ox: number = 0, oy: number = 0): void {
+      for (let i = 0; i < cp.length; i += 2) {
+        cp[i] = (cp[i] - ox) * s + ox;
+        cp[i + 1] = (cp[i + 1] - oy) * s + oy;
+      }
+    },
+  };
+
+  return curve;
 }

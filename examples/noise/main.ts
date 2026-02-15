@@ -1,7 +1,8 @@
-// jove2d noise & math example — simplex noise visualization, RNG, and triangulation
+// jove2d noise & math example — simplex noise, RNG, triangulation, BezierCurve
 //
 // Demonstrates: jove.math.noise, jove.math.random, jove.math.setRandomSeed,
-// jove.math.newRandomGenerator, jove.math.triangulate, jove.math.isConvex
+// jove.math.newRandomGenerator, jove.math.triangulate, jove.math.isConvex,
+// jove.math.newBezierCurve
 
 import jove from "../../src/index.ts";
 
@@ -10,6 +11,9 @@ let seed = 42;
 
 // Pre-generate random polygon for triangulation demo
 const polyVerts = [200, 420, 280, 390, 340, 430, 320, 490, 240, 510, 180, 470];
+
+// BezierCurve demo
+const bezier = jove.math.newBezierCurve([50, 540, 150, 500, 250, 570, 350, 520]);
 
 await jove.run({
   load() {
@@ -112,6 +116,36 @@ await jove.run({
         jove.graphics.setColor(v * 0.3, v * 0.6, v);
         jove.graphics.point(400 + x * 4, 190 + y * 4);
       }
+    }
+
+    // --- BezierCurve demo ---
+    jove.graphics.setColor(180, 180, 180);
+    jove.graphics.print("BezierCurve (cubic)", 400, 500);
+
+    // Draw the curve
+    const curvePts = bezier.render(6);
+    jove.graphics.setColor(255, 200, 50);
+    for (let i = 0; i < curvePts.length - 2; i += 2) {
+      jove.graphics.line(curvePts[i], curvePts[i + 1], curvePts[i + 2], curvePts[i + 3]);
+    }
+
+    // Draw control points
+    jove.graphics.setColor(255, 80, 80);
+    for (let i = 0; i < bezier.getControlPointCount(); i++) {
+      const [cx, cy] = bezier.getControlPoint(i);
+      jove.graphics.circle("fill", cx, cy, 4);
+    }
+
+    // Draw derivative direction at midpoint
+    const [mx, my] = bezier.evaluate(0.5);
+    const deriv = bezier.getDerivative();
+    const [dx, dy] = deriv.evaluate(0.5);
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len > 0) {
+      const nx = dx / len * 30;
+      const ny = dy / len * 30;
+      jove.graphics.setColor(100, 255, 100);
+      jove.graphics.line(mx, my, mx + nx, my + ny);
     }
 
     // --- HUD ---

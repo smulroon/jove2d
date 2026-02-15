@@ -14,7 +14,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.mouse | **18/18 Complete** | All functions implemented |
-| love.math | **12/16 Mostly done** | Missing BezierCurve, color byte conversion, RNG state |
+| love.math | **16/16 Complete** | All functions implemented |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
 | love.graphics | **~40/97 Core done** | Primitives/transforms done; missing shaders, batching, mesh, particles |
@@ -94,12 +94,12 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`isCursorSupported` — trivial check (always true on desktop)~~
 - ~~`setX` / `setY` — set individual coordinates (trivial wrappers)~~
 
-### love.math — missing functions
+### ~~love.math — missing functions~~ DONE
 
-**Should add:**
-- `colorFromBytes` / `colorToBytes` — convert 0-255 to 0-1 and back (trivial)
-- `newBezierCurve` — bezier curve object (evaluate, render, getDerivative)
-- `getRandomState` / `setRandomState` — RNG state serialization for replays
+~~**Should add:**~~
+- ~~`colorFromBytes` / `colorToBytes` — convert 0-255 to 0-1 and back~~
+- ~~`newBezierCurve` — bezier curve object (evaluate, render, getDerivative)~~
+- ~~`getRandomState` / `setRandomState` — RNG state serialization for replays~~
 
 ### love.filesystem — missing functions
 
@@ -241,7 +241,7 @@ Grouped by priority based on impact for typical 2D game development.
 2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
 3. ~~**Graphics quick wins**~~ DONE — defaultFilter, transformPoint, inverseTransformPoint, intersectScissor, getStackDepth, reset (colorMask is JS-side tracking only)
 4. ~~**Mouse cursors**~~ DONE — newCursor, system cursors, setX/setY, isCursorSupported
-5. **Math gaps** — colorFromBytes/colorToBytes, BezierCurve
+5. ~~**Math gaps**~~ DONE — colorFromBytes/colorToBytes, BezierCurve, getRandomState/setRandomState
 6. **SpriteBatch** — performance for tile maps and particle systems
 7. **Shaders** — visual effects (depends on SDL3 GPU API investigation)
 8. **ParticleSystem** — depends on SpriteBatch

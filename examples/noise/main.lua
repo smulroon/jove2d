@@ -1,12 +1,16 @@
 -- love2d equivalent of noise & math example
 -- Demonstrates: love.math.noise, love.math.random, love.math.setRandomSeed,
--- love.math.newRandomGenerator, love.math.triangulate, love.math.isConvex
+-- love.math.newRandomGenerator, love.math.triangulate, love.math.isConvex,
+-- love.math.newBezierCurve
 
 local t = 0
 local seed = 42
 
 -- Pre-generate random polygon for triangulation demo
 local polyVerts = {200, 420, 280, 390, 340, 430, 320, 490, 240, 510, 180, 470}
+
+-- BezierCurve demo
+local bezier = love.math.newBezierCurve(50, 540, 150, 500, 250, 570, 350, 520)
 
 function love.load()
   love.window.setTitle("Math & Noise Example")
@@ -113,6 +117,36 @@ function love.draw()
       love.graphics.setColor(v * 0.3/255, v * 0.6/255, v/255)
       love.graphics.points(400 + x * 4, 190 + y * 4)
     end
+  end
+
+  -- --- BezierCurve demo ---
+  love.graphics.setColor(180/255, 180/255, 180/255)
+  love.graphics.print("BezierCurve (cubic)", 400, 500)
+
+  -- Draw the curve
+  local curvePts = bezier:render(6)
+  love.graphics.setColor(1, 200/255, 50/255)
+  if #curvePts >= 4 then
+    love.graphics.line(curvePts)
+  end
+
+  -- Draw control points
+  love.graphics.setColor(1, 80/255, 80/255)
+  for i = 1, bezier:getControlPointCount() do
+    local cx, cy = bezier:getControlPoint(i)
+    love.graphics.circle("fill", cx, cy, 4)
+  end
+
+  -- Draw derivative direction at midpoint
+  local mx, my = bezier:evaluate(0.5)
+  local derivCurve = bezier:getDerivative()
+  local dx, dy = derivCurve:evaluate(0.5)
+  local len = math.sqrt(dx * dx + dy * dy)
+  if len > 0 then
+    local nx = dx / len * 30
+    local ny = dy / len * 30
+    love.graphics.setColor(100/255, 1, 100/255)
+    love.graphics.line(mx, my, mx + nx, my + ny)
   end
 
   -- --- HUD ---

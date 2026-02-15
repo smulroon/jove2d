@@ -19,6 +19,7 @@ export { window, graphics, keyboard, mouse, timer, filesystem, math, system, aud
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
+export type { BezierCurve } from "./math.ts";
 
 let _initialized = false;
 
