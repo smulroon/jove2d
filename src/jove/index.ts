@@ -20,6 +20,7 @@ export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } fro
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
 export type { BezierCurve } from "./math.ts";
+export type { SpriteBatch } from "./graphics.ts";
 
 let _initialized = false;
 

@@ -57,7 +57,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 **P1 — Needed for most games:**
 - `newShader` / `setShader` / `getShader` / `validateShader` — custom rendering
-- `newSpriteBatch` / `flushBatch` — batch rendering performance
+- ~~`newSpriteBatch` / `flushBatch`~~ — batch rendering performance DONE
 - `setColorMask` / `getColorMask` (GPU-enforced) — currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`. Needs shader-based workaround or future SDL3 API.
 
 **P2 — Important for many games:**
@@ -242,7 +242,7 @@ Grouped by priority based on impact for typical 2D game development.
 3. ~~**Graphics quick wins**~~ DONE — defaultFilter, transformPoint, inverseTransformPoint, intersectScissor, getStackDepth, reset (colorMask is JS-side tracking only)
 4. ~~**Mouse cursors**~~ DONE — newCursor, system cursors, setX/setY, isCursorSupported
 5. ~~**Math gaps**~~ DONE — colorFromBytes/colorToBytes, BezierCurve, getRandomState/setRandomState
-6. **SpriteBatch** — performance for tile maps and particle systems
+6. ~~**SpriteBatch**~~ DONE — performance for tile maps and particle systems
 7. **Shaders** — visual effects (depends on SDL3 GPU API investigation)
 8. **ParticleSystem** — depends on SpriteBatch
 9. **Audio improvements** — global controls, pitch, OGG/MP3 via SDL_mixer
