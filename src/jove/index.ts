@@ -17,6 +17,7 @@ import type { GameCallbacks } from "./types.ts";
 
 export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, event };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
+export type { Font } from "./font.ts";
 
 let _initialized = false;
 

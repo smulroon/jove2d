@@ -3,7 +3,11 @@
 
 import { ptr, read, toArrayBuffer } from "bun:ffi";
 import type { Pointer } from "bun:ffi";
+import { resolve } from "path";
 import sdl from "../sdl/ffi.ts";
+import { loadTTF } from "../sdl/ffi_ttf.ts";
+import { _createFont } from "./font.ts";
+import type { Font } from "./font.ts";
 import {
   SDL_SURFACE_OFFSET_W,
   SDL_SURFACE_OFFSET_H,
@@ -46,6 +50,16 @@ const BLEND_NAME_TO_SDL: Record<BlendModeName, number> = {
   replace: SDL_BLENDMODE_NONE,
   screen: SDL_BLENDMODE_MOD,
 };
+
+// TTF state
+let _ttf: ReturnType<typeof loadTTF> = null;
+let _ttfEngine: Pointer | null = null;
+let _defaultFont: Font | null = null;
+let _currentFont: Font | null = null;
+
+// Default font path (Vera.ttf bundled with jove2d)
+const _defaultFontPath = resolve(import.meta.dir, "../../assets/Vera.ttf");
+const _defaultFontSize = 12;
 
 // Reusable SDL_FRect buffer (x, y, w, h as f32).
 const _rectBuf = new Float32Array(4);
@@ -468,10 +482,42 @@ export function _createRenderer(): void {
     throw new Error(`SDL_CreateRenderer failed: ${sdl.SDL_GetError()}`);
   }
   sdl.SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
+
+  // Try to init SDL_ttf for proper font rendering
+  _ttf = loadTTF();
+  if (_ttf) {
+    _ttf.TTF_Init();
+    _ttfEngine = _ttf.TTF_CreateRendererTextEngine(_renderer) as Pointer | null;
+    if (_ttfEngine) {
+      // Load default font (Vera Sans 12pt, matching love2d)
+      const fontPtr = _ttf.TTF_OpenFont(
+        Buffer.from(_defaultFontPath + "\0"),
+        _defaultFontSize,
+      ) as Pointer | null;
+      if (fontPtr) {
+        _defaultFont = _createFont(fontPtr, _defaultFontSize, _ttf);
+        _currentFont = _defaultFont;
+      }
+    }
+  }
 }
 
 /** Destroy the renderer. */
 export function _destroyRenderer(): void {
+  // Clean up TTF resources before renderer
+  if (_defaultFont) {
+    _defaultFont.release();
+    _defaultFont = null;
+  }
+  _currentFont = null;
+  if (_ttfEngine && _ttf) {
+    _ttf.TTF_DestroyRendererTextEngine(_ttfEngine);
+    _ttfEngine = null;
+  }
+  if (_ttf) {
+    _ttf.TTF_Quit();
+    _ttf = null;
+  }
   if (_renderer) {
     sdl.SDL_DestroyRenderer(_renderer);
     _renderer = null;
@@ -980,15 +1026,140 @@ export function points(...coords: number[]): void {
   }
 }
 
-/** Draw text using SDL's built-in 8x8 debug font. */
+/** Draw text at the given position. Uses TTF fonts when available, falls back to SDL debug text. */
 export function print(text: string, x: number, y: number): void {
   if (!_renderer) return;
+
+  if (_ttf && _ttfEngine && _currentFont) {
+    _printTTF(String(text), x, y);
+  } else {
+    _printDebug(String(text), x, y);
+  }
+}
+
+/**
+ * Draw word-wrapped and aligned text (like love.graphics.printf).
+ * align: "left" (default), "center", "right".
+ */
+export function printf(text: string, x: number, y: number, limit: number, align: "left" | "center" | "right" = "left"): void {
+  if (!_renderer) return;
+
+  if (_ttf && _ttfEngine && _currentFont) {
+    _printfTTF(String(text), x, y, limit, align);
+  } else {
+    // Fallback: just print without wrapping
+    _printDebug(String(text), x, y);
+  }
+}
+
+function _printDebug(text: string, x: number, y: number): void {
   const lines = text.split("\n");
   const lineHeight = 8; // SDL debug font is 8px tall
   for (let i = 0; i < lines.length; i++) {
     const [tx, ty] = _isIdentity() ? [x, y + i * lineHeight] : _transformPoint(x, y + i * lineHeight);
-    sdl.SDL_RenderDebugText(_renderer, tx, ty, Buffer.from(lines[i] + "\0"));
+    sdl.SDL_RenderDebugText(_renderer!, tx, ty, Buffer.from(lines[i] + "\0"));
   }
+}
+
+function _printTTF(text: string, x: number, y: number): void {
+  const font = _currentFont!;
+  const lineSkip = _ttf!.TTF_GetFontLineSkip(font._font);
+  const lines = text.split("\n");
+  const [dr, dg, db, da] = _drawColor;
+
+  for (let i = 0; i < lines.length; i++) {
+    const lineText = lines[i];
+    if (lineText.length === 0) continue;
+
+    const ttfText = _ttf!.TTF_CreateText(
+      _ttfEngine!, font._font,
+      Buffer.from(lineText + "\0"), 0,
+    ) as Pointer | null;
+    if (!ttfText) continue;
+
+    _ttf!.TTF_SetTextColor(ttfText, dr, dg, db, da);
+    const [tx, ty] = _isIdentity() ? [x, y + i * lineSkip] : _transformPoint(x, y + i * lineSkip);
+    _ttf!.TTF_DrawRendererText(ttfText, tx, ty);
+    _ttf!.TTF_DestroyText(ttfText);
+  }
+}
+
+function _printfTTF(text: string, x: number, y: number, limit: number, align: "left" | "center" | "right"): void {
+  const font = _currentFont!;
+  const [, wrappedLines] = font.getWrap(text, limit);
+  const lineSkip = _ttf!.TTF_GetFontLineSkip(font._font);
+  const [dr, dg, db, da] = _drawColor;
+
+  for (let i = 0; i < wrappedLines.length; i++) {
+    const lineText = wrappedLines[i];
+    if (lineText.length === 0) continue;
+
+    const ttfText = _ttf!.TTF_CreateText(
+      _ttfEngine!, font._font,
+      Buffer.from(lineText + "\0"), 0,
+    ) as Pointer | null;
+    if (!ttfText) continue;
+
+    _ttf!.TTF_SetTextColor(ttfText, dr, dg, db, da);
+
+    let lx = x;
+    if (align === "center" || align === "right") {
+      const lineWidth = font.getWidth(lineText);
+      if (align === "center") {
+        lx = x + (limit - lineWidth) / 2;
+      } else {
+        lx = x + limit - lineWidth;
+      }
+    }
+
+    const [tx, ty] = _isIdentity() ? [lx, y + i * lineSkip] : _transformPoint(lx, y + i * lineSkip);
+    _ttf!.TTF_DrawRendererText(ttfText, tx, ty);
+    _ttf!.TTF_DestroyText(ttfText);
+  }
+}
+
+// ============================================================
+// Font management
+// ============================================================
+
+/**
+ * Create a new Font from a TTF file path and point size.
+ * If only a number is passed, creates the default font at that size.
+ */
+export function newFont(pathOrSize?: string | number, size?: number): Font | null {
+  if (!_ttf) return null;
+
+  let fontPath: string;
+  let fontSize: number;
+
+  if (typeof pathOrSize === "number") {
+    fontPath = _defaultFontPath;
+    fontSize = pathOrSize;
+  } else if (typeof pathOrSize === "string") {
+    fontPath = pathOrSize;
+    fontSize = size ?? _defaultFontSize;
+  } else {
+    fontPath = _defaultFontPath;
+    fontSize = _defaultFontSize;
+  }
+
+  const fontPtr = _ttf.TTF_OpenFont(
+    Buffer.from(fontPath + "\0"),
+    fontSize,
+  ) as Pointer | null;
+  if (!fontPtr) return null;
+
+  return _createFont(fontPtr, fontSize, _ttf);
+}
+
+/** Set the active font for drawing. */
+export function setFont(font: Font): void {
+  _currentFont = font;
+}
+
+/** Get the active font. */
+export function getFont(): Font | null {
+  return _currentFont;
 }
 
 // ============================================================

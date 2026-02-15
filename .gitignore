@@ -3,6 +3,7 @@ node_modules/
 
 # Vendor build artifacts
 vendor/SDL3/
+vendor/SDL_ttf/
 vendor/love2d/
 
 # Build output
