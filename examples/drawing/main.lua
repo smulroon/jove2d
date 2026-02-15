@@ -110,7 +110,7 @@ function love.draw()
   love.graphics.rectangle("fill", -25, -25, 50, 50)
   love.graphics.pop()
 
-  -- --- Row 5: Scissor demo ---
+  -- --- Row 5: Scissor + intersectScissor demo ---
   love.graphics.setScissor(560, 280, 200, 80)
   love.graphics.setColor(100/255, 1, 100/255)
   love.graphics.rectangle("fill", 540, 260, 240, 120)
@@ -118,9 +118,16 @@ function love.draw()
   love.graphics.print("clipped region", 570, 310)
   love.graphics.setScissor() -- Disable
 
-  -- --- Blend mode labels ---
+  -- intersectScissor: two overlapping regions -> only the overlap is visible
+  love.graphics.setScissor(560, 270, 80, 80)
+  love.graphics.intersectScissor(600, 290, 80, 80)
+  love.graphics.setColor(1, 200/255, 50/255)
+  love.graphics.rectangle("fill", 540, 260, 200, 120)
+  love.graphics.setScissor()
+
+  -- --- Blend modes ---
   love.graphics.setColor(180/255, 180/255, 180/255)
-  love.graphics.print("Blend: alpha(default) | add | multiply", 560, 380)
+  love.graphics.print("Blend: alpha(default) | add", 560, 380)
 
   -- Alpha blend (default)
   love.graphics.setBlendMode("alpha")
@@ -136,10 +143,9 @@ function love.draw()
   love.graphics.setColor(0, 0, 1, 0.5)
   love.graphics.rectangle("fill", 670, 420, 50, 50)
 
-  -- Reset blend
-  love.graphics.setBlendMode("alpha")
-
-  -- --- HUD ---
+  -- --- HUD (use reset to cleanly restore all state) ---
+  love.graphics.reset()
+  love.graphics.setBackgroundColor(40/255, 44/255, 52/255)
   love.graphics.setColor(1, 1, 1)
   love.graphics.print("love2d drawing primitives", 10, 10)
   love.graphics.print("FPS: " .. love.timer.getFPS(), 700, 10)

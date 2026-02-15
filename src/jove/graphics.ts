@@ -30,6 +30,8 @@ import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
 import type { ImageData } from "./types.ts";
 
+export type FilterMode = "nearest" | "linear";
+
 // ============================================================
 // Internal renderer state
 // ============================================================
@@ -39,6 +41,13 @@ let _bgColor: [number, number, number, number] = [0, 0, 0, 255];
 let _drawColor: [number, number, number, number] = [255, 255, 255, 255];
 let _lineWidth = 1;
 let _pointSize = 1;
+
+// Default texture filter mode (applied to new images/canvases)
+let _defaultFilterMin: FilterMode = "nearest";
+let _defaultFilterMag: FilterMode = "nearest";
+
+// Color write mask (JS-side only — no SDL3 API available)
+let _colorMask: [boolean, boolean, boolean, boolean] = [true, true, true, true];
 
 // Blend mode name mapping
 type BlendModeName = "alpha" | "add" | "multiply" | "replace" | "screen";
@@ -177,8 +186,6 @@ export interface Image {
   release(): void;
 }
 
-export type FilterMode = "nearest" | "linear";
-
 function _createImageObject(texture: SDLTexture, w: number, h: number): Image {
   let _filterMin: FilterMode = "nearest";
   let _filterMag: FilterMode = "nearest";
@@ -251,6 +258,7 @@ export function newCanvas(w: number, h: number): Canvas | null {
   sdl.SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
 
   const base = _createImageObject(texture, w, h);
+  base.setFilter(_defaultFilterMin, _defaultFilterMag);
   return {
     ...base,
     _isCanvas: true as const,
@@ -307,7 +315,9 @@ export function newImage(path: string): Image | null {
   const w = read.f32(_texWPtr, 0);
   const h = read.f32(_texHPtr, 0);
 
-  return _createImageObject(texture, Math.round(w), Math.round(h));
+  const img = _createImageObject(texture, Math.round(w), Math.round(h));
+  img.setFilter(_defaultFilterMin, _defaultFilterMag);
+  return img;
 }
 
 // ============================================================
@@ -540,6 +550,9 @@ export function _destroyRenderer(): void {
   _activeCanvas = null;
   _transformStack.length = 0;
   _transform = [1, 0, 0, 1, 0, 0];
+  _defaultFilterMin = "nearest";
+  _defaultFilterMag = "nearest";
+  _colorMask = [true, true, true, true];
 }
 
 /** Begin a frame: clear with background color. */
@@ -659,6 +672,111 @@ export function setPointSize(size: number): void {
 /** Get the current point size. */
 export function getPointSize(): number {
   return _pointSize;
+}
+
+// ============================================================
+// Default filter
+// ============================================================
+
+/** Set the default filter mode applied to new images and canvases. */
+export function setDefaultFilter(min: FilterMode, mag?: FilterMode): void {
+  _defaultFilterMin = min;
+  _defaultFilterMag = mag ?? min;
+}
+
+/** Get the default filter mode. */
+export function getDefaultFilter(): [FilterMode, FilterMode] {
+  return [_defaultFilterMin, _defaultFilterMag];
+}
+
+// ============================================================
+// Color mask
+// ============================================================
+
+/** Set the color write mask. Call with no args to reset to all true. */
+export function setColorMask(r?: boolean, g?: boolean, b?: boolean, a?: boolean): void {
+  if (r === undefined) {
+    _colorMask = [true, true, true, true];
+  } else {
+    _colorMask = [r, g ?? true, b ?? true, a ?? true];
+  }
+}
+
+/** Get the color write mask. */
+export function getColorMask(): [boolean, boolean, boolean, boolean] {
+  return [..._colorMask] as [boolean, boolean, boolean, boolean];
+}
+
+// ============================================================
+// Transform queries
+// ============================================================
+
+/** Transform a point from local to screen coordinates using the current transform. */
+export function transformPoint(x: number, y: number): [number, number] {
+  return _transformPoint(x, y);
+}
+
+/** Transform a point from screen to local coordinates (inverse of current transform). */
+export function inverseTransformPoint(x: number, y: number): [number, number] {
+  const [a, b, c, d, tx, ty] = _transform;
+  const det = a * d - b * c;
+  if (Math.abs(det) < 1e-12) return [x, y];
+  const id = 1 / det;
+  const rx = x - tx;
+  const ry = y - ty;
+  return [( d * rx - c * ry) * id, (-b * rx + a * ry) * id];
+}
+
+/** Get the depth of the transform stack (number of push() calls without matching pop()). */
+export function getStackDepth(): number {
+  return _transformStack.length;
+}
+
+// ============================================================
+// Intersect scissor
+// ============================================================
+
+/** Intersect the current scissor with a new rectangle. If no scissor is set, acts like setScissor. */
+export function intersectScissor(x: number, y: number, w: number, h: number): void {
+  if (!_scissor) {
+    setScissor(x, y, w, h);
+    return;
+  }
+  const [sx, sy, sw, sh] = _scissor;
+  const x1 = Math.max(x, sx);
+  const y1 = Math.max(y, sy);
+  const x2 = Math.min(x + w, sx + sw);
+  const y2 = Math.min(y + h, sy + sh);
+  const iw = Math.max(0, x2 - x1);
+  const ih = Math.max(0, y2 - y1);
+  setScissor(x1, y1, iw, ih);
+}
+
+// ============================================================
+// Graphics state reset
+// ============================================================
+
+/** Reset all graphics state to defaults. */
+export function reset(): void {
+  _bgColor = [0, 0, 0, 255];
+  _drawColor = [255, 255, 255, 255];
+  if (_renderer) {
+    sdl.SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
+  }
+  _blendMode = "alpha";
+  if (_renderer) {
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
+  }
+  _lineWidth = 1;
+  _pointSize = 1;
+  setScissor();
+  _transform = [1, 0, 0, 1, 0, 0];
+  _transformStack.length = 0;
+  setCanvas(null);
+  _currentFont = _defaultFont;
+  _defaultFilterMin = "nearest";
+  _defaultFilterMag = "nearest";
+  _colorMask = [true, true, true, true];
 }
 
 // ============================================================

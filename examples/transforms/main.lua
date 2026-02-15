@@ -13,10 +13,13 @@ function love.update(dt)
   t = t + dt
 end
 
+local earthScreenX, earthScreenY = 0, 0
+
 function love.draw()
   love.graphics.setColor(200/255, 200/255, 200/255)
   love.graphics.print("Nested transforms: solar system model", 10, 10)
   love.graphics.print("FPS: " .. love.timer.getFPS(), 700, 10)
+  love.graphics.print("Stack depth: " .. love.graphics.getStackDepth(), 700, 30)
 
   -- --- Solar system: nested rotations ---
 
@@ -48,9 +51,10 @@ function love.draw()
   love.graphics.rotate(t * 0.5) -- Orbit speed
   love.graphics.translate(120, 0) -- Orbit radius
 
-  -- Earth body
+  -- Earth body -- show screen position via transformPoint
   love.graphics.setColor(50/255, 130/255, 1)
   love.graphics.circle("fill", 0, 0, 15)
+  earthScreenX, earthScreenY = love.graphics.transformPoint(0, 0)
 
   -- Moon orbit
   love.graphics.setColor(50/255, 50/255, 70/255)
@@ -95,6 +99,10 @@ function love.draw()
   love.graphics.pop() -- mars
 
   love.graphics.pop() -- sun center
+
+  -- Show Earth's screen coords (computed via transformPoint above)
+  love.graphics.setColor(150/255, 200/255, 1)
+  love.graphics.print(string.format("Earth screen pos: %.0f, %.0f", earthScreenX, earthScreenY), 10, 30)
 
   -- --- Shear demo ---
   love.graphics.setColor(180/255, 180/255, 180/255)

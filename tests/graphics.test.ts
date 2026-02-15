@@ -93,3 +93,181 @@ describe("jove.graphics.captureScreenshot", () => {
     cleanup(path);
   });
 });
+
+describe("jove.graphics.defaultFilter", () => {
+  afterEach(() => { quit(); });
+
+  test("round-trip get/set", () => {
+    setupWindowAndRenderer();
+    expect(graphics.getDefaultFilter()).toEqual(["nearest", "nearest"]);
+
+    graphics.setDefaultFilter("linear", "linear");
+    expect(graphics.getDefaultFilter()).toEqual(["linear", "linear"]);
+
+    graphics.setDefaultFilter("nearest");
+    expect(graphics.getDefaultFilter()).toEqual(["nearest", "nearest"]);
+  });
+
+  test("mag defaults to min when omitted", () => {
+    setupWindowAndRenderer();
+    graphics.setDefaultFilter("linear");
+    expect(graphics.getDefaultFilter()).toEqual(["linear", "linear"]);
+  });
+
+  test("newImage respects default filter", () => {
+    setupWindowAndRenderer();
+    graphics.setDefaultFilter("linear", "linear");
+    // Create a 1x1 BMP in memory for testing
+    const img = graphics.newCanvas(8, 8);
+    expect(img).not.toBeNull();
+    expect(img!.getFilter()).toEqual(["linear", "linear"]);
+  });
+});
+
+describe("jove.graphics.colorMask", () => {
+  afterEach(() => { quit(); });
+
+  test("default is all true", () => {
+    setupWindowAndRenderer();
+    expect(graphics.getColorMask()).toEqual([true, true, true, true]);
+  });
+
+  test("round-trip set/get", () => {
+    setupWindowAndRenderer();
+    graphics.setColorMask(true, false, true, false);
+    expect(graphics.getColorMask()).toEqual([true, false, true, false]);
+  });
+
+  test("no-arg reset to all true", () => {
+    setupWindowAndRenderer();
+    graphics.setColorMask(false, false, false, false);
+    graphics.setColorMask();
+    expect(graphics.getColorMask()).toEqual([true, true, true, true]);
+  });
+});
+
+describe("jove.graphics.transformPoint", () => {
+  afterEach(() => { quit(); });
+
+  test("identity transform returns same point", () => {
+    setupWindowAndRenderer();
+    expect(graphics.transformPoint(10, 20)).toEqual([10, 20]);
+  });
+
+  test("after translate", () => {
+    setupWindowAndRenderer();
+    graphics.translate(100, 50);
+    const [x, y] = graphics.transformPoint(10, 20);
+    expect(x).toBeCloseTo(110);
+    expect(y).toBeCloseTo(70);
+  });
+});
+
+describe("jove.graphics.inverseTransformPoint", () => {
+  afterEach(() => { quit(); });
+
+  test("identity transform returns same point", () => {
+    setupWindowAndRenderer();
+    expect(graphics.inverseTransformPoint(10, 20)).toEqual([10, 20]);
+  });
+
+  test("round-trip with translate", () => {
+    setupWindowAndRenderer();
+    graphics.translate(100, 50);
+    const [sx, sy] = graphics.transformPoint(10, 20);
+    const [rx, ry] = graphics.inverseTransformPoint(sx, sy);
+    expect(rx).toBeCloseTo(10);
+    expect(ry).toBeCloseTo(20);
+  });
+
+  test("round-trip with scale and rotate", () => {
+    setupWindowAndRenderer();
+    graphics.translate(50, 30);
+    graphics.scale(2);
+    graphics.rotate(Math.PI / 4);
+    const [sx, sy] = graphics.transformPoint(10, 20);
+    const [rx, ry] = graphics.inverseTransformPoint(sx, sy);
+    expect(rx).toBeCloseTo(10);
+    expect(ry).toBeCloseTo(20);
+  });
+});
+
+describe("jove.graphics.intersectScissor", () => {
+  afterEach(() => { quit(); });
+
+  test("sets scissor when none exists", () => {
+    setupWindowAndRenderer();
+    graphics.intersectScissor(10, 20, 100, 50);
+    expect(graphics.getScissor()).toEqual([10, 20, 100, 50]);
+  });
+
+  test("intersects with existing scissor", () => {
+    setupWindowAndRenderer();
+    graphics.setScissor(10, 10, 100, 100);
+    graphics.intersectScissor(50, 50, 100, 100);
+    expect(graphics.getScissor()).toEqual([50, 50, 60, 60]);
+  });
+
+  test("non-overlapping results in zero-size scissor", () => {
+    setupWindowAndRenderer();
+    graphics.setScissor(0, 0, 50, 50);
+    graphics.intersectScissor(100, 100, 50, 50);
+    const s = graphics.getScissor()!;
+    expect(s[2]).toBe(0);
+    expect(s[3]).toBe(0);
+  });
+});
+
+describe("jove.graphics.getStackDepth", () => {
+  afterEach(() => { quit(); });
+
+  test("starts at 0", () => {
+    setupWindowAndRenderer();
+    expect(graphics.getStackDepth()).toBe(0);
+  });
+
+  test("increments on push, decrements on pop", () => {
+    setupWindowAndRenderer();
+    graphics.push();
+    expect(graphics.getStackDepth()).toBe(1);
+    graphics.push();
+    expect(graphics.getStackDepth()).toBe(2);
+    graphics.pop();
+    expect(graphics.getStackDepth()).toBe(1);
+    graphics.pop();
+    expect(graphics.getStackDepth()).toBe(0);
+  });
+});
+
+describe("jove.graphics.reset", () => {
+  afterEach(() => { quit(); });
+
+  test("restores all defaults", () => {
+    setupWindowAndRenderer();
+
+    // Change everything
+    graphics.setBackgroundColor(100, 100, 100, 100);
+    graphics.setColor(50, 50, 50, 50);
+    graphics.setBlendMode("add");
+    graphics.setLineWidth(5);
+    graphics.setPointSize(3);
+    graphics.setScissor(10, 10, 100, 100);
+    graphics.translate(50, 50);
+    graphics.push();
+    graphics.setDefaultFilter("linear", "linear");
+    graphics.setColorMask(false, false, false, false);
+
+    graphics.reset();
+
+    expect(graphics.getBackgroundColor()).toEqual([0, 0, 0, 255]);
+    expect(graphics.getColor()).toEqual([255, 255, 255, 255]);
+    expect(graphics.getBlendMode()).toBe("alpha");
+    expect(graphics.getLineWidth()).toBe(1);
+    expect(graphics.getPointSize()).toBe(1);
+    expect(graphics.getScissor()).toBeNull();
+    expect(graphics.getStackDepth()).toBe(0);
+    expect(graphics.getCanvas()).toBeNull();
+    expect(graphics.getDefaultFilter()).toEqual(["nearest", "nearest"]);
+    expect(graphics.getColorMask()).toEqual([true, true, true, true]);
+  });
+});

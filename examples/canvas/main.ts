@@ -59,8 +59,15 @@ await jove.run({
     // Draw it again, rotated
     jove.graphics.draw(miniScene, 400, 200, t * 0.5, 1, 1, 100, 100);
 
-    // Draw it scaled down
+    // Draw it scaled down (nearest filtering — pixelated)
     jove.graphics.draw(miniScene, 600, 400, 0, 0.5, 0.5);
+
+    // Draw scaled up with linear filtering for smooth result
+    if (miniScene) {
+      miniScene.setFilter("linear", "linear");
+      jove.graphics.draw(miniScene, 250, 300, 0, 1.5, 1.5);
+      miniScene.setFilter("nearest", "nearest"); // restore
+    }
 
     // Outline where the canvases are drawn
     jove.graphics.setColor(80, 80, 80);
@@ -68,6 +75,11 @@ await jove.run({
     jove.graphics.print("1:1", 20, 250);
     jove.graphics.print("rotated", 370, 350);
     jove.graphics.print("0.5x scale", 590, 510);
+    jove.graphics.print("1.5x linear", 250, 310);
+
+    // Show current default filter
+    const [fMin, fMag] = jove.graphics.getDefaultFilter();
+    jove.graphics.print(`Default filter: ${fMin}/${fMag}`, 10, 580);
   },
 
   keypressed(key) {

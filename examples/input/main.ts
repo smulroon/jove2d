@@ -34,12 +34,20 @@ await jove.run({
   },
 
   draw() {
-    // Draw the movable rectangle
+    // Draw the movable rectangle in a local coordinate space
+    jove.graphics.push();
+    jove.graphics.translate(rectX, rectY);
     jove.graphics.setColor(100, 180, 255);
-    jove.graphics.rectangle("fill", rectX - 25, rectY - 25, 50, 50);
+    jove.graphics.rectangle("fill", -25, -25, 50, 50);
+
+    // Show mouse position in local (rectangle) coords
+    const [mx, my] = jove.mouse.getPosition();
+    const [lx, ly] = jove.graphics.inverseTransformPoint(mx, my);
+    jove.graphics.setColor(180, 180, 180);
+    jove.graphics.print(`local: ${lx.toFixed(0)},${ly.toFixed(0)}`, -25, 30);
+    jove.graphics.pop();
 
     // Draw crosshair at mouse position
-    const [mx, my] = jove.mouse.getPosition();
     jove.graphics.setColor(255, 255, 100);
     jove.graphics.line(mx - 10, my, mx + 10, my);
     jove.graphics.line(mx, my - 10, mx, my + 10);

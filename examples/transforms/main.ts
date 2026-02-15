@@ -21,6 +21,7 @@ await jove.run({
     jove.graphics.setColor(200, 200, 200);
     jove.graphics.print("Nested transforms: solar system model", 10, 10);
     jove.graphics.print(`FPS: ${jove.timer.getFPS()}`, 700, 10);
+    jove.graphics.print(`Stack depth: ${jove.graphics.getStackDepth()}`, 700, 30);
 
     // --- Solar system: nested rotations ---
 
@@ -52,9 +53,10 @@ await jove.run({
     jove.graphics.rotate(t * 0.5); // Orbit speed
     jove.graphics.translate(120, 0); // Orbit radius
 
-    // Earth body
+    // Earth body — show screen position via transformPoint
     jove.graphics.setColor(50, 130, 255);
     jove.graphics.circle("fill", 0, 0, 15);
+    const [ex, ey] = jove.graphics.transformPoint(0, 0);
 
     // Moon orbit
     jove.graphics.setColor(50, 50, 70);
@@ -99,6 +101,10 @@ await jove.run({
     jove.graphics.pop(); // mars
 
     jove.graphics.pop(); // sun center
+
+    // Show Earth's screen coords (computed via transformPoint above)
+    jove.graphics.setColor(150, 200, 255);
+    jove.graphics.print(`Earth screen pos: ${ex.toFixed(0)}, ${ey.toFixed(0)}`, 10, 30);
 
     // --- Shear demo ---
     jove.graphics.setColor(180, 180, 180);

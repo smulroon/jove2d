@@ -32,12 +32,20 @@ function love.update(dt)
 end
 
 function love.draw()
-  -- Draw the movable rectangle
+  -- Draw the movable rectangle in a local coordinate space
+  love.graphics.push()
+  love.graphics.translate(rectX, rectY)
   love.graphics.setColor(100/255, 180/255, 1)
-  love.graphics.rectangle("fill", rectX - 25, rectY - 25, 50, 50)
+  love.graphics.rectangle("fill", -25, -25, 50, 50)
+
+  -- Show mouse position in local (rectangle) coords
+  local mx, my = love.mouse.getPosition()
+  local lx, ly = love.graphics.inverseTransformPoint(mx, my)
+  love.graphics.setColor(180/255, 180/255, 180/255)
+  love.graphics.print(string.format("local: %.0f,%.0f", lx, ly), -25, 30)
+  love.graphics.pop()
 
   -- Draw crosshair at mouse position
-  local mx, my = love.mouse.getPosition()
   love.graphics.setColor(1, 1, 100/255)
   love.graphics.line(mx - 10, my, mx + 10, my)
   love.graphics.line(mx, my - 10, mx, my + 10)

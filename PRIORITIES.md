@@ -47,22 +47,25 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### love.graphics — missing functions
 
+**Done:**
+- ~~`setDefaultFilter` / `getDefaultFilter`~~ — default texture filtering
+- ~~`transformPoint` / `inverseTransformPoint`~~ — coordinate transforms
+- ~~`intersectScissor`~~ — scissor intersection
+- ~~`getStackDepth`~~ — transform stack depth
+- ~~`reset`~~ — reset all graphics state to defaults
+- ~~`setColorMask` / `getColorMask`~~ — JS-side state tracking only (see note below)
+
 **P1 — Needed for most games:**
 - `newShader` / `setShader` / `getShader` / `validateShader` — custom rendering
 - `newSpriteBatch` / `flushBatch` — batch rendering performance
-- `setDefaultFilter` / `getDefaultFilter` — default texture filtering
+- `setColorMask` / `getColorMask` (GPU-enforced) — currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`. Needs shader-based workaround or future SDL3 API.
 
 **P2 — Important for many games:**
 - `newParticleSystem` — particle effects
 - `newMesh` — custom vertex geometry
 - `newText` — cached text object
-- `setColorMask` / `getColorMask` — per-channel write mask
 - `setStencilTest` / `stencil` — stencil buffer operations
 - `applyTransform` / `replaceTransform` — apply Transform object to stack
-- `transformPoint` / `inverseTransformPoint` — coordinate transforms
-- `intersectScissor` — scissor intersection
-- `getStackDepth` — transform stack depth
-- `reset` — reset all graphics state to defaults
 
 **P3 — Useful for specific cases:**
 - `setLineJoin` / `getLineJoin` — miter/bevel/none line joins
@@ -236,7 +239,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 1. ~~**SDL_image**~~ DONE
 2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
-3. **Graphics quick wins** — defaultFilter, colorMask, transformPoint, reset, intersectScissor
+3. ~~**Graphics quick wins**~~ DONE — defaultFilter, transformPoint, inverseTransformPoint, intersectScissor, getStackDepth, reset (colorMask is JS-side tracking only)
 4. **Mouse cursors** — newCursor, system cursors
 5. **Math gaps** — colorFromBytes/colorToBytes, BezierCurve
 6. **SpriteBatch** — performance for tile maps and particle systems

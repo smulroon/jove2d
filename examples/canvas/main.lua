@@ -53,8 +53,15 @@ function love.draw()
   -- Draw it again, rotated
   love.graphics.draw(miniScene, 400, 200, t * 0.5, 1, 1, 100, 100)
 
-  -- Draw it scaled down
+  -- Draw it scaled down (nearest filtering -- pixelated)
   love.graphics.draw(miniScene, 600, 400, 0, 0.5, 0.5)
+
+  -- Draw scaled up with linear filtering for smooth result
+  if miniScene then
+    miniScene:setFilter("linear", "linear")
+    love.graphics.draw(miniScene, 250, 300, 0, 1.5, 1.5)
+    miniScene:setFilter("nearest", "nearest") -- restore
+  end
 
   -- Outline where the canvases are drawn
   love.graphics.setColor(80/255, 80/255, 80/255)
@@ -62,6 +69,11 @@ function love.draw()
   love.graphics.print("1:1", 20, 250)
   love.graphics.print("rotated", 370, 350)
   love.graphics.print("0.5x scale", 590, 510)
+  love.graphics.print("1.5x linear", 250, 310)
+
+  -- Show current default filter
+  local fMin, fMag = love.graphics.getDefaultFilter()
+  love.graphics.print("Default filter: " .. fMin .. "/" .. fMag, 10, 580)
 end
 
 function love.keypressed(key)

@@ -110,7 +110,7 @@ await jove.run({
     jove.graphics.rectangle("fill", -25, -25, 50, 50);
     jove.graphics.pop();
 
-    // --- Row 5: Scissor demo ---
+    // --- Row 5: Scissor + intersectScissor demo ---
     jove.graphics.setScissor(560, 280, 200, 80);
     jove.graphics.setColor(100, 255, 100);
     jove.graphics.rectangle("fill", 540, 260, 240, 120); // Clipped to scissor
@@ -118,9 +118,16 @@ await jove.run({
     jove.graphics.print("clipped region", 570, 310);
     jove.graphics.setScissor(); // Disable
 
-    // --- Row 5: Blend mode labels ---
+    // intersectScissor: two overlapping regions → only the overlap is visible
+    jove.graphics.setScissor(560, 270, 80, 80);
+    jove.graphics.intersectScissor(600, 290, 80, 80);
+    jove.graphics.setColor(255, 200, 50);
+    jove.graphics.rectangle("fill", 540, 260, 200, 120);
+    jove.graphics.setScissor();
+
+    // --- Blend modes ---
     jove.graphics.setColor(180, 180, 180);
-    jove.graphics.print("Blend: alpha(default) | add | multiply", 560, 380);
+    jove.graphics.print("Blend: alpha(default) | add", 560, 380);
 
     // Alpha blend (default)
     jove.graphics.setBlendMode("alpha");
@@ -136,10 +143,9 @@ await jove.run({
     jove.graphics.setColor(0, 0, 255, 128);
     jove.graphics.rectangle("fill", 670, 420, 50, 50);
 
-    // Reset blend
-    jove.graphics.setBlendMode("alpha");
-
-    // --- HUD ---
+    // --- HUD (use reset to cleanly restore all state) ---
+    jove.graphics.reset();
+    jove.graphics.setBackgroundColor(40, 44, 52);
     jove.graphics.setColor(255, 255, 255);
     jove.graphics.print("jove2d drawing primitives", 10, 10);
     jove.graphics.print(`FPS: ${jove.timer.getFPS()}`, 700, 10);
