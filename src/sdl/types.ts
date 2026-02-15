@@ -190,6 +190,50 @@ export const CURSOR_TYPE_TO_SDL: Record<CursorType, number> = {
   hand: 11,       // SDL_SYSTEM_CURSOR_POINTER
 };
 
+// --- GPU Shader structs and constants ---
+
+// SDL_GPUShaderCreateInfo struct offsets (64-bit Linux, 56 bytes total)
+export const GPU_SHADER_CREATE_INFO_SIZE = 56;
+export const GPU_SHADER_OFFSET_CODE_SIZE = 0;      // size_t (8)
+export const GPU_SHADER_OFFSET_CODE = 8;            // pointer (8)
+export const GPU_SHADER_OFFSET_ENTRYPOINT = 16;     // pointer (8)
+export const GPU_SHADER_OFFSET_FORMAT = 24;         // u32 (4)
+export const GPU_SHADER_OFFSET_STAGE = 28;          // u32 (4)
+export const GPU_SHADER_OFFSET_NUM_SAMPLERS = 32;   // u32 (4)
+export const GPU_SHADER_OFFSET_NUM_STORAGE_TEX = 36;// u32 (4)
+export const GPU_SHADER_OFFSET_NUM_STORAGE_BUF = 40;// u32 (4)
+export const GPU_SHADER_OFFSET_NUM_UNIFORM_BUF = 44;// u32 (4)
+export const GPU_SHADER_OFFSET_PROPS = 48;          // u32 (4)
+// 4 bytes padding to reach 56
+
+// SDL_GPURenderStateCreateInfo struct offsets (64-bit Linux, 64 bytes total)
+export const GPU_RENDER_STATE_CREATE_INFO_SIZE = 64;
+export const GPU_RENDER_STATE_OFFSET_SHADER = 0;            // pointer (8) — fragment shader
+export const GPU_RENDER_STATE_OFFSET_NUM_SAMPLERS = 8;      // i32 (4)
+// 4 bytes padding
+export const GPU_RENDER_STATE_OFFSET_SAMPLER_BINDINGS = 16; // pointer (8)
+export const GPU_RENDER_STATE_OFFSET_NUM_STORAGE_TEX = 24;  // i32 (4)
+// 4 bytes padding
+export const GPU_RENDER_STATE_OFFSET_STORAGE_TEX = 32;      // pointer (8)
+export const GPU_RENDER_STATE_OFFSET_NUM_STORAGE_BUF = 40;  // i32 (4)
+// 4 bytes padding
+export const GPU_RENDER_STATE_OFFSET_STORAGE_BUF = 48;      // pointer (8)
+export const GPU_RENDER_STATE_OFFSET_PROPS = 56;            // u32 (4)
+// 4 bytes padding to reach 64
+
+// GPU shader format bitmask values
+export const SDL_GPU_SHADERFORMAT_INVALID = 0;
+export const SDL_GPU_SHADERFORMAT_PRIVATE = 1 << 0;
+export const SDL_GPU_SHADERFORMAT_SPIRV = 1 << 1;   // 2
+export const SDL_GPU_SHADERFORMAT_DXBC = 1 << 2;
+export const SDL_GPU_SHADERFORMAT_DXIL = 1 << 3;
+export const SDL_GPU_SHADERFORMAT_MSL = 1 << 4;
+export const SDL_GPU_SHADERFORMAT_METALLIB = 1 << 5;
+
+// GPU shader stage
+export const SDL_GPU_SHADERSTAGE_VERTEX = 0;
+export const SDL_GPU_SHADERSTAGE_FRAGMENT = 1;
+
 /**
  * SDL scancode → love2d-style key name mapping.
  * Based on SDL_Scancode enum values.

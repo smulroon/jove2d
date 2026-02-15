@@ -25,10 +25,13 @@ import {
   SDL_PIXELFORMAT_RGBA8888,
   SDL_SCALEMODE_NEAREST,
   SDL_SCALEMODE_LINEAR,
+  SDL_GPU_SHADERFORMAT_SPIRV,
 } from "../sdl/types.ts";
 import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
 import type { ImageData } from "./types.ts";
+import type { Shader } from "./shader.ts";
+import { createShader } from "./shader.ts";
 
 export type FilterMode = "nearest" | "linear";
 
@@ -37,6 +40,8 @@ export type FilterMode = "nearest" | "linear";
 // ============================================================
 
 let _renderer: SDLRenderer | null = null;
+let _gpuDevice: Pointer | null = null;
+let _activeShader: Shader | null = null;
 let _bgColor: [number, number, number, number] = [0, 0, 0, 255];
 let _drawColor: [number, number, number, number] = [255, 255, 255, 255];
 let _lineWidth = 1;
@@ -860,7 +865,43 @@ function _drawTexturedQuad(
 export function _createRenderer(): void {
   const win = _getSDLWindow();
   if (!win) return;
-  _renderer = sdl.SDL_CreateRenderer(win, null) as SDLRenderer | null;
+
+  // Try GPU renderer first (enables shader support)
+  // Skip GPU renderer attempt if using dummy video driver (crashes in headless mode)
+  const videoDriver = process.env.SDL_VIDEODRIVER;
+  if (videoDriver !== "dummy") {
+    try {
+      // Step 1: Create GPU device requesting SPIRV format (Vulkan backend)
+      const device = sdl.SDL_CreateGPUDevice(
+        SDL_GPU_SHADERFORMAT_SPIRV,
+        false,
+        null
+      ) as Pointer | null;
+      if (device) {
+        // Step 2: Claim the window for the GPU device
+        const claimed = sdl.SDL_ClaimWindowForGPUDevice(device, win);
+        if (claimed) {
+          // Step 3: Create the GPU-backed renderer
+          _renderer = sdl.SDL_CreateGPURenderer(device, win) as SDLRenderer | null;
+          if (_renderer) {
+            _gpuDevice = device;
+          } else {
+            sdl.SDL_DestroyGPUDevice(device);
+          }
+        } else {
+          sdl.SDL_DestroyGPUDevice(device);
+        }
+      }
+    } catch {
+      _renderer = null;
+      _gpuDevice = null;
+    }
+  }
+  if (!_renderer) {
+    // Fallback: regular renderer (no shader support)
+    _renderer = sdl.SDL_CreateRenderer(win, null) as SDLRenderer | null;
+    _gpuDevice = null;
+  }
   if (!_renderer) {
     throw new Error(`SDL_CreateRenderer failed: ${sdl.SDL_GetError()}`);
   }
@@ -887,6 +928,9 @@ export function _createRenderer(): void {
 
 /** Destroy the renderer. */
 export function _destroyRenderer(): void {
+  // Clean up active shader
+  _activeShader = null;
+
   // Clean up TTF resources before renderer
   if (_defaultFont) {
     _defaultFont.release();
@@ -904,6 +948,10 @@ export function _destroyRenderer(): void {
   if (_renderer) {
     sdl.SDL_DestroyRenderer(_renderer);
     _renderer = null;
+  }
+  if (_gpuDevice) {
+    sdl.SDL_DestroyGPUDevice(_gpuDevice);
+    _gpuDevice = null;
   }
   _activeCanvas = null;
   _transformStack.length = 0;
@@ -1136,6 +1184,11 @@ export function reset(): void {
   if (_renderer) {
     sdl.SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
   }
+  // Clear active shader
+  if (_activeShader && _renderer) {
+    sdl.SDL_SetGPURenderState(_renderer, null);
+  }
+  _activeShader = null;
   _lineWidth = 1;
   _pointSize = 1;
   _lineStyle = "rough";
@@ -1891,6 +1944,40 @@ export function setFont(font: Font): void {
 /** Get the active font. */
 export function getFont(): Font | null {
   return _currentFont;
+}
+
+// ============================================================
+// Shader API
+// ============================================================
+
+/** Get the GPU device pointer (for shader module). Returns null if GPU renderer unavailable. */
+export function _getGPUDevice(): Pointer | null {
+  return _gpuDevice;
+}
+
+/**
+ * Create a shader from love2d-style GLSL fragment code.
+ * Returns null if the GPU renderer is not available.
+ *
+ * Note: This is async because SPIR-V compilation may require async WASM initialization.
+ */
+export async function newShader(
+  fragmentCode: string
+): Promise<Shader | null> {
+  if (!_renderer || !_gpuDevice) return null;
+  return createShader(fragmentCode, _renderer, _gpuDevice);
+}
+
+/** Set the active shader for subsequent draw calls. Pass null to disable. */
+export function setShader(shader: Shader | null): void {
+  if (!_renderer) return;
+  _activeShader = shader;
+  sdl.SDL_SetGPURenderState(_renderer, shader ? shader._state : null);
+}
+
+/** Get the active shader, or null if none. */
+export function getShader(): Shader | null {
+  return _activeShader;
 }
 
 // ============================================================

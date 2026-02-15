@@ -17,7 +17,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.math | **16/16 Complete** | All functions implemented |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.filesystem | **11/31 Core done** | Missing mount/unmount, File objects; many gaps are Lua-specific |
-| love.graphics | **~40/97 Core done** | Primitives/transforms done; missing shaders, batching, mesh, particles |
+| love.graphics | **~45/97 Core done** | Primitives/transforms/shaders/batching done; missing mesh, particles |
 | love.audio | **3/26 Minimal** | WAV playback only; no global controls, effects, or positional audio |
 
 ---
@@ -56,7 +56,7 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`setColorMask` / `getColorMask`~~ — JS-side state tracking only (see note below)
 
 **P1 — Needed for most games:**
-- `newShader` / `setShader` / `getShader` / `validateShader` — custom rendering
+- ~~`newShader` / `setShader` / `getShader`~~ — custom fragment shaders via SDL_GPURenderState DONE
 - ~~`newSpriteBatch` / `flushBatch`~~ — batch rendering performance DONE
 - `setColorMask` / `getColorMask` (GPU-enforced) — currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`. Needs shader-based workaround or future SDL3 API.
 
@@ -226,7 +226,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 | Feature | Reason |
 |---|---|
-| love.graphics.newShader (compute) | SDL3 compute shaders are experimental |
+| love.graphics.newShader (compute/vertex) | Only fragment shaders supported via SDL_GPURenderState; compute/vertex require full GPU pipeline |
 | love.sensor | Mobile-only (accelerometer, gyroscope) |
 | love.system.vibrate | Mobile-only |
 | love.system.hasBackgroundMusic | iOS-only |
@@ -243,7 +243,7 @@ Grouped by priority based on impact for typical 2D game development.
 4. ~~**Mouse cursors**~~ DONE — newCursor, system cursors, setX/setY, isCursorSupported
 5. ~~**Math gaps**~~ DONE — colorFromBytes/colorToBytes, BezierCurve, getRandomState/setRandomState
 6. ~~**SpriteBatch**~~ DONE — performance for tile maps and particle systems
-7. **Shaders** — visual effects (depends on SDL3 GPU API investigation)
+7. ~~**Shaders**~~ DONE — custom fragment shaders via SDL_GPURenderState + SPIR-V compilation
 8. **ParticleSystem** — depends on SpriteBatch
 9. **Audio improvements** — global controls, pitch, OGG/MP3 via SDL_mixer
 10. **Mesh** — custom geometry

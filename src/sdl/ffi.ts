@@ -677,6 +677,74 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.pointer, FFIType.pointer],
     returns: FFIType.i32,
   },
+
+  // --- GPU Renderer & Shaders ---
+
+  // SDL_GPUDevice* SDL_CreateGPUDevice(SDL_GPUShaderFormat format_flags, bool debug_mode, const char* name)
+  SDL_CreateGPUDevice: {
+    args: [FFIType.u32, FFIType.bool, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // bool SDL_ClaimWindowForGPUDevice(SDL_GPUDevice* device, SDL_Window* window)
+  SDL_ClaimWindowForGPUDevice: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // void SDL_DestroyGPUDevice(SDL_GPUDevice* device)
+  SDL_DestroyGPUDevice: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // SDL_Renderer* SDL_CreateGPURenderer(SDL_GPUDevice* device, SDL_Window* window)
+  SDL_CreateGPURenderer: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // SDL_GPUDevice* SDL_GetGPURendererDevice(SDL_Renderer* renderer)
+  SDL_GetGPURendererDevice: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // SDL_GPUShaderFormat SDL_GetGPUShaderFormats(SDL_GPUDevice* device)
+  SDL_GetGPUShaderFormats: {
+    args: [FFIType.pointer],
+    returns: FFIType.u32,
+  },
+  // const char* SDL_GetGPUDeviceDriver(SDL_GPUDevice* device)
+  SDL_GetGPUDeviceDriver: {
+    args: [FFIType.pointer],
+    returns: FFIType.cstring,
+  },
+  // SDL_GPUShader* SDL_CreateGPUShader(SDL_GPUDevice* device, const SDL_GPUShaderCreateInfo* createinfo)
+  SDL_CreateGPUShader: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // void SDL_ReleaseGPUShader(SDL_GPUDevice* device, SDL_GPUShader* shader)
+  SDL_ReleaseGPUShader: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // SDL_GPURenderState* SDL_CreateGPURenderState(SDL_Renderer* renderer, const SDL_GPURenderStateCreateInfo* createinfo)
+  SDL_CreateGPURenderState: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // bool SDL_SetGPURenderState(SDL_Renderer* renderer, SDL_GPURenderState* state)
+  SDL_SetGPURenderState: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetGPURenderStateFragmentUniforms(SDL_GPURenderState* state, Uint32 slot_index, const void* data, Uint32 length)
+  SDL_SetGPURenderStateFragmentUniforms: {
+    args: [FFIType.pointer, FFIType.u32, FFIType.pointer, FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // void SDL_DestroyGPURenderState(SDL_GPURenderState* state)
+  SDL_DestroyGPURenderState: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
 });
 
 export default sdl;
