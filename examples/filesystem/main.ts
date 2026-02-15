@@ -81,8 +81,11 @@ await jove.run({
     jove.graphics.print(`FPS: ${jove.timer.getFPS()}`, 700, 10);
 
     jove.graphics.setColor(200, 220, 200);
+    let y = 40;
     for (let i = 0; i < messages.length; i++) {
-      jove.graphics.print(messages[i], 10, 40 + i * 16);
+      jove.graphics.print(messages[i], 10, y);
+      const lineCount = messages[i].split("\n").length;
+      y += lineCount * 12;
     }
   },
 

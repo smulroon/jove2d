@@ -89,8 +89,11 @@ function love.draw()
   love.graphics.print("FPS: " .. love.timer.getFPS(), 700, 10)
 
   love.graphics.setColor(200/255, 220/255, 200/255)
+  local y = 40
   for i, msg in ipairs(messages) do
-    love.graphics.print(msg, 10, 40 + (i - 1) * 16)
+    love.graphics.print(msg, 10, y)
+    local _, lineBreaks = msg:gsub("\n", "")
+    y = y + (lineBreaks + 1) * 20
   end
 end
 

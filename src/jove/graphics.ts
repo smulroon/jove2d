@@ -983,8 +983,12 @@ export function points(...coords: number[]): void {
 /** Draw text using SDL's built-in 8x8 debug font. */
 export function print(text: string, x: number, y: number): void {
   if (!_renderer) return;
-  const [tx, ty] = _isIdentity() ? [x, y] : _transformPoint(x, y);
-  sdl.SDL_RenderDebugText(_renderer, tx, ty, Buffer.from(text + "\0"));
+  const lines = text.split("\n");
+  const lineHeight = 8; // SDL debug font is 8px tall
+  for (let i = 0; i < lines.length; i++) {
+    const [tx, ty] = _isIdentity() ? [x, y + i * lineHeight] : _transformPoint(x, y + i * lineHeight);
+    sdl.SDL_RenderDebugText(_renderer, tx, ty, Buffer.from(lines[i] + "\0"));
+  }
 }
 
 // ============================================================
