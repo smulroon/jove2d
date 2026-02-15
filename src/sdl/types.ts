@@ -234,6 +234,103 @@ export const SDL_GPU_SHADERFORMAT_METALLIB = 1 << 5;
 export const SDL_GPU_SHADERSTAGE_VERTEX = 0;
 export const SDL_GPU_SHADERSTAGE_FRAGMENT = 1;
 
+// --- Joystick/Gamepad event types ---
+
+export const SDL_EVENT_JOYSTICK_AXIS_MOTION = 0x600;
+export const SDL_EVENT_JOYSTICK_HAT_MOTION = 0x602;
+export const SDL_EVENT_JOYSTICK_BUTTON_DOWN = 0x603;
+export const SDL_EVENT_JOYSTICK_BUTTON_UP = 0x604;
+export const SDL_EVENT_JOYSTICK_ADDED = 0x605;
+export const SDL_EVENT_JOYSTICK_REMOVED = 0x606;
+
+export const SDL_EVENT_GAMEPAD_AXIS_MOTION = 0x650;
+export const SDL_EVENT_GAMEPAD_BUTTON_DOWN = 0x651;
+export const SDL_EVENT_GAMEPAD_BUTTON_UP = 0x652;
+
+// Joystick/Gamepad event struct offsets (common header: type@0, reserved@4, timestamp@8, which@16)
+export const SDL_JOY_EVENT_WHICH = 16;
+export const SDL_JOY_AXIS_EVENT_AXIS = 20;
+export const SDL_JOY_AXIS_EVENT_VALUE = 24;
+export const SDL_JOY_BUTTON_EVENT_BUTTON = 20;
+export const SDL_JOY_BUTTON_EVENT_DOWN = 21;
+export const SDL_JOY_HAT_EVENT_HAT = 20;
+export const SDL_JOY_HAT_EVENT_VALUE = 21;
+
+// SDL_GamepadButton enum values
+export const SDL_GAMEPAD_BUTTON_SOUTH = 0;
+export const SDL_GAMEPAD_BUTTON_EAST = 1;
+export const SDL_GAMEPAD_BUTTON_WEST = 2;
+export const SDL_GAMEPAD_BUTTON_NORTH = 3;
+export const SDL_GAMEPAD_BUTTON_BACK = 4;
+export const SDL_GAMEPAD_BUTTON_GUIDE = 5;
+export const SDL_GAMEPAD_BUTTON_START = 6;
+export const SDL_GAMEPAD_BUTTON_LEFT_STICK = 7;
+export const SDL_GAMEPAD_BUTTON_RIGHT_STICK = 8;
+export const SDL_GAMEPAD_BUTTON_LEFT_SHOULDER = 9;
+export const SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER = 10;
+export const SDL_GAMEPAD_BUTTON_DPAD_UP = 11;
+export const SDL_GAMEPAD_BUTTON_DPAD_DOWN = 12;
+export const SDL_GAMEPAD_BUTTON_DPAD_LEFT = 13;
+export const SDL_GAMEPAD_BUTTON_DPAD_RIGHT = 14;
+
+// SDL_GamepadAxis enum values
+export const SDL_GAMEPAD_AXIS_LEFTX = 0;
+export const SDL_GAMEPAD_AXIS_LEFTY = 1;
+export const SDL_GAMEPAD_AXIS_RIGHTX = 2;
+export const SDL_GAMEPAD_AXIS_RIGHTY = 3;
+export const SDL_GAMEPAD_AXIS_LEFT_TRIGGER = 4;
+export const SDL_GAMEPAD_AXIS_RIGHT_TRIGGER = 5;
+
+// SDL hat values
+export const SDL_HAT_CENTERED = 0x00;
+export const SDL_HAT_UP = 0x01;
+export const SDL_HAT_RIGHT = 0x02;
+export const SDL_HAT_DOWN = 0x04;
+export const SDL_HAT_LEFT = 0x08;
+
+/** Map SDL hat value → love2d direction string */
+export const HAT_DIRECTION_NAMES: Record<number, string> = {
+  0x00: "c",   // centered
+  0x01: "u",   // up
+  0x02: "r",   // right
+  0x04: "d",   // down
+  0x08: "l",   // left
+  0x03: "ru",  // right-up
+  0x06: "rd",  // right-down
+  0x09: "lu",  // left-up
+  0x0c: "ld",  // left-down
+};
+
+/** Map SDL gamepad button enum → love2d button name */
+export const GAMEPAD_BUTTON_NAMES: Record<number, string> = {
+  0: "a", 1: "b", 2: "x", 3: "y",
+  4: "back", 5: "guide", 6: "start",
+  7: "leftstick", 8: "rightstick",
+  9: "leftshoulder", 10: "rightshoulder",
+  11: "dpup", 12: "dpdown", 13: "dpleft", 14: "dpright",
+};
+
+/** Map love2d button name → SDL gamepad button enum */
+export const GAMEPAD_BUTTON_FROM_NAME: Record<string, number> = {
+  a: 0, b: 1, x: 2, y: 3,
+  back: 4, guide: 5, start: 6,
+  leftstick: 7, rightstick: 8,
+  leftshoulder: 9, rightshoulder: 10,
+  dpup: 11, dpdown: 12, dpleft: 13, dpright: 14,
+};
+
+/** Map SDL gamepad axis enum → love2d axis name */
+export const GAMEPAD_AXIS_NAMES: Record<number, string> = {
+  0: "leftx", 1: "lefty", 2: "rightx", 3: "righty",
+  4: "triggerleft", 5: "triggerright",
+};
+
+/** Map love2d axis name → SDL gamepad axis enum */
+export const GAMEPAD_AXIS_FROM_NAME: Record<string, number> = {
+  leftx: 0, lefty: 1, rightx: 2, righty: 3,
+  triggerleft: 4, triggerright: 5,
+};
+
 /**
  * SDL scancode → love2d-style key name mapping.
  * Based on SDL_Scancode enum values.

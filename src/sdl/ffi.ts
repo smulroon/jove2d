@@ -765,6 +765,137 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.u32],
     returns: FFIType.void,
   },
+
+  // --- Joystick ---
+
+  // SDL_JoystickID* SDL_GetJoysticks(int* count)
+  SDL_GetJoysticks: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // SDL_Joystick* SDL_OpenJoystick(SDL_JoystickID instance_id)
+  SDL_OpenJoystick: {
+    args: [FFIType.u32],
+    returns: FFIType.pointer,
+  },
+  // void SDL_CloseJoystick(SDL_Joystick* joystick)
+  SDL_CloseJoystick: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // const char* SDL_GetJoystickName(SDL_Joystick* joystick)
+  SDL_GetJoystickName: {
+    args: [FFIType.pointer],
+    returns: FFIType.cstring,
+  },
+  // const char* SDL_GetJoystickNameForID(SDL_JoystickID instance_id)
+  SDL_GetJoystickNameForID: {
+    args: [FFIType.u32],
+    returns: FFIType.cstring,
+  },
+  // SDL_JoystickID SDL_GetJoystickID(SDL_Joystick* joystick)
+  SDL_GetJoystickID: {
+    args: [FFIType.pointer],
+    returns: FFIType.u32,
+  },
+  // int SDL_GetNumJoystickAxes(SDL_Joystick* joystick)
+  SDL_GetNumJoystickAxes: {
+    args: [FFIType.pointer],
+    returns: FFIType.i32,
+  },
+  // int SDL_GetNumJoystickButtons(SDL_Joystick* joystick)
+  SDL_GetNumJoystickButtons: {
+    args: [FFIType.pointer],
+    returns: FFIType.i32,
+  },
+  // int SDL_GetNumJoystickHats(SDL_Joystick* joystick)
+  SDL_GetNumJoystickHats: {
+    args: [FFIType.pointer],
+    returns: FFIType.i32,
+  },
+  // Sint16 SDL_GetJoystickAxis(SDL_Joystick* joystick, int axis)
+  SDL_GetJoystickAxis: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.i16,
+  },
+  // bool SDL_GetJoystickButton(SDL_Joystick* joystick, int button)
+  SDL_GetJoystickButton: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // Uint8 SDL_GetJoystickHat(SDL_Joystick* joystick, int hat)
+  SDL_GetJoystickHat: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.u8,
+  },
+  // bool SDL_JoystickConnected(SDL_Joystick* joystick)
+  SDL_JoystickConnected: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RumbleJoystick(SDL_Joystick* joystick, Uint16 low_freq, Uint16 high_freq, Uint32 duration_ms)
+  SDL_RumbleJoystick: {
+    args: [FFIType.pointer, FFIType.u16, FFIType.u16, FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // Uint16 SDL_GetJoystickVendor(SDL_Joystick* joystick)
+  SDL_GetJoystickVendor: {
+    args: [FFIType.pointer],
+    returns: FFIType.u16,
+  },
+  // Uint16 SDL_GetJoystickProduct(SDL_Joystick* joystick)
+  SDL_GetJoystickProduct: {
+    args: [FFIType.pointer],
+    returns: FFIType.u16,
+  },
+  // Uint16 SDL_GetJoystickProductVersion(SDL_Joystick* joystick)
+  SDL_GetJoystickProductVersion: {
+    args: [FFIType.pointer],
+    returns: FFIType.u16,
+  },
+
+  // --- Gamepad ---
+
+  // bool SDL_IsGamepad(SDL_JoystickID instance_id)
+  SDL_IsGamepad: {
+    args: [FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // SDL_Gamepad* SDL_OpenGamepad(SDL_JoystickID instance_id)
+  SDL_OpenGamepad: {
+    args: [FFIType.u32],
+    returns: FFIType.pointer,
+  },
+  // void SDL_CloseGamepad(SDL_Gamepad* gamepad)
+  SDL_CloseGamepad: {
+    args: [FFIType.pointer],
+    returns: FFIType.void,
+  },
+  // const char* SDL_GetGamepadName(SDL_Gamepad* gamepad)
+  SDL_GetGamepadName: {
+    args: [FFIType.pointer],
+    returns: FFIType.cstring,
+  },
+  // Sint16 SDL_GetGamepadAxis(SDL_Gamepad* gamepad, SDL_GamepadAxis axis)
+  SDL_GetGamepadAxis: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.i16,
+  },
+  // bool SDL_GetGamepadButton(SDL_Gamepad* gamepad, SDL_GamepadButton button)
+  SDL_GetGamepadButton: {
+    args: [FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RumbleGamepad(SDL_Gamepad* gamepad, Uint16 low_freq, Uint16 high_freq, Uint32 duration_ms)
+  SDL_RumbleGamepad: {
+    args: [FFIType.pointer, FFIType.u16, FFIType.u16, FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // SDL_Joystick* SDL_GetGamepadJoystick(SDL_Gamepad* gamepad)
+  SDL_GetGamepadJoystick: {
+    args: [FFIType.pointer],
+    returns: FFIType.pointer,
+  },
 });
 
 export default sdl;

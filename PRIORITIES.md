@@ -187,11 +187,11 @@ Grouped by priority based on impact for typical 2D game development.
 - **Approach**: Bind Box2D via FFI, or use a WASM port
 - **Why P3**: Only needed for physics-based games. Many 2D games don't use it.
 
-#### Joystick / Gamepad (love.joystick)
-- **Current**: Not implemented
-- **Needed**: Gamepad detection, button/axis reading, vibration
-- **Approach**: SDL3 gamepad API bindings (already in SDL3)
-- **Why P3**: Important for console-style games, but keyboard/mouse covers most cases.
+#### ~~Joystick / Gamepad (love.joystick)~~ DONE
+- **Implemented**: Joystick detection, axes/buttons/hats, gamepad mapping (standard button/axis names), vibration, hot-plug events
+- `joystick.ts` with Joystick object (getAxis, isDown, getHat, isGamepad, getGamepadAxis, isGamepadDown, setVibration)
+- Module functions: getJoysticks, getJoystickCount
+- Full event dispatch: joystickadded/removed, joystickpressed/released, joystickaxis, joystickhat, gamepadpressed/released, gamepadaxis
 
 #### love.sound / love.image (data-level APIs)
 - **Current**: Not implemented as separate modules
@@ -255,5 +255,5 @@ Grouped by priority based on impact for typical 2D game development.
 11. ~~**Stencil**~~ DONE — canvas-based stencil simulation with custom blend modes (binary mask)
 12. ~~**love.data**~~ DONE — compression/encoding utilities
 13. ~~**Filesystem gaps**~~ DONE — directory queries, mount/unmount, File handle, FileData
-14. **Joystick** — gamepad support
+14. ~~**Joystick**~~ DONE — gamepad support via SDL3 joystick/gamepad API
 15. **Physics** — Box2D integration

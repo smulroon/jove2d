@@ -13,10 +13,11 @@ import * as system from "./system.ts";
 import * as audio from "./audio.ts";
 import * as data from "./data.ts";
 import * as event from "./event.ts";
+import * as joystick from "./joystick.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event };
+export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
@@ -27,6 +28,7 @@ export type { Shader } from "./shader.ts";
 export type { Source } from "./audio.ts";
 export type { ByteData } from "./data.ts";
 export type { File, FileData } from "./filesystem.ts";
+export type { Joystick } from "./joystick.ts";
 
 let _initialized = false;
 
@@ -53,6 +55,7 @@ export function init(flags: number = SDL_INIT_VIDEO): boolean {
 }
 
 export function quit(): void {
+  joystick._quit();
   mouse._destroyCursors();
   audio._quit();
   graphics._destroyRenderer();
@@ -137,6 +140,53 @@ function _gameLoop(callbacks: GameCallbacks): void {
         case "hidden":
           callbacks.visible?.(false);
           break;
+
+        // --- Joystick events ---
+        case "joystickadded": {
+          const joy = joystick._onJoystickAdded(ev.instanceId);
+          if (joy) callbacks.joystickadded?.(joy);
+          break;
+        }
+        case "joystickremoved": {
+          const joy = joystick._onJoystickRemoved(ev.instanceId);
+          if (joy) callbacks.joystickremoved?.(joy);
+          break;
+        }
+        case "joystickpressed": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.joystickpressed?.(joy, ev.button);
+          break;
+        }
+        case "joystickreleased": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.joystickreleased?.(joy, ev.button);
+          break;
+        }
+        case "joystickaxis": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.joystickaxis?.(joy, ev.axis, ev.value);
+          break;
+        }
+        case "joystickhat": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.joystickhat?.(joy, ev.hat, ev.direction);
+          break;
+        }
+        case "gamepadpressed": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.gamepadpressed?.(joy, ev.button);
+          break;
+        }
+        case "gamepadreleased": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.gamepadreleased?.(joy, ev.button);
+          break;
+        }
+        case "gamepadaxis": {
+          const joy = joystick._getByInstanceId(ev.instanceId);
+          if (joy) callbacks.gamepadaxis?.(joy, ev.axis, ev.value);
+          break;
+        }
       }
     }
 
@@ -184,6 +234,9 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
 
   // Initialize audio (non-fatal if it fails)
   audio._init();
+
+  // Initialize joystick (enumerate already-connected devices)
+  joystick._init();
 
   // Call load() once (may be async)
   if (callbacks.load) {

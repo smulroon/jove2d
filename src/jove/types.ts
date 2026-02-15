@@ -37,6 +37,15 @@ export interface GameCallbacks {
   textinput?(text: string): void;
   filedropped?(path: string): void;
   visible?(visible: boolean): void;
+  joystickadded?(joystick: import("./joystick.ts").Joystick): void;
+  joystickremoved?(joystick: import("./joystick.ts").Joystick): void;
+  joystickpressed?(joystick: import("./joystick.ts").Joystick, button: number): void;
+  joystickreleased?(joystick: import("./joystick.ts").Joystick, button: number): void;
+  joystickaxis?(joystick: import("./joystick.ts").Joystick, axis: number, value: number): void;
+  joystickhat?(joystick: import("./joystick.ts").Joystick, hat: number, direction: string): void;
+  gamepadpressed?(joystick: import("./joystick.ts").Joystick, button: string): void;
+  gamepadreleased?(joystick: import("./joystick.ts").Joystick, button: string): void;
+  gamepadaxis?(joystick: import("./joystick.ts").Joystick, axis: string, value: number): void;
 }
 
 /** Raw pixel data from a screenshot capture */
@@ -66,4 +75,13 @@ export type JoveEvent =
   | { type: "mousemoved"; x: number; y: number; dx: number; dy: number }
   | { type: "wheelmoved"; x: number; y: number }
   | { type: "textinput"; text: string }
-  | { type: "filedropped"; path: string };
+  | { type: "filedropped"; path: string }
+  | { type: "joystickadded"; instanceId: number }
+  | { type: "joystickremoved"; instanceId: number }
+  | { type: "joystickpressed"; instanceId: number; button: number }
+  | { type: "joystickreleased"; instanceId: number; button: number }
+  | { type: "joystickaxis"; instanceId: number; axis: number; value: number }
+  | { type: "joystickhat"; instanceId: number; hat: number; direction: string }
+  | { type: "gamepadpressed"; instanceId: number; button: string }
+  | { type: "gamepadreleased"; instanceId: number; button: string }
+  | { type: "gamepadaxis"; instanceId: number; axis: string; value: number };

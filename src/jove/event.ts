@@ -24,6 +24,15 @@ import {
   SDL_EVENT_MOUSE_BUTTON_UP,
   SDL_EVENT_MOUSE_WHEEL,
   SDL_EVENT_DROP_FILE,
+  SDL_EVENT_JOYSTICK_AXIS_MOTION,
+  SDL_EVENT_JOYSTICK_HAT_MOTION,
+  SDL_EVENT_JOYSTICK_BUTTON_DOWN,
+  SDL_EVENT_JOYSTICK_BUTTON_UP,
+  SDL_EVENT_JOYSTICK_ADDED,
+  SDL_EVENT_JOYSTICK_REMOVED,
+  SDL_EVENT_GAMEPAD_AXIS_MOTION,
+  SDL_EVENT_GAMEPAD_BUTTON_DOWN,
+  SDL_EVENT_GAMEPAD_BUTTON_UP,
   SDL_KEYBOARD_EVENT_SCANCODE,
   SDL_KEYBOARD_EVENT_DOWN,
   SDL_KEYBOARD_EVENT_REPEAT,
@@ -40,6 +49,15 @@ import {
   SDL_MOUSE_WHEEL_Y,
   SDL_TEXT_INPUT_TEXT,
   SDL_DROP_EVENT_DATA,
+  SDL_JOY_EVENT_WHICH,
+  SDL_JOY_AXIS_EVENT_AXIS,
+  SDL_JOY_AXIS_EVENT_VALUE,
+  SDL_JOY_BUTTON_EVENT_BUTTON,
+  SDL_JOY_HAT_EVENT_HAT,
+  SDL_JOY_HAT_EVENT_VALUE,
+  HAT_DIRECTION_NAMES,
+  GAMEPAD_BUTTON_NAMES,
+  GAMEPAD_AXIS_NAMES,
   SCANCODE_NAMES,
 } from "../sdl/types.ts";
 import type { JoveEvent } from "./types.ts";
@@ -205,6 +223,85 @@ function mapEvent(eventType: number, p: Pointer): JoveEvent | null {
       if (!dataPtr) return null;
       const filePath = new Bun.CString(dataPtr);
       return { type: "filedropped", path: filePath.toString() };
+    }
+
+    // --- Joystick events ---
+
+    case SDL_EVENT_JOYSTICK_ADDED:
+      return { type: "joystickadded", instanceId: read.u32(p, SDL_JOY_EVENT_WHICH) };
+
+    case SDL_EVENT_JOYSTICK_REMOVED:
+      return { type: "joystickremoved", instanceId: read.u32(p, SDL_JOY_EVENT_WHICH) };
+
+    case SDL_EVENT_JOYSTICK_AXIS_MOTION: {
+      const raw = read.i16(p, SDL_JOY_AXIS_EVENT_VALUE);
+      return {
+        type: "joystickaxis",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        axis: read.u8(p, SDL_JOY_AXIS_EVENT_AXIS),
+        value: raw < 0 ? raw / 32768 : raw / 32767,
+      };
+    }
+
+    case SDL_EVENT_JOYSTICK_BUTTON_DOWN:
+      return {
+        type: "joystickpressed",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        button: read.u8(p, SDL_JOY_BUTTON_EVENT_BUTTON) + 1, // love2d is 1-indexed
+      };
+
+    case SDL_EVENT_JOYSTICK_BUTTON_UP:
+      return {
+        type: "joystickreleased",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        button: read.u8(p, SDL_JOY_BUTTON_EVENT_BUTTON) + 1,
+      };
+
+    case SDL_EVENT_JOYSTICK_HAT_MOTION: {
+      const hatVal = read.u8(p, SDL_JOY_HAT_EVENT_VALUE);
+      return {
+        type: "joystickhat",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        hat: read.u8(p, SDL_JOY_HAT_EVENT_HAT) + 1, // love2d is 1-indexed
+        direction: HAT_DIRECTION_NAMES[hatVal] ?? "c",
+      };
+    }
+
+    // --- Gamepad events ---
+
+    case SDL_EVENT_GAMEPAD_BUTTON_DOWN: {
+      const btn = read.u8(p, SDL_JOY_BUTTON_EVENT_BUTTON);
+      const name = GAMEPAD_BUTTON_NAMES[btn];
+      if (!name) return null;
+      return {
+        type: "gamepadpressed",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        button: name,
+      };
+    }
+
+    case SDL_EVENT_GAMEPAD_BUTTON_UP: {
+      const btn = read.u8(p, SDL_JOY_BUTTON_EVENT_BUTTON);
+      const name = GAMEPAD_BUTTON_NAMES[btn];
+      if (!name) return null;
+      return {
+        type: "gamepadreleased",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        button: name,
+      };
+    }
+
+    case SDL_EVENT_GAMEPAD_AXIS_MOTION: {
+      const axisIdx = read.u8(p, SDL_JOY_AXIS_EVENT_AXIS);
+      const axisName = GAMEPAD_AXIS_NAMES[axisIdx];
+      if (!axisName) return null;
+      const raw = read.i16(p, SDL_JOY_AXIS_EVENT_VALUE);
+      return {
+        type: "gamepadaxis",
+        instanceId: read.u32(p, SDL_JOY_EVENT_WHICH),
+        axis: axisName,
+        value: raw < 0 ? raw / 32768 : raw / 32767,
+      };
     }
 
     default:
