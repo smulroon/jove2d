@@ -69,7 +69,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 **P3 — Useful for specific cases:**
 - `setLineJoin` / `getLineJoin` — miter/bevel/none line joins
-- `setLineStyle` / `getLineStyle` — rough/smooth line style
+- ~~`setLineStyle` / `getLineStyle`~~ — rough/smooth line style
 - `getDPIScale` / `getPixelDimensions` / `getPixelHeight` / `getPixelWidth` — HiDPI pixel queries
 - `getRendererInfo` / `getStats` / `getSupported` / `getSystemLimits` — info/capability queries
 - `getCanvasFormats` / `getImageFormats` / `getTextureTypes` — format queries

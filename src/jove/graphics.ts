@@ -42,6 +42,9 @@ let _drawColor: [number, number, number, number] = [255, 255, 255, 255];
 let _lineWidth = 1;
 let _pointSize = 1;
 
+type LineStyle = "rough" | "smooth";
+let _lineStyle: LineStyle = "rough";
+
 // Default texture filter mode (applied to new images/canvases)
 let _defaultFilterMin: FilterMode = "nearest";
 let _defaultFilterMag: FilterMode = "nearest";
@@ -674,6 +677,16 @@ export function getPointSize(): number {
   return _pointSize;
 }
 
+/** Set the line style ("rough" = aliased, "smooth" = anti-aliased). */
+export function setLineStyle(style: LineStyle): void {
+  _lineStyle = style;
+}
+
+/** Get the current line style. */
+export function getLineStyle(): LineStyle {
+  return _lineStyle;
+}
+
 // ============================================================
 // Default filter
 // ============================================================
@@ -769,6 +782,7 @@ export function reset(): void {
   }
   _lineWidth = 1;
   _pointSize = 1;
+  _lineStyle = "rough";
   setScissor();
   _transform = [1, 0, 0, 1, 0, 0];
   _transformStack.length = 0;
@@ -777,6 +791,138 @@ export function reset(): void {
   _defaultFilterMin = "nearest";
   _defaultFilterMag = "nearest";
   _colorMask = [true, true, true, true];
+}
+
+// ============================================================
+// Anti-aliased line rendering via textured quads
+// ============================================================
+
+/**
+ * Draw anti-aliased lines using SDL_RenderGeometry with per-vertex alpha fringe.
+ * Points must be in screen-space (pre-transformed). Uses miter joins at interior vertices.
+ */
+function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): void {
+  if (!_renderer || numPoints < 2) return;
+
+  const hw = _lineWidth / 2;
+  const fringe = 0.75; // AA fringe width in pixels
+  const [dr, dg, db, da] = _drawColor;
+  const cr = dr / 255, cg = dg / 255, cb = db / 255, ca = da / 255;
+
+  const numSegments = loop ? numPoints : numPoints - 1;
+  const totalVerts = numPoints * 4;
+  const totalIndices = numSegments * 18;
+
+  // SDL_Vertex = 8 floats: x, y, r, g, b, a, u, v
+  const vertBuf = new Float32Array(totalVerts * 8);
+  const idxBuf = new Int32Array(totalIndices);
+
+  // Compute normals and vertex positions for each point
+  for (let i = 0; i < numPoints; i++) {
+    let nx = 0, ny = 0;
+    const hasPrev = loop || i > 0;
+    const hasNext = loop || i < numPoints - 1;
+
+    if (hasPrev) {
+      const pi = loop ? ((i - 1 + numPoints) % numPoints) : (i - 1);
+      const dx = points[i * 2] - points[pi * 2];
+      const dy = points[i * 2 + 1] - points[pi * 2 + 1];
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) { nx += -dy / len; ny += dx / len; }
+    }
+
+    if (hasNext) {
+      const ni = loop ? ((i + 1) % numPoints) : (i + 1);
+      const dx = points[ni * 2] - points[i * 2];
+      const dy = points[ni * 2 + 1] - points[i * 2 + 1];
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) { nx += -dy / len; ny += dx / len; }
+    }
+
+    // Normalize the averaged normal
+    const nlen = Math.sqrt(nx * nx + ny * ny);
+    if (nlen > 0) { nx /= nlen; ny /= nlen; }
+
+    // Compute miter scale to maintain constant line width at joins
+    let miterScale = 1;
+    if (hasPrev && hasNext) {
+      const ni = loop ? ((i + 1) % numPoints) : (i + 1);
+      const dx = points[ni * 2] - points[i * 2];
+      const dy = points[ni * 2 + 1] - points[i * 2 + 1];
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > 0) {
+        const snx = -dy / len, sny = dx / len;
+        const dot = nx * snx + ny * sny;
+        if (dot > 0.1) miterScale = 1 / dot;
+        if (miterScale > 4) miterScale = 4; // Clamp extreme miters
+      }
+    }
+
+    const px = points[i * 2], py = points[i * 2 + 1];
+    const outerDist = (hw + fringe) * miterScale;
+    const innerDist = hw * miterScale;
+
+    // Vertex 0: outer+ (α=0)
+    const v0 = i * 4 * 8;
+    vertBuf[v0] = px + nx * outerDist;
+    vertBuf[v0 + 1] = py + ny * outerDist;
+    vertBuf[v0 + 2] = cr; vertBuf[v0 + 3] = cg;
+    vertBuf[v0 + 4] = cb; vertBuf[v0 + 5] = 0;
+
+    // Vertex 1: inner+ (α=full)
+    const v1 = v0 + 8;
+    vertBuf[v1] = px + nx * innerDist;
+    vertBuf[v1 + 1] = py + ny * innerDist;
+    vertBuf[v1 + 2] = cr; vertBuf[v1 + 3] = cg;
+    vertBuf[v1 + 4] = cb; vertBuf[v1 + 5] = ca;
+
+    // Vertex 2: inner- (α=full)
+    const v2 = v1 + 8;
+    vertBuf[v2] = px - nx * innerDist;
+    vertBuf[v2 + 1] = py - ny * innerDist;
+    vertBuf[v2 + 2] = cr; vertBuf[v2 + 3] = cg;
+    vertBuf[v2 + 4] = cb; vertBuf[v2 + 5] = ca;
+
+    // Vertex 3: outer- (α=0)
+    const v3 = v2 + 8;
+    vertBuf[v3] = px - nx * outerDist;
+    vertBuf[v3 + 1] = py - ny * outerDist;
+    vertBuf[v3 + 2] = cr; vertBuf[v3 + 3] = cg;
+    vertBuf[v3 + 4] = cb; vertBuf[v3 + 5] = 0;
+  }
+
+  // Build index buffer — 3 quads (6 triangles) per segment
+  for (let s = 0; s < numSegments; s++) {
+    const i0 = s;
+    const i1 = loop ? ((s + 1) % numPoints) : (s + 1);
+    const base = s * 18;
+
+    // Top fringe quad (outer+ → inner+)
+    idxBuf[base] = i0 * 4;
+    idxBuf[base + 1] = i1 * 4;
+    idxBuf[base + 2] = i1 * 4 + 1;
+    idxBuf[base + 3] = i0 * 4;
+    idxBuf[base + 4] = i1 * 4 + 1;
+    idxBuf[base + 5] = i0 * 4 + 1;
+
+    // Core quad (inner+ → inner-)
+    idxBuf[base + 6] = i0 * 4 + 1;
+    idxBuf[base + 7] = i1 * 4 + 1;
+    idxBuf[base + 8] = i1 * 4 + 2;
+    idxBuf[base + 9] = i0 * 4 + 1;
+    idxBuf[base + 10] = i1 * 4 + 2;
+    idxBuf[base + 11] = i0 * 4 + 2;
+
+    // Bottom fringe quad (inner- → outer-)
+    idxBuf[base + 12] = i0 * 4 + 2;
+    idxBuf[base + 13] = i1 * 4 + 2;
+    idxBuf[base + 14] = i1 * 4 + 3;
+    idxBuf[base + 15] = i0 * 4 + 2;
+    idxBuf[base + 16] = i1 * 4 + 3;
+    idxBuf[base + 17] = i0 * 4 + 3;
+  }
+
+  sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), totalVerts, ptr(idxBuf), totalIndices);
 }
 
 // ============================================================
@@ -806,15 +952,25 @@ export function rectangle(mode: "fill" | "line", x: number, y: number, w: number
 
   if (_isIdentity()) {
     // Fast path: no transform
-    _rectBuf[0] = x;
-    _rectBuf[1] = y;
-    _rectBuf[2] = w;
-    _rectBuf[3] = h;
-    const p = ptr(_rectBuf);
     if (mode === "fill") {
-      sdl.SDL_RenderFillRect(_renderer, p);
+      _rectBuf[0] = x;
+      _rectBuf[1] = y;
+      _rectBuf[2] = w;
+      _rectBuf[3] = h;
+      sdl.SDL_RenderFillRect(_renderer, ptr(_rectBuf));
+    } else if (_lineStyle === "smooth") {
+      const buf = new Float32Array(8);
+      buf[0] = x; buf[1] = y;
+      buf[2] = x + w; buf[3] = y;
+      buf[4] = x + w; buf[5] = y + h;
+      buf[6] = x; buf[7] = y + h;
+      _smoothLines(buf, 4, true);
     } else {
-      sdl.SDL_RenderRect(_renderer, p);
+      _rectBuf[0] = x;
+      _rectBuf[1] = y;
+      _rectBuf[2] = w;
+      _rectBuf[3] = h;
+      sdl.SDL_RenderRect(_renderer, ptr(_rectBuf));
     }
   } else {
     // Transform the 4 corners
@@ -837,20 +993,34 @@ export function rectangle(mode: "fill" | "line", x: number, y: number, w: number
 export function line(...coords: number[]): void {
   if (!_renderer || coords.length < 4) return;
 
-  if (_isIdentity()) {
+  const numPoints = coords.length / 2;
+  const identity = _isIdentity();
+
+  if (_lineStyle === "smooth") {
+    const buf = new Float32Array(numPoints * 2);
+    if (identity) {
+      for (let i = 0; i < coords.length; i++) buf[i] = coords[i];
+    } else {
+      for (let i = 0; i < numPoints; i++) {
+        const [tx, ty] = _transformPoint(coords[i * 2], coords[i * 2 + 1]);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+    }
+    _smoothLines(buf, numPoints, false);
+    return;
+  }
+
+  // Rough path
+  if (identity) {
     if (coords.length === 4) {
       sdl.SDL_RenderLine(_renderer, coords[0], coords[1], coords[2], coords[3]);
       return;
     }
-    const numPoints = coords.length / 2;
     const buf = new Float32Array(numPoints * 2);
-    for (let i = 0; i < coords.length; i++) {
-      buf[i] = coords[i];
-    }
+    for (let i = 0; i < coords.length; i++) buf[i] = coords[i];
     sdl.SDL_RenderLines(_renderer, ptr(buf), numPoints);
   } else {
-    // Transform all points
-    const numPoints = coords.length / 2;
     const buf = new Float32Array(numPoints * 2);
     for (let i = 0; i < numPoints; i++) {
       const [tx, ty] = _transformPoint(coords[i * 2], coords[i * 2 + 1]);
@@ -872,16 +1042,30 @@ export function circle(mode: "fill" | "line", cx: number, cy: number, radius: nu
   const angleStep = (Math.PI * 2) / n;
 
   if (mode === "line") {
-    const buf = new Float32Array((n + 1) * 2);
-    for (let i = 0; i <= n; i++) {
-      const angle = i * angleStep;
-      const px = cx + Math.cos(angle) * radius;
-      const py = cy + Math.sin(angle) * radius;
-      const [tx, ty] = _isIdentity() ? [px, py] : _transformPoint(px, py);
-      buf[i * 2] = tx;
-      buf[i * 2 + 1] = ty;
+    const identity = _isIdentity();
+    if (_lineStyle === "smooth") {
+      const buf = new Float32Array(n * 2);
+      for (let i = 0; i < n; i++) {
+        const angle = i * angleStep;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+      _smoothLines(buf, n, true);
+    } else {
+      const buf = new Float32Array((n + 1) * 2);
+      for (let i = 0; i <= n; i++) {
+        const angle = i * angleStep;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
     }
-    sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
   } else {
     _fillCircle(cx, cy, radius, n, angleStep);
   }
@@ -948,16 +1132,30 @@ export function ellipse(mode: "fill" | "line", cx: number, cy: number, rx: numbe
   const angleStep = (Math.PI * 2) / n;
 
   if (mode === "line") {
-    const buf = new Float32Array((n + 1) * 2);
-    for (let i = 0; i <= n; i++) {
-      const angle = i * angleStep;
-      const px = cx + Math.cos(angle) * rx;
-      const py = cy + Math.sin(angle) * ry;
-      const [tx, ty] = _isIdentity() ? [px, py] : _transformPoint(px, py);
-      buf[i * 2] = tx;
-      buf[i * 2 + 1] = ty;
+    const identity = _isIdentity();
+    if (_lineStyle === "smooth") {
+      const buf = new Float32Array(n * 2);
+      for (let i = 0; i < n; i++) {
+        const angle = i * angleStep;
+        const px = cx + Math.cos(angle) * rx;
+        const py = cy + Math.sin(angle) * ry;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+      _smoothLines(buf, n, true);
+    } else {
+      const buf = new Float32Array((n + 1) * 2);
+      for (let i = 0; i <= n; i++) {
+        const angle = i * angleStep;
+        const px = cx + Math.cos(angle) * rx;
+        const py = cy + Math.sin(angle) * ry;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
     }
-    sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
   } else {
     // Triangle fan from center
     const numTris = n;
@@ -1004,50 +1202,89 @@ export function arc(mode: "fill" | "line", cx: number, cy: number, radius: numbe
   const type = arctype ?? (mode === "line" ? "open" : "pie");
 
   if (mode === "line") {
-    if (type === "pie") {
-      // Lines from center → arc → back to center
-      const buf = new Float32Array((n + 3) * 2);
-      const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
-      buf[0] = tcx;
-      buf[1] = tcy;
-      for (let i = 0; i <= n; i++) {
-        const angle = angle1 + i * angleStep;
-        const px = cx + Math.cos(angle) * radius;
-        const py = cy + Math.sin(angle) * radius;
-        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
-        buf[(i + 1) * 2] = tx;
-        buf[(i + 1) * 2 + 1] = ty;
+    if (_lineStyle === "smooth") {
+      // Build point array based on arc type
+      if (type === "pie") {
+        // center → arc points → (loop closes back to center)
+        const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
+        const buf = new Float32Array((n + 2) * 2);
+        buf[0] = tcx; buf[1] = tcy;
+        for (let i = 0; i <= n; i++) {
+          const angle = angle1 + i * angleStep;
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+          buf[(i + 1) * 2] = tx;
+          buf[(i + 1) * 2 + 1] = ty;
+        }
+        _smoothLines(buf, n + 2, true);
+      } else if (type === "closed") {
+        // arc points, loop closes chord
+        const buf = new Float32Array((n + 1) * 2);
+        for (let i = 0; i <= n; i++) {
+          const angle = angle1 + i * angleStep;
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+          buf[i * 2] = tx;
+          buf[i * 2 + 1] = ty;
+        }
+        _smoothLines(buf, n + 1, true);
+      } else {
+        // "open" — no closing
+        const buf = new Float32Array((n + 1) * 2);
+        for (let i = 0; i <= n; i++) {
+          const angle = angle1 + i * angleStep;
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+          buf[i * 2] = tx;
+          buf[i * 2 + 1] = ty;
+        }
+        _smoothLines(buf, n + 1, false);
       }
-      buf[(n + 2) * 2] = tcx;
-      buf[(n + 2) * 2 + 1] = tcy;
-      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 3);
-    } else if (type === "closed") {
-      // Arc curve with a chord connecting the endpoints
-      const buf = new Float32Array((n + 2) * 2);
-      for (let i = 0; i <= n; i++) {
-        const angle = angle1 + i * angleStep;
-        const px = cx + Math.cos(angle) * radius;
-        const py = cy + Math.sin(angle) * radius;
-        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
-        buf[i * 2] = tx;
-        buf[i * 2 + 1] = ty;
-      }
-      // Close back to first arc point
-      buf[(n + 1) * 2] = buf[0];
-      buf[(n + 1) * 2 + 1] = buf[1];
-      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 2);
     } else {
-      // "open" — just the arc curve, no closing lines
-      const buf = new Float32Array((n + 1) * 2);
-      for (let i = 0; i <= n; i++) {
-        const angle = angle1 + i * angleStep;
-        const px = cx + Math.cos(angle) * radius;
-        const py = cy + Math.sin(angle) * radius;
-        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
-        buf[i * 2] = tx;
-        buf[i * 2 + 1] = ty;
+      // Rough path
+      if (type === "pie") {
+        const buf = new Float32Array((n + 3) * 2);
+        const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
+        buf[0] = tcx; buf[1] = tcy;
+        for (let i = 0; i <= n; i++) {
+          const angle = angle1 + i * angleStep;
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+          buf[(i + 1) * 2] = tx;
+          buf[(i + 1) * 2 + 1] = ty;
+        }
+        buf[(n + 2) * 2] = tcx;
+        buf[(n + 2) * 2 + 1] = tcy;
+        sdl.SDL_RenderLines(_renderer, ptr(buf), n + 3);
+      } else if (type === "closed") {
+        const buf = new Float32Array((n + 2) * 2);
+        for (let i = 0; i <= n; i++) {
+          const angle = angle1 + i * angleStep;
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+          buf[i * 2] = tx;
+          buf[i * 2 + 1] = ty;
+        }
+        buf[(n + 1) * 2] = buf[0];
+        buf[(n + 1) * 2 + 1] = buf[1];
+        sdl.SDL_RenderLines(_renderer, ptr(buf), n + 2);
+      } else {
+        const buf = new Float32Array((n + 1) * 2);
+        for (let i = 0; i <= n; i++) {
+          const angle = angle1 + i * angleStep;
+          const px = cx + Math.cos(angle) * radius;
+          const py = cy + Math.sin(angle) * radius;
+          const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+          buf[i * 2] = tx;
+          buf[i * 2 + 1] = ty;
+        }
+        sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
       }
-      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
     }
   } else {
     // Triangle fan from center
@@ -1092,8 +1329,7 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
   const identity = _isIdentity();
 
   if (mode === "line") {
-    // Close the polygon by adding the first point at the end
-    const buf = new Float32Array((numPoints + 1) * 2);
+    const buf = new Float32Array(numPoints * 2);
     for (let i = 0; i < numPoints; i++) {
       const [tx, ty] = identity
         ? [vertices[i * 2], vertices[i * 2 + 1]]
@@ -1101,10 +1337,16 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
       buf[i * 2] = tx;
       buf[i * 2 + 1] = ty;
     }
-    // Close
-    buf[numPoints * 2] = buf[0];
-    buf[numPoints * 2 + 1] = buf[1];
-    sdl.SDL_RenderLines(_renderer, ptr(buf), numPoints + 1);
+    if (_lineStyle === "smooth") {
+      _smoothLines(buf, numPoints, true);
+    } else {
+      // Rough: close by appending first point
+      const closedBuf = new Float32Array((numPoints + 1) * 2);
+      closedBuf.set(buf);
+      closedBuf[numPoints * 2] = buf[0];
+      closedBuf[numPoints * 2 + 1] = buf[1];
+      sdl.SDL_RenderLines(_renderer, ptr(closedBuf), numPoints + 1);
+    }
   } else {
     // Triangle fan from first vertex
     const numTris = numPoints - 2;
@@ -1342,14 +1584,20 @@ function _fillQuad(corners: [number, number][]): void {
 
 function _strokePolygon(corners: [number, number][]): void {
   if (!_renderer) return;
-  const buf = new Float32Array((corners.length + 1) * 2);
+  const buf = new Float32Array(corners.length * 2);
   for (let i = 0; i < corners.length; i++) {
     buf[i * 2] = corners[i][0];
     buf[i * 2 + 1] = corners[i][1];
   }
-  buf[corners.length * 2] = corners[0][0];
-  buf[corners.length * 2 + 1] = corners[0][1];
-  sdl.SDL_RenderLines(_renderer, ptr(buf), corners.length + 1);
+  if (_lineStyle === "smooth") {
+    _smoothLines(buf, corners.length, true);
+  } else {
+    const closedBuf = new Float32Array((corners.length + 1) * 2);
+    closedBuf.set(buf);
+    closedBuf[corners.length * 2] = corners[0][0];
+    closedBuf[corners.length * 2 + 1] = corners[0][1];
+    sdl.SDL_RenderLines(_renderer, ptr(closedBuf), corners.length + 1);
+  }
 }
 
 // ============================================================

@@ -19,6 +19,7 @@ await jove.run({
   load() {
     jove.window.setTitle("Math & Noise Example");
     jove.graphics.setBackgroundColor(10, 10, 20);
+    jove.graphics.setLineStyle("smooth");
     jove.math.setRandomSeed(seed);
   },
 

@@ -256,6 +256,7 @@ describe("jove.graphics.reset", () => {
     graphics.push();
     graphics.setDefaultFilter("linear", "linear");
     graphics.setColorMask(false, false, false, false);
+    graphics.setLineStyle("smooth");
 
     graphics.reset();
 
@@ -269,5 +270,30 @@ describe("jove.graphics.reset", () => {
     expect(graphics.getCanvas()).toBeNull();
     expect(graphics.getDefaultFilter()).toEqual(["nearest", "nearest"]);
     expect(graphics.getColorMask()).toEqual([true, true, true, true]);
+    expect(graphics.getLineStyle()).toBe("rough");
+  });
+});
+
+describe("jove.graphics.lineStyle", () => {
+  afterEach(() => { quit(); });
+
+  test("default is rough", () => {
+    setupWindowAndRenderer();
+    expect(graphics.getLineStyle()).toBe("rough");
+  });
+
+  test("round-trip set/get", () => {
+    setupWindowAndRenderer();
+    graphics.setLineStyle("smooth");
+    expect(graphics.getLineStyle()).toBe("smooth");
+    graphics.setLineStyle("rough");
+    expect(graphics.getLineStyle()).toBe("rough");
+  });
+
+  test("reset restores rough", () => {
+    setupWindowAndRenderer();
+    graphics.setLineStyle("smooth");
+    graphics.reset();
+    expect(graphics.getLineStyle()).toBe("rough");
   });
 });
