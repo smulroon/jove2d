@@ -415,6 +415,16 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.cstring],
     returns: FFIType.pointer,
   },
+  // SDL_Surface* SDL_LoadSurface(const char* file)
+  SDL_LoadSurface: {
+    args: [FFIType.cstring],
+    returns: FFIType.pointer,
+  },
+  // SDL_Surface* SDL_ConvertSurface(SDL_Surface* surface, SDL_PixelFormat format)
+  SDL_ConvertSurface: {
+    args: [FFIType.pointer, FFIType.u32],
+    returns: FFIType.pointer,
+  },
   // SDL_Surface* SDL_CreateSurface(int width, int height, SDL_PixelFormat format)
   SDL_CreateSurface: {
     args: [FFIType.i32, FFIType.i32, FFIType.u32],
