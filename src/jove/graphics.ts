@@ -815,32 +815,61 @@ export function ellipse(mode: "fill" | "line", cx: number, cy: number, rx: numbe
   }
 }
 
-/** Draw an arc. */
-export function arc(mode: "fill" | "line", cx: number, cy: number, radius: number, angle1: number, angle2: number, segments?: number): void {
+/** Draw an arc. arctype: "open" (default for line), "closed", or "pie" (default for fill). */
+export function arc(mode: "fill" | "line", cx: number, cy: number, radius: number, angle1: number, angle2: number, segments?: number, arctype?: "open" | "closed" | "pie"): void {
   if (!_renderer) return;
   const arcLength = angle2 - angle1;
   const n = segments ?? Math.min(256, Math.max(8, Math.ceil(Math.abs(arcLength) * radius)));
   const angleStep = arcLength / n;
   const identity = _isIdentity();
+  const type = arctype ?? (mode === "line" ? "open" : "pie");
 
   if (mode === "line") {
-    // Include center point for pie-slice style
-    const buf = new Float32Array((n + 3) * 2);
-    const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
-    buf[0] = tcx;
-    buf[1] = tcy;
-    for (let i = 0; i <= n; i++) {
-      const angle = angle1 + i * angleStep;
-      const px = cx + Math.cos(angle) * radius;
-      const py = cy + Math.sin(angle) * radius;
-      const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
-      buf[(i + 1) * 2] = tx;
-      buf[(i + 1) * 2 + 1] = ty;
+    if (type === "pie") {
+      // Lines from center → arc → back to center
+      const buf = new Float32Array((n + 3) * 2);
+      const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
+      buf[0] = tcx;
+      buf[1] = tcy;
+      for (let i = 0; i <= n; i++) {
+        const angle = angle1 + i * angleStep;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[(i + 1) * 2] = tx;
+        buf[(i + 1) * 2 + 1] = ty;
+      }
+      buf[(n + 2) * 2] = tcx;
+      buf[(n + 2) * 2 + 1] = tcy;
+      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 3);
+    } else if (type === "closed") {
+      // Arc curve with a chord connecting the endpoints
+      const buf = new Float32Array((n + 2) * 2);
+      for (let i = 0; i <= n; i++) {
+        const angle = angle1 + i * angleStep;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+      // Close back to first arc point
+      buf[(n + 1) * 2] = buf[0];
+      buf[(n + 1) * 2 + 1] = buf[1];
+      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 2);
+    } else {
+      // "open" — just the arc curve, no closing lines
+      const buf = new Float32Array((n + 1) * 2);
+      for (let i = 0; i <= n; i++) {
+        const angle = angle1 + i * angleStep;
+        const px = cx + Math.cos(angle) * radius;
+        const py = cy + Math.sin(angle) * radius;
+        const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+        buf[i * 2] = tx;
+        buf[i * 2 + 1] = ty;
+      }
+      sdl.SDL_RenderLines(_renderer, ptr(buf), n + 1);
     }
-    // Close back to center
-    buf[(n + 2) * 2] = tcx;
-    buf[(n + 2) * 2 + 1] = tcy;
-    sdl.SDL_RenderLines(_renderer, ptr(buf), n + 3);
   } else {
     // Triangle fan from center
     const numTris = n;
