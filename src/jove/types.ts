@@ -8,6 +8,7 @@ export interface WindowFlags {
   minwidth?: number;
   minheight?: number;
   highdpi?: boolean;
+  vsync?: number;
   x?: number;
   y?: number;
 }

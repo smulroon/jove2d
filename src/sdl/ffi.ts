@@ -146,6 +146,36 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     args: [FFIType.u32, FFIType.pointer],
     returns: FFIType.bool,
   },
+  // const char* SDL_GetDisplayName(SDL_DisplayID displayID)
+  SDL_GetDisplayName: {
+    args: [FFIType.u32],
+    returns: FFIType.cstring,
+  },
+  // const SDL_DisplayMode* const* SDL_GetFullscreenDisplayModes(SDL_DisplayID displayID, int* count)
+  SDL_GetFullscreenDisplayModes: {
+    args: [FFIType.u32, FFIType.pointer],
+    returns: FFIType.pointer,
+  },
+  // float SDL_GetWindowPixelDensity(SDL_Window* window)
+  SDL_GetWindowPixelDensity: {
+    args: [FFIType.pointer],
+    returns: FFIType.f32,
+  },
+  // bool SDL_SetWindowIcon(SDL_Window* window, SDL_Surface* icon)
+  SDL_SetWindowIcon: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_FlashWindow(SDL_Window* window, SDL_FlashOperation operation)
+  SDL_FlashWindow: {
+    args: [FFIType.pointer, FFIType.u32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_ShowSimpleMessageBox(SDL_MessageBoxFlags flags, const char* title, const char* message, SDL_Window* window)
+  SDL_ShowSimpleMessageBox: {
+    args: [FFIType.u32, FFIType.cstring, FFIType.cstring, FFIType.pointer],
+    returns: FFIType.bool,
+  },
 
   // --- Events ---
 

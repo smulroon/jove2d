@@ -1,13 +1,15 @@
 -- love2d equivalent of system example
 -- Demonstrates: love.system.getOS, getProcessorCount, setClipboardText,
--- getClipboardText, getPowerInfo, love.math.gammaToLinear/linearToGamma
+-- getClipboardText, getPowerInfo, love.math.gammaToLinear/linearToGamma,
+-- love.window.getDisplayCount, getDisplayName, getFullscreenModes,
+-- love.window.fromPixels, toPixels, requestAttention
 
 local clipboardContent = ""
 local messages = {}
 
 local function log(msg)
   table.insert(messages, msg)
-  if #messages > 20 then table.remove(messages, 1) end
+  if #messages > 24 then table.remove(messages, 1) end
 end
 
 function love.load()
@@ -19,6 +21,28 @@ function love.load()
   log("OS: " .. love.system.getOS())
   log("CPU cores: " .. love.system.getProcessorCount())
   log("love2d version: " .. love.getVersion())
+  log("")
+
+  -- Display info
+  local displayCount = love.window.getDisplayCount()
+  log("Displays: " .. displayCount)
+  for i = 1, displayCount do
+    log("  Display " .. i .. ": " .. love.window.getDisplayName(i))
+  end
+  local modes = love.window.getFullscreenModes(1)
+  if #modes > 0 then
+    local top3 = {}
+    for i = 1, math.min(3, #modes) do
+      table.insert(top3, modes[i].width .. "x" .. modes[i].height)
+    end
+    local suffix = #modes > 3 and (" ... (" .. #modes .. " total)") or ""
+    log("  Fullscreen modes: " .. table.concat(top3, ", ") .. suffix)
+  end
+  local _, _, flags = love.window.getMode()
+  log("  VSync: " .. tostring(flags.vsync))
+  log("  DPI scale: " .. love.window.getDPIScale())
+  log("  100px from pixels: " .. love.window.fromPixels(100))
+  log("  100 units to pixels: " .. love.window.toPixels(100))
   log("")
 
   -- Power info
@@ -40,8 +64,7 @@ function love.load()
   local back = love.math.linearToGamma(linear)
   log(string.format("Color: gamma(%.1f) -> linear(%.4f) -> gamma(%.4f)", gamma, linear, back))
   log("")
-  log("Press C to copy FPS to clipboard")
-  log("Press O to open love2d website (if supported)")
+  log("C=copy FPS  O=open URL  F=flash window  V=toggle vsync")
 end
 
 function love.draw()
@@ -56,8 +79,9 @@ function love.draw()
   end
 
   -- Gamma/linear color ramp visualization
+  local rampY = 480
   love.graphics.setColor(200/255, 200/255, 200/255)
-  love.graphics.print("Gamma ramp (top) vs Linear ramp (bottom)", 10, 420)
+  love.graphics.print("Gamma ramp (top) vs Linear ramp (bottom)", 10, rampY)
 
   for x = 0, 255 do
     local norm = x / 255
@@ -65,23 +89,23 @@ function love.draw()
     -- Gamma space (perceptually uniform)
     local gv = norm
     love.graphics.setColor(gv, gv, gv)
-    love.graphics.points(10 + x * 3, 440)
-    love.graphics.points(10 + x * 3, 441)
-    love.graphics.points(10 + x * 3, 442)
-    love.graphics.points(10 + x * 3, 443)
+    love.graphics.points(10 + x * 3, rampY + 20)
+    love.graphics.points(10 + x * 3, rampY + 21)
+    love.graphics.points(10 + x * 3, rampY + 22)
+    love.graphics.points(10 + x * 3, rampY + 23)
 
     -- Linear space
     local lv = love.math.gammaToLinear(norm)
     love.graphics.setColor(lv, lv, lv)
-    love.graphics.points(10 + x * 3, 455)
-    love.graphics.points(10 + x * 3, 456)
-    love.graphics.points(10 + x * 3, 457)
-    love.graphics.points(10 + x * 3, 458)
+    love.graphics.points(10 + x * 3, rampY + 35)
+    love.graphics.points(10 + x * 3, rampY + 36)
+    love.graphics.points(10 + x * 3, rampY + 37)
+    love.graphics.points(10 + x * 3, rampY + 38)
   end
 
   -- Clipboard display
   love.graphics.setColor(1, 1, 200/255)
-  love.graphics.print('Clipboard: "' .. clipboardContent .. '"', 10, 480)
+  love.graphics.print('Clipboard: "' .. clipboardContent .. '"', 10, rampY + 55)
 end
 
 function love.keypressed(key)
@@ -95,5 +119,14 @@ function love.keypressed(key)
   elseif key == "o" then
     love.system.openURL("https://github.com")
     log("Opened URL in browser")
+  elseif key == "f" then
+    love.window.requestAttention(false)
+    log("Flashed window (briefly)")
+  elseif key == "v" then
+    local _, _, flags = love.window.getMode()
+    local next = flags.vsync == 0 and 1 or 0
+    love.window.setMode(800, 600, { vsync = next })
+    local _, _, newFlags = love.window.getMode()
+    log("VSync: " .. (newFlags.vsync == 1 and "on" or "off"))
   end
 end
