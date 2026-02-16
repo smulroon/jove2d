@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
-import { init, quit, window, graphics } from "../src/jove/index.ts";
+import { init, quit, window, graphics, math } from "../src/jove/index.ts";
 import { _flushCaptures, _createRenderer, _destroyRenderer } from "../src/jove/graphics.ts";
 import type { ImageData } from "../src/jove/types.ts";
 
@@ -236,6 +236,105 @@ describe("jove.graphics.getStackDepth", () => {
     expect(graphics.getStackDepth()).toBe(1);
     graphics.pop();
     expect(graphics.getStackDepth()).toBe(0);
+  });
+});
+
+describe("jove.graphics.applyTransform", () => {
+  afterEach(() => { quit(); });
+
+  test("applies translation from Transform", () => {
+    setupWindowAndRenderer();
+    const t = math.newTransform();
+    t.translate(100, 50);
+    graphics.applyTransform(t);
+    const [x, y] = graphics.transformPoint(0, 0);
+    expect(x).toBeCloseTo(100);
+    expect(y).toBeCloseTo(50);
+  });
+
+  test("composes with existing transform", () => {
+    setupWindowAndRenderer();
+    graphics.translate(10, 20);
+    const t = math.newTransform();
+    t.translate(100, 50);
+    graphics.applyTransform(t);
+    const [x, y] = graphics.transformPoint(0, 0);
+    expect(x).toBeCloseTo(110);
+    expect(y).toBeCloseTo(70);
+  });
+
+  test("applies rotation from Transform", () => {
+    setupWindowAndRenderer();
+    const t = math.newTransform();
+    t.rotate(Math.PI / 2);
+    graphics.applyTransform(t);
+    const [x, y] = graphics.transformPoint(10, 0);
+    expect(x).toBeCloseTo(0);
+    expect(y).toBeCloseTo(10);
+  });
+
+  test("applies scale from Transform", () => {
+    setupWindowAndRenderer();
+    const t = math.newTransform();
+    t.scale(2, 3);
+    graphics.applyTransform(t);
+    const [x, y] = graphics.transformPoint(10, 20);
+    expect(x).toBeCloseTo(20);
+    expect(y).toBeCloseTo(60);
+  });
+
+  test("composes rotation then translation", () => {
+    setupWindowAndRenderer();
+    graphics.rotate(Math.PI / 2);
+    const t = math.newTransform();
+    t.translate(10, 0);
+    graphics.applyTransform(t);
+    // After 90deg rotation, translating +10 in local X = +10 in world Y
+    const [x, y] = graphics.transformPoint(0, 0);
+    expect(x).toBeCloseTo(0);
+    expect(y).toBeCloseTo(10);
+  });
+});
+
+describe("jove.graphics.replaceTransform", () => {
+  afterEach(() => { quit(); });
+
+  test("replaces existing transform", () => {
+    setupWindowAndRenderer();
+    graphics.translate(999, 999);
+    const t = math.newTransform();
+    t.translate(10, 20);
+    graphics.replaceTransform(t);
+    const [x, y] = graphics.transformPoint(0, 0);
+    expect(x).toBeCloseTo(10);
+    expect(y).toBeCloseTo(20);
+  });
+
+  test("identity Transform resets to origin", () => {
+    setupWindowAndRenderer();
+    graphics.translate(100, 200);
+    graphics.rotate(1.5);
+    graphics.replaceTransform(math.newTransform());
+    const [x, y] = graphics.transformPoint(10, 20);
+    expect(x).toBeCloseTo(10);
+    expect(y).toBeCloseTo(20);
+  });
+
+  test("works within push/pop", () => {
+    setupWindowAndRenderer();
+    graphics.translate(5, 5);
+    graphics.push();
+    const t = math.newTransform();
+    t.scale(3);
+    graphics.replaceTransform(t);
+    const [x1, y1] = graphics.transformPoint(10, 10);
+    expect(x1).toBeCloseTo(30);
+    expect(y1).toBeCloseTo(30);
+    graphics.pop();
+    // After pop, original transform restored
+    const [x2, y2] = graphics.transformPoint(10, 10);
+    expect(x2).toBeCloseTo(15);
+    expect(y2).toBeCloseTo(15);
   });
 });
 

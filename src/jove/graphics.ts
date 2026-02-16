@@ -30,6 +30,7 @@ import {
 import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
 import type { ImageData } from "./types.ts";
+import type { Transform } from "./math.ts";
 import type { Shader } from "./shader.ts";
 import { createShader } from "./shader.ts";
 import type { ParticleSystem } from "./particles.ts";
@@ -192,6 +193,29 @@ export function shear(kx: number, ky: number): void {
 /** Reset the transform to identity. */
 export function origin(): void {
   _transform = [1, 0, 0, 1, 0, 0];
+}
+
+/** Multiply the current transform by a Transform object's matrix. */
+export function applyTransform(transform: Transform): void {
+  const [a1, b1, c1, d1, tx1, ty1] = _transform;
+  const [a2, b2, c2, d2, tx2, ty2] = transform.getMatrix();
+  _transform[0] = a1 * a2 + c1 * b2;
+  _transform[1] = b1 * a2 + d1 * b2;
+  _transform[2] = a1 * c2 + c1 * d2;
+  _transform[3] = b1 * c2 + d1 * d2;
+  _transform[4] = a1 * tx2 + c1 * ty2 + tx1;
+  _transform[5] = b1 * tx2 + d1 * ty2 + ty1;
+}
+
+/** Replace the current transform with a Transform object's matrix. */
+export function replaceTransform(transform: Transform): void {
+  const [a, b, c, d, tx, ty] = transform.getMatrix();
+  _transform[0] = a;
+  _transform[1] = b;
+  _transform[2] = c;
+  _transform[3] = d;
+  _transform[4] = tx;
+  _transform[5] = ty;
 }
 
 // ============================================================

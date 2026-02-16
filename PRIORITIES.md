@@ -19,7 +19,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.physics | **~45/60 Core done** | Box2D v3.1.1; World/Body/Fixture/5 joint types/queries/contacts; missing advanced joints, preSolve |
-| love.graphics | **~72/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText done; missing applyTransform |
+| love.graphics | **~74/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
@@ -77,7 +77,7 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`newMesh`~~ DONE — custom vertex geometry (fan/strip/triangles/points, vertex map, textured/untextured)
 - ~~`newText`~~ DONE — cached text object (render-to-canvas, segment-based, full transform support)
 - ~~`setStencilTest` / `stencil`~~ DONE — stencil masking via canvas-based simulation (binary mask)
-- `applyTransform` / `replaceTransform` — apply Transform object to stack
+- ~~`applyTransform` / `replaceTransform`~~ DONE — apply Transform object to stack
 
 **P3 — Useful for specific cases:**
 - `setLineJoin` / `getLineJoin` — miter/bevel/none line joins
@@ -279,6 +279,6 @@ Grouped by priority based on impact for typical 2D game development.
 
 16. ~~**Audio codecs**~~ DONE — OGG/MP3/FLAC via stb_vorbis + dr_mp3 + dr_flac
 17. ~~**love.graphics newText**~~ DONE — cached text object (render-to-canvas with segment colors)
-18. **love.graphics applyTransform** — apply Transform object to stack
+18. ~~**love.graphics applyTransform**~~ DONE — apply/replace Transform object on stack
 19. **love.image** — ImageData pixel manipulation for procedural content
 20. **Physics Phase 2** — remaining joint types, preSolve, advanced contact info

@@ -104,31 +104,74 @@ function love.draw()
   love.graphics.setColor(150/255, 200/255, 1)
   love.graphics.print(string.format("Earth screen pos: %.0f, %.0f", earthScreenX, earthScreenY), 10, 30)
 
+  -- --- applyTransform demo ---
+  love.graphics.setColor(180/255, 180/255, 180/255)
+  love.graphics.print("applyTransform:", 10, 460)
+
+  -- Build a reusable Transform that orbits in a circle
+  local orbitT = love.math.newTransform()
+  orbitT:translate(60, 0)
+  orbitT:rotate(t * 1.5)
+  orbitT:translate(20, 0)
+
+  -- Apply it to three different base positions
+  for i = 0, 2 do
+    love.graphics.push()
+    love.graphics.translate(80 + i * 100, 490)
+    love.graphics.applyTransform(orbitT)
+    love.graphics.setColor((100 + i * 70)/255, (200 - i * 40)/255, 1)
+    love.graphics.circle("fill", 0, 0, 6)
+    love.graphics.pop()
+
+    -- Draw the orbit circle (60px right of base = where the Transform orbits)
+    love.graphics.setColor(60/255, 60/255, 80/255)
+    love.graphics.circle("line", 80 + i * 100 + 60, 490, 20)
+  end
+
+  -- --- replaceTransform demo ---
+  love.graphics.setColor(180/255, 180/255, 180/255)
+  love.graphics.print("replaceTransform:", 350, 460)
+
+  -- Build a transform from scratch and replace current state
+  local replT = love.math.newTransform()
+  replT:translate(450, 490)
+  replT:rotate(math.sin(t) * 0.5)
+  replT:scale(1 + math.sin(t * 2) * 0.3)
+
+  love.graphics.push()
+  love.graphics.translate(999, 999) -- This gets replaced
+  love.graphics.replaceTransform(replT)
+  love.graphics.setColor(1, 180/255, 80/255)
+  love.graphics.rectangle("fill", -20, -12, 40, 24)
+  love.graphics.setColor(40/255, 40/255, 40/255)
+  love.graphics.print("replaced", -20, -6)
+  love.graphics.pop()
+
   -- --- Shear demo ---
   love.graphics.setColor(180/255, 180/255, 180/255)
-  love.graphics.print("Shear:", 10, 520)
+  love.graphics.print("Shear:", 10, 540)
 
   for i = 0, 4 do
     love.graphics.push()
-    love.graphics.translate(80 + i * 80, 550)
+    love.graphics.translate(80 + i * 80, 565)
     love.graphics.shear(math.sin(t + i * 0.5) * 0.5, 0)
     local hue = (i / 5) * 255
     love.graphics.setColor(1, hue/255, (255 - hue)/255)
-    love.graphics.rectangle("fill", -15, -15, 30, 30)
+    love.graphics.rectangle("fill", -12, -12, 24, 24)
     love.graphics.pop()
   end
 
   -- --- Scale animation ---
   love.graphics.setColor(180/255, 180/255, 180/255)
-  love.graphics.print("Scale:", 500, 520)
+  love.graphics.print("Scale:", 530, 540)
 
   for i = 0, 3 do
     love.graphics.push()
-    love.graphics.translate(560 + i * 60, 555)
+    love.graphics.translate(590 + i * 50, 565)
     local s = 0.5 + math.abs(math.sin(t * 2 + i * 0.8)) * 0.8
     love.graphics.scale(s)
     love.graphics.setColor((100 + i * 40)/255, 200/255, (255 - i * 40)/255)
-    love.graphics.circle("fill", 0, 0, 12)
+    love.graphics.circle("fill", 0, 0, 10)
     love.graphics.pop()
   end
 end
