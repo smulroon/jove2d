@@ -174,22 +174,22 @@ function generateRoom(rx: number, ry: number, enterDir: Dir | null) {
     }
   }
 
-  // Spawn robots
+  // Spawn robots — must avoid walls and player entrance
   const numRobots = Math.min(3 + Math.floor(roomNum * 0.8), 11);
   const baseSpeed = 40 + Math.min(roomNum * 4, 60);
   for (let i = 0; i < numRobots; i++) {
     let rx2: number, ry2: number;
-    // Place in cells, avoiding player spawn area
-    for (let attempt = 0; attempt < 20; attempt++) {
+    for (let attempt = 0; attempt < 40; attempt++) {
       rx2 = left + (1 + Math.floor(rng() * (ROOM_COLS - 2))) * CELL_W + CELL_W / 2;
       ry2 = top + (1 + Math.floor(rng() * (ROOM_ROWS - 2))) * CELL_H + CELL_H / 2;
       // Don't spawn too close to entrance
-      const ok = enterDir === null ||
+      const farEnough = enterDir === null ||
         (enterDir === "left" && rx2 > left + ROOM_W * 0.3) ||
         (enterDir === "right" && rx2 < right - ROOM_W * 0.3) ||
         (enterDir === "up" && ry2 > top + ROOM_H * 0.3) ||
         (enterDir === "down" && ry2 < bottom - ROOM_H * 0.3);
-      if (ok) {
+      // Don't spawn on or near a wall
+      if (farEnough && !collidesWall(rx2!, ry2!, 16)) {
         robots.push({
           x: rx2!, y: ry2!, vx: 0, vy: 0,
           shootTimer: 1.5 + rng() * 2,
@@ -384,8 +384,8 @@ await jove.run({
         if (state === "gameover") return;
       }
 
-      // Robot touches wall — robot dies
-      if (collidesWall(r.x, r.y, 6)) {
+      // Robot touches wall — robot dies (small radius: only real contact)
+      if (collidesWall(r.x, r.y, 2)) {
         r.alive = false;
         score += 50;
         robotsKilledInRoom++;
