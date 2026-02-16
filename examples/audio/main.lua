@@ -1,10 +1,18 @@
 -- love2d equivalent of the audio example
--- Generates a sine wave WAV at load time for playback testing
+-- Demonstrates play/pause/stop, pitch, volume, looping, seek
+-- Also demonstrates OGG/MP3/FLAC codec support (F1-F4 to switch formats)
+-- Generates a sine wave WAV at load time, converts to other formats via ffmpeg
 
 local source = nil
 local paused = false
 local statusMsg = "Press SPACE to play"
-local wavPath = ""
+local currentFormat = 1
+local formats = {}
+
+-- Get love2d save directory path for ffmpeg conversion
+local function getSavePath()
+  return love.filesystem.getSaveDirectory()
+end
 
 -- Generate a WAV file programmatically
 local function generateWav(durationSec, freq)
@@ -67,6 +75,41 @@ local function generateWav(durationSec, freq)
   return table.concat(bytes)
 end
 
+-- Try converting WAV to another format via ffmpeg
+local function tryConvert(wavAbsPath, ext, ffmpegArgs)
+  local outPath = getSavePath() .. "/example-audio." .. ext
+  local cmd = "ffmpeg -y -i " .. wavAbsPath .. " " .. ffmpegArgs .. " " .. outPath .. " 2>/dev/null"
+  local ok = os.execute(cmd)
+  if ok then
+    -- Verify file exists via love.filesystem
+    return love.filesystem.getInfo("example-audio." .. ext) ~= nil
+  end
+  return false
+end
+
+local function switchFormat(index)
+  if index < 1 or index > #formats or not formats[index].available then return end
+  if index == currentFormat and source then return end
+
+  -- Stop and release current source
+  if source then
+    source:stop()
+    source = nil
+  end
+
+  currentFormat = index
+  local fmt = formats[currentFormat]
+  local ok, src = pcall(love.audio.newSource, fmt.filename, "static")
+  if ok and src then
+    source = src
+    statusMsg = "Loaded " .. fmt.label .. " -- press SPACE to play"
+    paused = false
+  else
+    source = nil
+    statusMsg = "Failed to load " .. fmt.label .. "!"
+  end
+end
+
 function love.load()
   love.window.setTitle("Audio Example")
   love.graphics.setBackgroundColor(25/255, 25/255, 35/255)
@@ -75,7 +118,22 @@ function love.load()
   local wavData = generateWav(3.0, 261.63) -- 3 seconds, middle C
   love.filesystem.write("example-audio.wav", wavData)
 
-  -- Load from save directory
+  local wavAbsPath = getSavePath() .. "/example-audio.wav"
+
+  -- WAV is always available
+  formats[1] = { ext = "wav", label = "WAV", filename = "example-audio.wav", available = true }
+
+  -- Try creating OGG/MP3/FLAC via ffmpeg
+  local oggOk = tryConvert(wavAbsPath, "ogg", "-c:a libvorbis -q:a 2")
+  formats[2] = { ext = "ogg", label = "OGG Vorbis", filename = "example-audio.ogg", available = oggOk }
+
+  local mp3Ok = tryConvert(wavAbsPath, "mp3", "-c:a libmp3lame -q:a 9")
+  formats[3] = { ext = "mp3", label = "MP3", filename = "example-audio.mp3", available = mp3Ok }
+
+  local flacOk = tryConvert(wavAbsPath, "flac", "-c:a flac")
+  formats[4] = { ext = "flac", label = "FLAC", filename = "example-audio.flac", available = flacOk }
+
+  -- Load initial WAV source
   source = love.audio.newSource("example-audio.wav", "static")
   if not source then
     statusMsg = "Failed to create audio source!"
@@ -102,32 +160,55 @@ function love.draw()
   love.graphics.setColor(1, 1, 1)
   love.graphics.print("=== Audio Example ===", x, y)
 
+  -- Format info
+  love.graphics.setColor(1, 220/255, 100/255)
+  local fmt = formats[currentFormat]
+  love.graphics.print("Format: " .. (fmt and fmt.label or "none"), x, y + 22)
+
   love.graphics.setColor(200/255, 200/255, 200/255)
-  love.graphics.print("Status: " .. statusMsg, x, y + 30)
+  love.graphics.print("Status: " .. statusMsg, x, y + 44)
 
   if source then
-    love.graphics.print(string.format("Duration: %.2fs", source:getDuration()), x, y + 50)
-    love.graphics.print(string.format("Position: %.2fs", source:tell()), x, y + 70)
-    love.graphics.print(string.format("Volume: %d%%", source:getVolume() * 100), x, y + 90)
-    love.graphics.print(string.format("Pitch: %.2fx", source:getPitch()), x, y + 110)
-    love.graphics.print("Looping: " .. (source:isLooping() and "ON" or "OFF"), x, y + 130)
-    love.graphics.print("Active sources: " .. love.audio.getActiveSourceCount(), x, y + 150)
-    love.graphics.print(string.format("Master volume: %d%%", love.audio.getVolume() * 100), x, y + 170)
+    love.graphics.print(string.format("Duration: %.2fs", source:getDuration()), x, y + 64)
+    love.graphics.print(string.format("Position: %.2fs", source:tell()), x, y + 84)
+    love.graphics.print(string.format("Volume: %d%%", source:getVolume() * 100), x, y + 104)
+    love.graphics.print(string.format("Pitch: %.2fx", source:getPitch()), x, y + 124)
+    love.graphics.print("Looping: " .. (source:isLooping() and "ON" or "OFF"), x, y + 144)
+    love.graphics.print("Active sources: " .. love.audio.getActiveSourceCount(), x, y + 164)
+    love.graphics.print(string.format("Master volume: %d%%", love.audio.getVolume() * 100), x, y + 184)
   end
 
+  -- Format selection
   love.graphics.setColor(150/255, 200/255, 1)
-  love.graphics.print("Controls:", x, y + 210)
+  love.graphics.print("Format (F1-F4):", x, y + 216)
+  for i = 1, #formats do
+    local f = formats[i]
+    if i == currentFormat then
+      love.graphics.setColor(100/255, 1, 100/255)
+    elseif f.available then
+      love.graphics.setColor(180/255, 180/255, 180/255)
+    else
+      love.graphics.setColor(100/255, 100/255, 100/255)
+    end
+    local marker = i == currentFormat and ">" or " "
+    local avail = f.available and "" or " (needs ffmpeg)"
+    love.graphics.print(marker .. " F" .. i .. " " .. f.label .. avail, x + 10, y + 236 + (i - 1) * 18)
+  end
+
+  -- Controls
+  love.graphics.setColor(150/255, 200/255, 1)
+  love.graphics.print("Controls:", x, y + 316)
   love.graphics.setColor(180/255, 180/255, 180/255)
-  love.graphics.print("SPACE  -- Play / Restart", x, y + 230)
-  love.graphics.print("P      -- Pause / Resume", x, y + 250)
-  love.graphics.print("S      -- Stop", x, y + 270)
-  love.graphics.print("L      -- Toggle looping", x, y + 290)
-  love.graphics.print("UP/DN  -- Pitch +/- 0.1", x, y + 310)
-  love.graphics.print("LT/RT  -- Volume +/- 10%", x, y + 330)
-  love.graphics.print("[/]    -- Master volume +/- 10%", x, y + 350)
-  love.graphics.print("1-9    -- Seek to 0-100%", x, y + 370)
-  love.graphics.print("C      -- Clone + play", x, y + 390)
-  love.graphics.print("ESC    -- Quit", x, y + 410)
+  love.graphics.print("SPACE  -- Play / Restart", x, y + 336)
+  love.graphics.print("P      -- Pause / Resume", x, y + 356)
+  love.graphics.print("S      -- Stop", x, y + 376)
+  love.graphics.print("L      -- Toggle looping", x, y + 396)
+  love.graphics.print("UP/DN  -- Pitch +/- 0.1", x, y + 416)
+  love.graphics.print("LT/RT  -- Volume +/- 10%", x, y + 436)
+  love.graphics.print("[/]    -- Master volume +/- 10%", x, y + 456)
+  love.graphics.print("1-9    -- Seek to 0-100%", x, y + 476)
+  love.graphics.print("C      -- Clone + play", x, y + 496)
+  love.graphics.print("ESC    -- Quit", x, y + 516)
 end
 
 function love.keypressed(key)
@@ -135,6 +216,12 @@ function love.keypressed(key)
     love.event.quit()
     return
   end
+
+  -- Format switching
+  if key == "f1" then switchFormat(1); return end
+  if key == "f2" then switchFormat(2); return end
+  if key == "f3" then switchFormat(3); return end
+  if key == "f4" then switchFormat(4); return end
 
   if not source then return end
 

@@ -2,9 +2,11 @@ import { test, expect, describe, beforeAll, afterAll, beforeEach, afterEach } fr
 import * as audio from "../src/jove/audio.ts";
 import type { Source } from "../src/jove/audio.ts";
 import { SDL_AUDIO_S16 } from "../src/sdl/types.ts";
-import { writeFileSync, unlinkSync, mkdirSync } from "fs";
+import { loadAudioDecode } from "../src/sdl/ffi_audio_decode.ts";
+import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
+import { $ } from "bun";
 
 // Generate a minimal valid WAV file programmatically
 function generateWav(durationSec: number, freq: number = 440): Uint8Array {
@@ -447,5 +449,142 @@ describe("jove.audio", () => {
     expect(src.getVolume()).toBe(0.5);
     audio.setVolume(1.0); // restore
     src.release();
+  });
+});
+
+// ============================================================
+// Audio codec tests (OGG/MP3/FLAC)
+// ============================================================
+
+const codecLibAvailable = loadAudioDecode() !== null;
+const ffmpegAvailable = (() => {
+  try {
+    Bun.spawnSync(["ffmpeg", "-version"]);
+    return true;
+  } catch { return false; }
+})();
+
+describe("jove.audio codecs", () => {
+  const oggPath = join(tmpDir, "jove2d-test.ogg");
+  const mp3Path = join(tmpDir, "jove2d-test.mp3");
+  const flacPath = join(tmpDir, "jove2d-test.flac");
+  const codecWavPath = join(tmpDir, "jove2d-test-codec.wav");
+
+  beforeAll(() => {
+    if (!codecLibAvailable || !ffmpegAvailable) return;
+
+    // Generate a 0.5s 440Hz sine WAV, then convert to each codec format
+    const wav = generateWav(0.5, 440);
+    writeFileSync(codecWavPath, wav);
+
+    // Convert WAV to OGG/MP3/FLAC via ffmpeg
+    Bun.spawnSync(["ffmpeg", "-y", "-i", codecWavPath, "-c:a", "libvorbis", "-q:a", "2", oggPath], { stderr: "ignore" });
+    Bun.spawnSync(["ffmpeg", "-y", "-i", codecWavPath, "-c:a", "libmp3lame", "-q:a", "9", mp3Path], { stderr: "ignore" });
+    Bun.spawnSync(["ffmpeg", "-y", "-i", codecWavPath, "-c:a", "flac", flacPath], { stderr: "ignore" });
+  });
+
+  afterAll(() => {
+    for (const p of [oggPath, mp3Path, flacPath, codecWavPath]) {
+      try { unlinkSync(p); } catch {}
+    }
+    audio._quit();
+  });
+
+  test("codec library loads", () => {
+    if (!codecLibAvailable) return;
+    expect(loadAudioDecode()).not.toBeNull();
+  });
+
+  test("newSource loads OGG file", () => {
+    if (!codecLibAvailable || !ffmpegAvailable || !audioAvailable) return;
+    if (!existsSync(oggPath)) return;
+    const src = audio.newSource(oggPath);
+    expect(src).not.toBeNull();
+    expect(src!.getDuration()).toBeGreaterThan(0.3);
+    expect(src!.getDuration()).toBeLessThan(0.7);
+    src!.release();
+  });
+
+  test("newSource loads MP3 file", () => {
+    if (!codecLibAvailable || !ffmpegAvailable || !audioAvailable) return;
+    if (!existsSync(mp3Path)) return;
+    const src = audio.newSource(mp3Path);
+    expect(src).not.toBeNull();
+    expect(src!.getDuration()).toBeGreaterThan(0.3);
+    expect(src!.getDuration()).toBeLessThan(0.7);
+    src!.release();
+  });
+
+  test("newSource loads FLAC file", () => {
+    if (!codecLibAvailable || !ffmpegAvailable || !audioAvailable) return;
+    if (!existsSync(flacPath)) return;
+    const src = audio.newSource(flacPath);
+    expect(src).not.toBeNull();
+    expect(src!.getDuration()).toBeGreaterThan(0.3);
+    expect(src!.getDuration()).toBeLessThan(0.7);
+    src!.release();
+  });
+
+  test("OGG source has correct state lifecycle", () => {
+    if (!codecLibAvailable || !ffmpegAvailable || !audioAvailable) return;
+    if (!existsSync(oggPath)) return;
+    const src = audio.newSource(oggPath)!;
+    expect(src.isStopped()).toBe(true);
+    src.play();
+    expect(src.isPlaying()).toBe(true);
+    src.pause();
+    expect(src.isPaused()).toBe(true);
+    src.stop();
+    expect(src.isStopped()).toBe(true);
+    src.release();
+  });
+
+  test("codec source supports volume/pitch/looping", () => {
+    if (!codecLibAvailable || !ffmpegAvailable || !audioAvailable) return;
+    if (!existsSync(oggPath)) return;
+    const src = audio.newSource(oggPath)!;
+    src.setVolume(0.5);
+    expect(src.getVolume()).toBe(0.5);
+    src.setPitch(1.5);
+    expect(src.getPitch()).toBe(1.5);
+    src.setLooping(true);
+    expect(src.isLooping()).toBe(true);
+    src.release();
+  });
+
+  test("codec source clone works", () => {
+    if (!codecLibAvailable || !ffmpegAvailable || !audioAvailable) return;
+    if (!existsSync(mp3Path)) return;
+    const src = audio.newSource(mp3Path)!;
+    src.setVolume(0.8);
+    const cloned = src.clone();
+    expect(cloned.getVolume()).toBe(0.8);
+    expect(cloned.isStopped()).toBe(true);
+    src.release();
+    cloned.release();
+  });
+
+  test("newSource returns null for unsupported codec extension", () => {
+    if (!audioAvailable) return;
+    const src = audio.newSource("/tmp/nonexistent.xyz");
+    expect(src).toBeNull();
+  });
+
+  test("newSource returns null for nonexistent OGG file", () => {
+    if (!codecLibAvailable || !audioAvailable) return;
+    const src = audio.newSource("/tmp/nonexistent.ogg");
+    expect(src).toBeNull();
+  });
+
+  test("WAV still works when codec lib is loaded", () => {
+    if (!audioAvailable) return;
+    const wav = generateWav(0.2, 440);
+    const tmpWav = join(tmpDir, "jove2d-test-wav-fallback.wav");
+    writeFileSync(tmpWav, wav);
+    const src = audio.newSource(tmpWav);
+    expect(src).not.toBeNull();
+    expect(src!.getDuration()).toBeGreaterThan(0.1);
+    src!.release();
+    try { unlinkSync(tmpWav); } catch {}
   });
 });

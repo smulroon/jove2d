@@ -29,7 +29,8 @@
     "build-sdl3": "bash scripts/build-sdl3.sh",
     "build-sdl_ttf": "bash scripts/build-sdl_ttf.sh",
     "build-sdl_image": "bash scripts/build-sdl_image.sh",
-    "build-box2d": "bash scripts/build-box2d.sh"
+    "build-box2d": "bash scripts/build-box2d.sh",
+    "build-audio-decode": "bash scripts/build-audio-decode.sh"
   },
   "type": "module"
 }

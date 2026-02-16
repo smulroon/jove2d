@@ -1,9 +1,10 @@
 // jove2d audio module — mirrors love.audio API
-// Uses SDL3's built-in audio API for WAV playback
+// Uses SDL3's built-in audio API for WAV playback + OGG/MP3/FLAC via codec lib
 
 import { ptr, read, toArrayBuffer } from "bun:ffi";
 import type { Pointer } from "bun:ffi";
 import sdl from "../sdl/ffi.ts";
+import { loadAudioDecode } from "../sdl/ffi_audio_decode.ts";
 import {
   SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
   SDL_AUDIO_S16,
@@ -107,12 +108,60 @@ export interface Source {
   _applyMasterVolume(): void;
 }
 
-/** Load a WAV file and create an audio source. */
+// Supported codec extensions (checked before WAV fallback)
+const _codecExtensions = new Set([".ogg", ".mp3", ".flac"]);
+
+/**
+ * Try decoding via the codec library (OGG/MP3/FLAC).
+ * Returns decoded PCM data or null if unsupported/unavailable.
+ */
+function _tryDecode(path: string): { data: Uint8Array; channels: number; freq: number } | null {
+  const ext = path.lastIndexOf(".");
+  if (ext === -1) return null;
+  const suffix = path.slice(ext).toLowerCase();
+  if (!_codecExtensions.has(suffix)) return null;
+
+  const lib = loadAudioDecode();
+  if (!lib) return null;
+
+  // Out-params: pointer to sample data, channels, sample rate
+  const outDataPtr = new BigUint64Array(1); // int16_t*
+  const outCh = new Int32Array(1);
+  const outRate = new Int32Array(1);
+
+  const frames = lib.jove_audio_decode(
+    Buffer.from(path + "\0"),
+    ptr(outDataPtr),
+    ptr(outCh),
+    ptr(outRate),
+  );
+
+  if (frames <= 0) return null;
+
+  const dataPtr = read.ptr(ptr(outDataPtr), 0);
+  const channels = read.i32(ptr(outCh), 0);
+  const freq = read.i32(ptr(outRate), 0);
+
+  if (!dataPtr || channels <= 0 || freq <= 0) return null;
+
+  // Copy PCM data to JS buffer, then free C buffer
+  const byteLen = Number(frames) * channels * 2; // S16 = 2 bytes per sample
+  const data = new Uint8Array(toArrayBuffer(dataPtr, 0, byteLen).slice(0));
+  lib.jove_audio_free(dataPtr);
+
+  return { data, channels, freq };
+}
+
+/** Load an audio file and create a source. Supports WAV, OGG, MP3, FLAC. */
 export function newSource(path: string, type: SourceType = "static"): Source | null {
   if (!_initialized && !_init()) return null;
   if (!_ensureDevice()) return null;
 
-  // Load WAV file
+  // Try codec library first (OGG/MP3/FLAC)
+  const decoded = _tryDecode(path);
+  if (decoded) return _createSource(decoded.data, SDL_AUDIO_S16, decoded.channels, decoded.freq, type);
+
+  // Fall through to WAV path
   const specBuf = new Int32Array(3); // format, channels, freq
   const audioBufPtr = new BigUint64Array(1); // pointer to audio data
   const audioLenBuf = new Uint32Array(1);
