@@ -26,11 +26,11 @@ Grouped by priority based on impact for typical 2D game development.
 | love.thread | **Not implemented** | Bun async usually sufficient (P4) |
 | love.video | **Not implemented** | Needs video decoder (P4) |
 | love.sound | **Not implemented** | Data-level audio APIs (P3) |
-| love.image | **Not implemented** | Data-level image APIs (P3) |
+| love.image | **7/7 Complete** | newImageData, getPixel/setPixel, mapPixel, paste, encode, getString |
 | love.font | **Inline** | Integrated into graphics module; standalone module not needed |
 | love.sensor | **Not planned** | Mobile-only |
 
-**Summary: 13/20 modules implemented, 7 at 100%, 10 at 75%+**
+**Summary: 14/20 modules implemented, 8 at 100%, 10 at 75%+**
 
 ---
 
@@ -210,11 +210,16 @@ Grouped by priority based on impact for typical 2D game development.
 - Module functions: getJoysticks, getJoystickCount
 - Full event dispatch: joystickadded/removed, joystickpressed/released, joystickaxis, joystickhat, gamepadpressed/released, gamepadaxis
 
-#### love.sound / love.image (data-level APIs)
-- **Current**: Not implemented as separate modules
-- **Needed**: SoundData, ImageData manipulation (pixel get/set), encoding
-- **Approach**: Buffer-based implementations
-- **Why P3**: Mostly used for procedural content generation.
+#### ~~love.image~~ DONE
+- **Implemented**: `newImageData(w, h)` / `newImageData(filepath)`, getPixel/setPixel, mapPixel, paste, encode (PNG/BMP), getString
+- `newImage(imageData)` creates GPU texture from ImageData
+- Buffer-based RGBA8888 implementation, no external dependencies
+
+#### love.sound (data-level audio APIs)
+- **Current**: Not implemented
+- **Needed**: SoundData manipulation (sample get/set)
+- **Approach**: Buffer-based implementation
+- **Why P3**: Mostly used for procedural audio generation.
 
 ### Priority 4 — Niche / Advanced
 
@@ -280,5 +285,5 @@ Grouped by priority based on impact for typical 2D game development.
 16. ~~**Audio codecs**~~ DONE — OGG/MP3/FLAC via stb_vorbis + dr_mp3 + dr_flac
 17. ~~**love.graphics newText**~~ DONE — cached text object (render-to-canvas with segment colors)
 18. ~~**love.graphics applyTransform**~~ DONE — apply/replace Transform object on stack
-19. **love.image** — ImageData pixel manipulation for procedural content
+19. ~~**love.image**~~ DONE — ImageData pixel manipulation (getPixel/setPixel/mapPixel/paste/encode)
 20. **Physics Phase 2** — remaining joint types, preSolve, advanced contact info

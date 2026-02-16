@@ -29,7 +29,8 @@ import {
 } from "../sdl/types.ts";
 import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
-import type { ImageData } from "./types.ts";
+import type { ImageData as BaseImageData } from "./types.ts";
+import type { ImageData as RichImageData } from "./image.ts";
 import type { Transform } from "./math.ts";
 import type { Shader } from "./shader.ts";
 import { createShader } from "./shader.ts";
@@ -1275,9 +1276,28 @@ const _texWPtr = ptr(_texWBuf);
 const _texHPtr = ptr(_texHBuf);
 
 /** Load an image file and return an Image object. Supports PNG, JPG, WebP, etc. when SDL_image is available; falls back to BMP-only. */
-export function newImage(path: string): Image | null {
+export function newImage(pathOrData: string | BaseImageData | RichImageData): Image | null {
   if (!_renderer) return null;
 
+  // ImageData path — create texture from pixel buffer
+  if (typeof pathOrData !== "string") {
+    const { data, width, height } = pathOrData;
+    const surface = sdl.SDL_CreateSurfaceFrom(
+      width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), width * 4
+    ) as Pointer | null;
+    if (!surface) return null;
+    const texture = sdl.SDL_CreateTextureFromSurface(_renderer, surface) as SDLTexture | null;
+    sdl.SDL_DestroySurface(surface);
+    if (!texture) return null;
+
+    sdl.SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+    const img = _createImageObject(texture, width, height);
+    img.setFilter(_defaultFilterMin, _defaultFilterMag);
+    return img;
+  }
+
+  // File path — load from disk
+  const path = pathOrData;
   let texture: SDLTexture | null = null;
 
   // Try SDL_image first (supports PNG, JPG, WebP, GIF, etc.)
@@ -3179,7 +3199,7 @@ function _strokePolygon(corners: [number, number][]): void {
 
 type CaptureRequest =
   | { kind: "file"; path: string }
-  | { kind: "callback"; fn: (imageData: ImageData) => void };
+  | { kind: "callback"; fn: (imageData: BaseImageData) => void };
 
 const _pendingCaptures: CaptureRequest[] = [];
 
@@ -3191,7 +3211,7 @@ const _pendingCaptures: CaptureRequest[] = [];
  *
  * The actual capture happens at the end of the current frame (after draw()).
  */
-export function captureScreenshot(target: string | ((imageData: ImageData) => void)): void {
+export function captureScreenshot(target: string | ((imageData: BaseImageData) => void)): void {
   if (typeof target === "string") {
     _pendingCaptures.push({ kind: "file", path: target });
   } else {

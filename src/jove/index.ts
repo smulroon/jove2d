@@ -15,11 +15,13 @@ import * as data from "./data.ts";
 import * as event from "./event.ts";
 import * as joystick from "./joystick.ts";
 import * as physics from "./physics.ts";
+import * as image from "./image.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick, physics };
-export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./types.ts";
+export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick, physics, image };
+export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./types.ts";
+export type { ImageData } from "./image.ts";
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
 export type { BezierCurve } from "./math.ts";

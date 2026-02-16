@@ -3,9 +3,10 @@
 export {
   init, quit, getVersion, run,
   window, graphics, keyboard, mouse,
-  timer, filesystem, math, system, audio, data, event, joystick, physics,
+  timer, filesystem, math, system, audio, data, event, joystick, physics, image,
 } from "./jove/index.ts";
-export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } from "./jove/types.ts";
+export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./jove/types.ts";
+export type { ImageData } from "./jove/image.ts";
 export type { Font } from "./jove/font.ts";
 export type { SpriteBatch, Mesh } from "./jove/graphics.ts";
 export type { ParticleSystem } from "./jove/particles.ts";
