@@ -1,4 +1,4 @@
-// jove2d Space Invaders — alien grid, destructible shields, scoring, levels
+// jove2d Invaders — alien grid, destructible shields, scoring, levels
 
 import jove from "../../src/index.ts";
 import type { Source } from "../../src/index.ts";
@@ -174,7 +174,7 @@ function getBottomAliens(): number[] {
 
 await jove.run({
   load() {
-    jove.window.setTitle("jove2d — Space Invaders");
+    jove.window.setTitle("jove2d — Invaders");
     jove.graphics.setBackgroundColor(0, 0, 0);
 
     sndShoot = makeWav("shoot", 0.1, (t) =>
@@ -346,7 +346,7 @@ await jove.run({
   draw() {
     if (state === "title") {
       jove.graphics.setColor(255, 255, 255);
-      jove.graphics.printf("SPACE INVADERS", 0, H / 2 - 60, W, "center");
+      jove.graphics.printf("INVADERS", 0, H / 2 - 60, W, "center");
       jove.graphics.setColor(180, 180, 180);
       jove.graphics.printf("Press ENTER to start", 0, H / 2, W, "center");
       jove.graphics.printf("ESC to quit", 0, H / 2 + 30, W, "center");

@@ -1,4 +1,4 @@
-// jove2d Arkanoid — brick breaker with powerups and level layouts
+// jove2d Breakout — brick breaker with powerups and level layouts
 
 import jove from "../../src/index.ts";
 import type { Source } from "../../src/index.ts";
@@ -65,7 +65,7 @@ function generateWav(dur: number, gen: (t: number, i: number, n: number) => numb
 }
 
 function makeWav(name: string, dur: number, gen: (t: number, i: number, n: number) => number): Source | null {
-  const p = join(tmpdir(), `jove2d-arkanoid-${name}.wav`);
+  const p = join(tmpdir(), `jove2d-breakout-${name}.wav`);
   writeFileSync(p, generateWav(dur, gen));
   wavPaths.push(p);
   return jove.audio.newSource(p, "static");
@@ -159,7 +159,7 @@ function brickRect(r: number, c: number): [number, number, number, number] {
 
 await jove.run({
   load() {
-    jove.window.setTitle("jove2d — Arkanoid");
+    jove.window.setTitle("jove2d — Breakout");
     jove.graphics.setBackgroundColor(15, 15, 40);
 
     sndPaddle = makeWav("paddle", 0.08, (t) =>
@@ -314,7 +314,7 @@ await jove.run({
   draw() {
     if (state === "title") {
       jove.graphics.setColor(255, 255, 255);
-      jove.graphics.printf("ARKANOID", 0, H / 2 - 60, W, "center");
+      jove.graphics.printf("BREAKOUT", 0, H / 2 - 60, W, "center");
       jove.graphics.setColor(180, 180, 180);
       jove.graphics.printf("Press ENTER to start", 0, H / 2, W, "center");
       jove.graphics.printf("ESC to quit", 0, H / 2 + 30, W, "center");

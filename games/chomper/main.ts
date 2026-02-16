@@ -1,4 +1,4 @@
-// jove2d Pac-Man — maze chase with ghosts, dots, power pellets, and fruit
+// jove2d Chomper — maze chase with ghosts, dots, power pellets, and fruit
 
 import jove from "../../src/index.ts";
 import type { Source } from "../../src/index.ts";
@@ -136,7 +136,7 @@ function generateWav(dur: number, gen: (t: number) => number): Uint8Array {
 }
 
 function makeWav(name: string, dur: number, gen: (t: number) => number): Source | null {
-  const p = join(tmpdir(), `jove2d-pacman-${name}.wav`);
+  const p = join(tmpdir(), `jove2d-chomper-${name}.wav`);
   writeFileSync(p, generateWav(dur, gen));
   wavPaths.push(p);
   return jove.audio.newSource(p, "static");
@@ -244,10 +244,10 @@ function ghostTarget(g: Ghost): [number, number] {
 
   // Chase mode — each ghost has different targeting
   if (g.colorIdx === 0) {
-    // Blinky: directly targets Pac-Man
+    // Blinky: directly targets Chomper
     return [pacX, pacY];
   } else if (g.colorIdx === 1) {
-    // Pinky: targets 4 cells ahead of Pac-Man
+    // Pinky: targets 4 cells ahead of Chomper
     return [pacX + DIR_DX[pacDir] * 4, pacY + DIR_DY[pacDir] * 4];
   } else if (g.colorIdx === 2) {
     // Inky: complex — uses Blinky's position
@@ -256,7 +256,7 @@ function ghostTarget(g: Ghost): [number, number] {
     const ay = pacY + DIR_DY[pacDir] * 2;
     return [ax + (ax - Math.floor(blinky.x)), ay + (ay - Math.floor(blinky.y))];
   } else {
-    // Clyde: targets Pac-Man if far, scatter corner if close
+    // Clyde: targets Chomper if far, scatter corner if close
     const dist = Math.hypot(g.x - pacX, g.y - pacY);
     if (dist > 8) return [pacX, pacY];
     return g.scatterTarget;
@@ -324,7 +324,7 @@ function updateGhost(g: Ghost, dt: number) {
 
 await jove.run({
   load() {
-    jove.window.setTitle("jove2d — Pac-Man");
+    jove.window.setTitle("jove2d — Chomper");
     jove.graphics.setBackgroundColor(0, 0, 0);
 
     sndChomp = makeWav("chomp", 0.04, (t) =>
@@ -356,7 +356,7 @@ await jove.run({
     }
     if (state !== "playing") return;
 
-    // Pac-Man mouth animation
+    // Chomper mouth animation
     pacMouth = (pacMouth + dt * 8) % 2;
 
     // Ghost mode timer (scatter/chase alternation)
@@ -389,7 +389,7 @@ await jove.run({
       }
     }
 
-    // Move Pac-Man
+    // Move Chomper
     pacMoveTimer += dt;
     const pacSpeed = PAC_SPEED - Math.min(levelNum - 1, 5) * 0.008;
     if (pacMoveTimer >= pacSpeed) {
@@ -455,7 +455,7 @@ await jove.run({
     for (const g of ghosts) {
       updateGhost(g, dt);
 
-      // Collision with Pac-Man
+      // Collision with Chomper
       if (g.exitTimer > 0) continue;
       const gdist = Math.hypot(g.x - pacX, g.y - pacY);
       if (gdist < 0.8) {
@@ -466,7 +466,7 @@ await jove.run({
           score += 200 * Math.pow(2, ghostsEatenCombo - 1);
           playPool(ghostPool, sndGhost, 4);
         } else if (g.mode !== "eaten") {
-          // Pac-Man dies
+          // Chomper dies
           lives--;
           dyingTimer = 1.2;
           state = "dying";
@@ -485,7 +485,7 @@ await jove.run({
   draw() {
     if (state === "title") {
       jove.graphics.setColor(255, 255, 0);
-      jove.graphics.printf("PAC-MAN", 0, H / 2 - 80, W, "center");
+      jove.graphics.printf("CHOMPER", 0, H / 2 - 80, W, "center");
       jove.graphics.setColor(200, 200, 200);
       jove.graphics.printf("Arrow keys to move", 0, H / 2 - 20, W, "center");
       jove.graphics.printf("Eat all dots, avoid ghosts!", 0, H / 2 + 10, W, "center");
@@ -534,7 +534,7 @@ await jove.run({
       jove.graphics.rectangle("fill", fx - 1, fy - CELL / 3 - 2, 2, 3);
     }
 
-    // Draw Pac-Man
+    // Draw Chomper
     if (state !== "dying" || Math.floor(dyingTimer * 6) % 2 === 0) {
       const px = MAZE_X + pacX * CELL + CELL / 2;
       const py = MAZE_Y + pacY * CELL + CELL / 2;

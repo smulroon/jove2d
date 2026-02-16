@@ -1,4 +1,4 @@
-// jove2d Tetris — classic falling-block puzzle
+// jove2d Blocks — classic falling-block puzzle
 // 7-bag randomizer, DAS, lock delay, ghost piece, line clear animation
 
 import jove from "../../src/index.ts";
@@ -96,7 +96,7 @@ function generateWav(durationSec: number, genSample: (t: number, i: number, tota
 }
 
 function makeWav(name: string, dur: number, gen: (t: number, i: number, n: number) => number): Source | null {
-  const p = join(tmpdir(), `jove2d-tetris-${name}.wav`);
+  const p = join(tmpdir(), `jove2d-blocks-${name}.wav`);
   writeFileSync(p, generateWav(dur, gen));
   wavPaths.push(p);
   return jove.audio.newSource(p, "static");
@@ -278,7 +278,7 @@ function drawCell(x: number, y: number, colorIdx: number, alpha: number = 255) {
 
 await jove.run({
   load() {
-    jove.window.setTitle("jove2d — Tetris");
+    jove.window.setTitle("jove2d — Blocks");
     jove.graphics.setBackgroundColor(20, 20, 30);
 
     // Generate sounds
@@ -347,7 +347,7 @@ await jove.run({
   draw() {
     if (state === "title") {
       jove.graphics.setColor(255, 255, 255);
-      jove.graphics.printf("TETRIS", 0, H / 2 - 60, W, "center");
+      jove.graphics.printf("BLOCKS", 0, H / 2 - 60, W, "center");
       jove.graphics.setColor(180, 180, 180);
       jove.graphics.printf("Press ENTER to start", 0, H / 2, W, "center");
       jove.graphics.printf("ESC to quit", 0, H / 2 + 30, W, "center");
