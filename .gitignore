@@ -6,6 +6,7 @@ vendor/SDL3/
 vendor/SDL_ttf/
 vendor/SDL_image/
 vendor/box2d/
+vendor/audio_decode/install/
 vendor/love2d/
 
 # Build output

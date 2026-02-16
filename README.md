@@ -24,7 +24,7 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
 | love.physics | ~45/60 Core done | Box2D v3.1.1 — bodies, fixtures, 5 joint types, queries |
 | love.graphics | ~71/97 Core done | Primitives, transforms, shaders, SpriteBatch, Mesh, particles, stencil |
 | love.filesystem | 19/31 Mostly done | Read/write/mount, File handles, FileData |
-| love.audio | 14/26 Core done | WAV playback, pitch, looping, seek, clone |
+| love.audio | 15/26 Core done | WAV/OGG/MP3/FLAC playback, pitch, looping, seek, clone |
 
 **13/20 love2d modules implemented, 7 at 100%**
 
@@ -78,12 +78,16 @@ bun run build-sdl_image
 
 # Box2D v3 — physics engine
 bun run build-box2d
+
+# Audio codecs — OGG/MP3/FLAC decoding
+bun run build-audio-decode
 ```
 
 Without optional libraries, the engine gracefully falls back:
 - No SDL_ttf: uses built-in 8x8 debug font
 - No SDL_image: loads BMP images only
 - No Box2D: `love.physics` module unavailable
+- No audio_decode: loads WAV files only
 
 ## Examples
 
@@ -105,7 +109,7 @@ All 20 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
 | `spritebatch` | Tilemap demo with SpriteBatch and quads |
 | `shader` | Color cycling, wave distortion, vignette fragment shaders |
 | `particles` | Fire + smoke particle systems |
-| `audio` | Play/pause/stop, pitch, volume, looping, seek |
+| `audio` | Play/pause/stop, pitch, volume, looping, seek, format switching (WAV/OGG/MP3/FLAC) |
 | `mesh` | Colored triangle, textured quad, vertex map, triangle strip |
 | `data` | Compress/decompress, base64/hex encoding, hashing |
 | `joystick` | Joystick detection, axes, buttons, gamepad mapping |
@@ -133,7 +137,7 @@ love examples/<name>
 SDL_VIDEODRIVER=dummy bun test
 ```
 
-539 tests across 25 test files. Font/image tests skip gracefully if SDL_ttf/SDL_image aren't built. Physics/joystick tests skip if their libraries aren't built.
+549 tests across 25 test files. Font/image tests skip gracefully if SDL_ttf/SDL_image aren't built. Physics/joystick/audio-codec tests skip if their libraries aren't built.
 
 ## WSL2 Notes
 
@@ -147,7 +151,7 @@ Key differences from love2d:
 - Colors use 0-255 range (SDL convention) instead of love2d's 0-1 range
 - `newShader()` is async (SPIR-V compilation via CLI subprocess)
 - Only fragment shaders are supported (no vertex/compute)
-- Audio is WAV-only (no OGG/MP3 yet)
+- Audio supports WAV/OGG/MP3/FLAC (OGG/MP3/FLAC require building `libaudio_decode.so`)
 
 ## License
 

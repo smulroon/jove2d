@@ -21,7 +21,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.physics | **~45/60 Core done** | Box2D v3.1.1; World/Body/Fixture/5 joint types/queries/contacts; missing advanced joints, preSolve |
 | love.graphics | **~71/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil done; missing newText, applyTransform |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
-| love.audio | **14/26 Core done** | WAV playback, global controls, pitch, looping, seek/tell, clone; no OGG/MP3, effects, or positional audio |
+| love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
 | love.thread | **Not implemented** | Bun async usually sufficient (P4) |
 | love.video | **Not implemented** | Needs video decoder (P4) |
@@ -127,7 +127,7 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~Auto-stop finished sources~~ — _updateSources per frame
 
 **P2 (format support):**
-- OGG/MP3/FLAC decoding — needs SDL_mixer or similar
+- ~~OGG/MP3/FLAC decoding~~ DONE — via stb_vorbis + dr_mp3 + dr_flac (libaudio_decode.so)
 - `newQueueableSource` — streaming procedural audio
 
 **P3 (positional/effects):**
@@ -267,7 +267,7 @@ Grouped by priority based on impact for typical 2D game development.
 6. ~~**SpriteBatch**~~ DONE — performance for tile maps and particle systems
 7. ~~**Shaders**~~ DONE — custom fragment shaders via SDL_GPURenderState + SPIR-V compilation
 8. ~~**ParticleSystem**~~ DONE — SoA layout, compact-swap pool, full love2d API (~50 methods)
-9. ~~**Audio improvements**~~ DONE — global controls, pitch, looping, seek/tell, clone, getDuration (OGG/MP3 deferred)
+9. ~~**Audio improvements**~~ DONE — global controls, pitch, looping, seek/tell, clone, getDuration
 10. ~~**Mesh**~~ DONE — custom vertex geometry (fan/strip/triangles/points, vertex map, textured/untextured)
 11. ~~**Stencil**~~ DONE — canvas-based stencil simulation with custom blend modes (binary mask)
 12. ~~**love.data**~~ DONE — compression/encoding utilities
@@ -277,7 +277,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 ## Suggested Next Steps
 
-16. **Audio codecs** — OGG/MP3 via SDL_mixer or stb_vorbis
+16. ~~**Audio codecs**~~ DONE — OGG/MP3/FLAC via stb_vorbis + dr_mp3 + dr_flac
 17. **love.graphics newText** — cached text object for performance
 18. **love.graphics applyTransform** — apply Transform object to stack
 19. **love.image** — ImageData pixel manipulation for procedural content
