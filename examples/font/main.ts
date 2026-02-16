@@ -1,12 +1,14 @@
 // jove2d font example — default font, custom sizes, printf alignment, metrics
 
 import jove from "../../src/index.ts";
-import type { Font } from "../../src/index.ts";
+import type { Font, Text } from "../../src/index.ts";
 
 let smallFont: Font;
 let defaultFont: Font;
 let largeFont: Font;
 let hugeFont: Font;
+let cachedText: Text;
+let rotatingText: Text;
 
 await jove.run({
   load() {
@@ -16,6 +18,19 @@ await jove.run({
     defaultFont = jove.graphics.getFont()!;
     largeFont = jove.graphics.newFont(24)!;
     hugeFont = jove.graphics.newFont(48)!;
+
+    // Create cached Text objects (newText)
+    cachedText = jove.graphics.newText(largeFont, "Cached Text (newText)")!;
+
+    // Multi-segment colored text
+    rotatingText = jove.graphics.newText(defaultFont)!;
+    jove.graphics.setColor(255, 100, 100);
+    rotatingText.set("Red ");
+    jove.graphics.setColor(100, 255, 100);
+    rotatingText.add("Green ", rotatingText.getWidth(), 0);
+    jove.graphics.setColor(100, 100, 255);
+    rotatingText.add("Blue", rotatingText.getWidth(), 0);
+    jove.graphics.setColor(255, 255, 255);
   },
 
   draw() {
@@ -99,6 +114,28 @@ await jove.run({
       jove.graphics.print(`  "${line}"`, 10, y);
       y += 16;
     }
+    y += 20;
+
+    // newText demo — cached text objects
+    jove.graphics.setColor(255, 255, 100);
+    jove.graphics.print("--- newText (cached text objects) ---", 10, y);
+    y += 20;
+
+    // Draw cached text (simple)
+    jove.graphics.setColor(255, 255, 255);
+    jove.graphics.draw(cachedText, 10, y);
+    y += 35;
+
+    // Draw cached text with rotation and scale
+    jove.graphics.setColor(200, 200, 255);
+    const t = jove.timer.getTime();
+    jove.graphics.draw(cachedText, 200, y + 20, Math.sin(t) * 0.3, 0.8, 0.8,
+      cachedText.getWidth() / 2, cachedText.getHeight() / 2);
+    y += 50;
+
+    // Draw multi-colored text
+    jove.graphics.setColor(255, 255, 255);
+    jove.graphics.draw(rotatingText, 10, y);
   },
 
   keypressed(key) {

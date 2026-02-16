@@ -1,6 +1,6 @@
 import { describe, test, expect, afterEach, beforeEach } from "bun:test";
 import { init, quit, window, graphics } from "../src/jove/index.ts";
-import { _createRenderer, _destroyRenderer, newFont, setFont, getFont } from "../src/jove/graphics.ts";
+import { _createRenderer, _destroyRenderer, newFont, setFont, getFont, newText, draw, setColor } from "../src/jove/graphics.ts";
 import { loadTTF } from "../src/sdl/ffi_ttf.ts";
 
 const ttfAvailable = loadTTF() !== null;
@@ -133,5 +133,145 @@ describe("jove.graphics font (TTF)", () => {
   test("print with newlines does not throw", () => {
     setupWindowAndRenderer();
     expect(() => graphics.print("Line 1\nLine 2\nLine 3", 10, 10)).not.toThrow();
+  });
+
+  // ============================================================
+  // newText tests
+  // ============================================================
+
+  test("newText creates a text object", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Hello");
+    expect(text).not.toBeNull();
+    expect(text!._isText).toBe(true);
+    text!.release();
+  });
+
+  test("newText with no initial text", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font)!;
+    expect(text).not.toBeNull();
+    expect(text.getWidth()).toBe(0);
+    expect(text.getHeight()).toBe(0);
+    text.release();
+  });
+
+  test("set() replaces text", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Hello")!;
+    const w1 = text.getWidth();
+    text.set("Hello World");
+    const w2 = text.getWidth();
+    expect(w2).toBeGreaterThan(w1);
+    text.release();
+  });
+
+  test("setf() sets wrapped text", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font)!;
+    text.setf("The quick brown fox jumps over the lazy dog", 100, "center");
+    expect(text.getWidth()).toBeGreaterThan(0);
+    expect(text.getHeight()).toBeGreaterThan(0);
+    text.release();
+  });
+
+  test("add() appends segments", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Line 1")!;
+    const h1 = text.getHeight();
+    const idx = text.add("Line 2", 0, h1);
+    expect(idx).toBe(2);
+    expect(text.getHeight()).toBeGreaterThan(h1);
+    text.release();
+  });
+
+  test("addf() appends wrapped segments", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font)!;
+    const idx = text.addf("Wrapped text here", 80, "right", 0, 0);
+    expect(idx).toBe(1);
+    expect(text.getWidth()).toBeGreaterThan(0);
+    text.release();
+  });
+
+  test("clear() removes all segments", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Hello")!;
+    expect(text.getWidth()).toBeGreaterThan(0);
+    text.clear();
+    expect(text.getWidth()).toBe(0);
+    expect(text.getHeight()).toBe(0);
+    text.release();
+  });
+
+  test("getDimensions() returns [width, height]", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Test")!;
+    const [w, h] = text.getDimensions();
+    expect(w).toBe(text.getWidth());
+    expect(h).toBe(text.getHeight());
+    text.release();
+  });
+
+  test("getFont() / setFont() round-trip", () => {
+    setupWindowAndRenderer();
+    const font1 = getFont()!;
+    const font2 = newFont(24)!;
+    const text = newText(font1, "Test")!;
+    expect(text.getFont()).toBe(font1);
+    const w1 = text.getWidth();
+    text.setFont(font2);
+    expect(text.getFont()).toBe(font2);
+    // Larger font → wider text
+    expect(text.getWidth()).toBeGreaterThan(w1);
+    text.release();
+    font2.release();
+  });
+
+  test("release() does not crash", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Hello")!;
+    text.getWidth(); // force flush
+    expect(() => text.release()).not.toThrow();
+  });
+
+  test("draw() with Text does not throw", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font, "Hello draw")!;
+    expect(() => draw(text, 10, 20)).not.toThrow();
+    expect(() => draw(text, 50, 50, Math.PI / 4, 2, 2)).not.toThrow();
+    text.release();
+  });
+
+  test("draw() with empty Text does not throw", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font)!;
+    expect(() => draw(text, 0, 0)).not.toThrow();
+    text.release();
+  });
+
+  test("set() with colored segments captures current color", () => {
+    setupWindowAndRenderer();
+    const font = getFont()!;
+    const text = newText(font)!;
+    setColor(255, 0, 0);
+    text.set("Red text");
+    setColor(0, 255, 0);
+    text.add("Green text", 0, 20);
+    // Should not throw — colors are captured at add time
+    expect(() => draw(text, 10, 10)).not.toThrow();
+    text.release();
+    setColor(255, 255, 255); // restore
   });
 });

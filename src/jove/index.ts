@@ -23,7 +23,7 @@ export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent, ImageData } fro
 export type { Font } from "./font.ts";
 export type { Cursor } from "./mouse.ts";
 export type { BezierCurve } from "./math.ts";
-export type { SpriteBatch, Mesh } from "./graphics.ts";
+export type { SpriteBatch, Mesh, Text } from "./graphics.ts";
 export type { ParticleSystem } from "./particles.ts";
 export type { Shader } from "./shader.ts";
 export type { Source } from "./audio.ts";

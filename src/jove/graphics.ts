@@ -269,6 +269,39 @@ export interface Canvas extends Image {
   _isCanvas: true;
 }
 
+// ============================================================
+// Text type (cached text object — love.graphics.newText)
+// ============================================================
+
+export interface Text {
+  _isText: true;
+  _texture: SDLTexture;
+  _width: number;
+  _height: number;
+  set(text: string): void;
+  setf(text: string, wraplimit: number, align?: "left" | "center" | "right"): void;
+  add(text: string, x?: number, y?: number): number;
+  addf(text: string, wraplimit: number, align: "left" | "center" | "right", x?: number, y?: number): number;
+  clear(): void;
+  getWidth(): number;
+  getHeight(): number;
+  getDimensions(): [number, number];
+  getFont(): Font;
+  setFont(font: Font): void;
+  release(): void;
+  /** @internal — re-render to canvas if dirty */
+  _flush(): void;
+}
+
+interface TextSegment {
+  text: string;
+  color: [number, number, number, number];
+  x: number;
+  y: number;
+  wrapLimit: number; // 0 = no wrap
+  align: "left" | "center" | "right";
+}
+
 let _activeCanvas: Canvas | null = null;
 
 // ============================================================
@@ -1262,7 +1295,7 @@ export function newImage(path: string): Image | null {
  * - draw(drawable, quad, x, y, r, sx, sy, ox, oy)
  */
 export function draw(
-  drawable: Image | SpriteBatch | ParticleSystem | Mesh,
+  drawable: Image | SpriteBatch | ParticleSystem | Mesh | Text,
   quadOrX?: Quad | number,
   xOrY?: number,
   yOrR?: number,
@@ -1273,6 +1306,11 @@ export function draw(
   oyOrKx?: number,
 ): void {
   if (!_renderer) return;
+
+  // Text path — flush cached canvas, then fall through to texture drawing
+  if ("_isText" in drawable) {
+    (drawable as Text)._flush();
+  }
 
   // Mesh path — may be untextured (null _texture is OK)
   if ("_isMesh" in drawable && drawable._isMesh) {
@@ -1427,8 +1465,10 @@ function _drawTexturedQuad(
   // SDL_FColor: { float r, g, b, a; }
   // SDL_Vertex = 8 floats = 32 bytes
 
-  // Color (already modulated via texture color mod, use white here)
-  const cr = 1.0, cg = 1.0, cb = 1.0, ca = 1.0;
+  // Apply draw color via vertex colors (SDL_RenderGeometry uses vertex colors,
+  // not texture color mod set via SDL_SetTextureColorModFloat)
+  const [dr, dg, db, da] = _drawColor;
+  const cr = dr / 255, cg = dg / 255, cb = db / 255, ca = da / 255;
 
   // UV mapping
   if (srcRect) {
@@ -2801,6 +2841,215 @@ export function setFont(font: Font): void {
 /** Get the active font. */
 export function getFont(): Font | null {
   return _currentFont;
+}
+
+/**
+ * Create a cached Text object. Renders text to an internal Canvas so
+ * subsequent draw() calls are cheap and support full transforms.
+ */
+export function newText(font: Font, text?: string): Text | null {
+  if (!_ttf || !_ttfEngine || !_renderer) return null;
+
+  let _font = font;
+  let _segments: TextSegment[] = [];
+  let _dirty = true;
+  let _canvas: Canvas | null = null;
+  let _w = 0;
+  let _h = 0;
+
+  if (text !== undefined && text.length > 0) {
+    _segments.push({
+      text,
+      color: [..._drawColor] as [number, number, number, number],
+      x: 0,
+      y: 0,
+      wrapLimit: 0,
+      align: "left",
+    });
+  }
+
+  function _computeBounds(): { width: number; height: number } {
+    if (_segments.length === 0) return { width: 0, height: 0 };
+    const lineSkip = _ttf!.TTF_GetFontLineSkip(_font._font);
+    let maxRight = 0;
+    let maxBottom = 0;
+
+    for (const seg of _segments) {
+      let segW: number;
+      let segH: number;
+
+      if (seg.wrapLimit > 0) {
+        const [, lines] = _font.getWrap(seg.text, seg.wrapLimit);
+        segW = seg.wrapLimit;
+        segH = lines.length * lineSkip;
+      } else {
+        const lines = seg.text.split("\n");
+        segW = 0;
+        for (const line of lines) {
+          const w = _font.getWidth(line);
+          if (w > segW) segW = w;
+        }
+        segH = lines.length * lineSkip;
+      }
+
+      const right = seg.x + segW;
+      const bottom = seg.y + segH;
+      if (right > maxRight) maxRight = right;
+      if (bottom > maxBottom) maxBottom = bottom;
+    }
+
+    return { width: Math.ceil(maxRight), height: Math.ceil(maxBottom) };
+  }
+
+  function _flush(): void {
+    if (!_dirty) return;
+    if (!_ttf || !_ttfEngine || !_renderer) return;
+    _dirty = false;
+
+    const bounds = _computeBounds();
+    _w = bounds.width;
+    _h = bounds.height;
+
+    if (_w <= 0 || _h <= 0 || _segments.length === 0) {
+      if (_canvas) { _canvas.release(); _canvas = null; }
+      _w = 0;
+      _h = 0;
+      return;
+    }
+
+    // Create or resize canvas
+    if (_canvas && (_canvas._width !== _w || _canvas._height !== _h)) {
+      _canvas.release();
+      _canvas = null;
+    }
+    if (!_canvas) {
+      _canvas = newCanvas(_w, _h);
+      if (!_canvas) return;
+      _canvas.setFilter("linear", "linear");
+    }
+
+    // Save state
+    const savedCanvas = _activeCanvas;
+    const savedColor = [..._drawColor] as [number, number, number, number];
+    const savedFont = _currentFont;
+    const savedBlend = _blendMode;
+    const savedTransform = _transform;
+
+    // Set up for canvas rendering
+    _transform = [1, 0, 0, 1, 0, 0];
+    setCanvas(_canvas);
+    sdl.SDL_SetRenderDrawColor(_renderer!, 0, 0, 0, 0);
+    sdl.SDL_RenderClear(_renderer!);
+    setBlendMode("alpha");
+    _currentFont = _font;
+
+    for (const seg of _segments) {
+      setColor(seg.color[0], seg.color[1], seg.color[2], seg.color[3]);
+      if (seg.wrapLimit > 0) {
+        _printfTTF(seg.text, seg.x, seg.y, seg.wrapLimit, seg.align);
+      } else {
+        _printTTF(seg.text, seg.x, seg.y);
+      }
+    }
+
+    // Restore state
+    _transform = savedTransform;
+    setCanvas(savedCanvas);
+    _currentFont = savedFont;
+    setColor(savedColor[0], savedColor[1], savedColor[2], savedColor[3]);
+    setBlendMode(savedBlend);
+  }
+
+  const textObj: Text = {
+    _isText: true as const,
+    get _texture() { return _canvas?._texture ?? (null as unknown as SDLTexture); },
+    get _width() { if (_dirty) _flush(); return _w; },
+    get _height() { if (_dirty) _flush(); return _h; },
+
+    set(text: string) {
+      _segments = [{
+        text,
+        color: [..._drawColor] as [number, number, number, number],
+        x: 0, y: 0,
+        wrapLimit: 0,
+        align: "left",
+      }];
+      _dirty = true;
+    },
+
+    setf(text: string, wraplimit: number, align: "left" | "center" | "right" = "left") {
+      _segments = [{
+        text,
+        color: [..._drawColor] as [number, number, number, number],
+        x: 0, y: 0,
+        wrapLimit: wraplimit,
+        align,
+      }];
+      _dirty = true;
+    },
+
+    add(text: string, x: number = 0, y: number = 0): number {
+      _segments.push({
+        text,
+        color: [..._drawColor] as [number, number, number, number],
+        x, y,
+        wrapLimit: 0,
+        align: "left",
+      });
+      _dirty = true;
+      return _segments.length;
+    },
+
+    addf(text: string, wraplimit: number, align: "left" | "center" | "right", x: number = 0, y: number = 0): number {
+      _segments.push({
+        text,
+        color: [..._drawColor] as [number, number, number, number],
+        x, y,
+        wrapLimit: wraplimit,
+        align,
+      });
+      _dirty = true;
+      return _segments.length;
+    },
+
+    clear() {
+      _segments = [];
+      _dirty = true;
+    },
+
+    getWidth(): number {
+      if (_dirty) _flush();
+      return _w;
+    },
+
+    getHeight(): number {
+      if (_dirty) _flush();
+      return _h;
+    },
+
+    getDimensions(): [number, number] {
+      if (_dirty) _flush();
+      return [_w, _h];
+    },
+
+    getFont(): Font {
+      return _font;
+    },
+
+    setFont(font: Font) {
+      _font = font;
+      _dirty = true;
+    },
+
+    release() {
+      if (_canvas) { _canvas.release(); _canvas = null; }
+      _segments = [];
+    },
+
+    _flush,
+  };
+
+  return textObj;
 }
 
 // ============================================================

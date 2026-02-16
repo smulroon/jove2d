@@ -111,6 +111,7 @@ export const SDL_MOUSE_WHEEL_DIR = 32;
 /** SDL_BlendMode constants */
 export const SDL_BLENDMODE_NONE = 0x00000000;
 export const SDL_BLENDMODE_BLEND = 0x00000001;
+export const SDL_BLENDMODE_BLEND_PREMULTIPLIED = 0x00000010;
 export const SDL_BLENDMODE_ADD = 0x00000002;
 export const SDL_BLENDMODE_MOD = 0x00000004;
 export const SDL_BLENDMODE_MUL = 0x00000008;

@@ -5,6 +5,8 @@ local smallFont
 local defaultFont
 local largeFont
 local hugeFont
+local cachedText
+local rotatingText
 
 function love.load()
   love.window.setTitle("Font Example — love2d")
@@ -14,6 +16,15 @@ function love.load()
   defaultFont = love.graphics.getFont()
   largeFont = love.graphics.newFont(24)
   hugeFont = love.graphics.newFont(48)
+
+  -- Create cached Text objects (newText)
+  cachedText = love.graphics.newText(largeFont, "Cached Text (newText)")
+
+  -- Multi-segment colored text
+  rotatingText = love.graphics.newText(defaultFont)
+  rotatingText:set({{1, 0.39, 0.39}, "Red "})
+  rotatingText:add({{0.39, 1, 0.39}, "Green "}, rotatingText:getWidth(), 0)
+  rotatingText:add({{0.39, 0.39, 1}, "Blue"}, rotatingText:getWidth(), 0)
 end
 
 function love.draw()
@@ -97,6 +108,28 @@ function love.draw()
     love.graphics.print('  "' .. line .. '"', 10, y)
     y = y + 16
   end
+  y = y + 20
+
+  -- newText demo — cached text objects
+  love.graphics.setColor(1, 1, 0.39)
+  love.graphics.print("--- newText (cached text objects) ---", 10, y)
+  y = y + 20
+
+  -- Draw cached text (simple)
+  love.graphics.setColor(1, 1, 1)
+  love.graphics.draw(cachedText, 10, y)
+  y = y + 35
+
+  -- Draw cached text with rotation and scale
+  love.graphics.setColor(0.78, 0.78, 1)
+  local t = love.timer.getTime()
+  love.graphics.draw(cachedText, 200, y + 20, math.sin(t) * 0.3, 0.8, 0.8,
+    cachedText:getWidth() / 2, cachedText:getHeight() / 2)
+  y = y + 50
+
+  -- Draw multi-colored text
+  love.graphics.setColor(1, 1, 1)
+  love.graphics.draw(rotatingText, 10, y)
 end
 
 function love.keypressed(key)
