@@ -32,7 +32,7 @@ export type { Source } from "./audio.ts";
 export type { ByteData } from "./data.ts";
 export type { File, FileData } from "./filesystem.ts";
 export type { Joystick } from "./joystick.ts";
-export type { World, Body, Fixture, Shape, Joint, Contact } from "./physics.ts";
+export type { World, Body, Fixture, Shape, Joint, Contact, DistanceJoint, RevoluteJoint, PrismaticJoint, WeldJoint, MouseJoint, WheelJoint, MotorJoint } from "./physics.ts";
 
 let _initialized = false;
 

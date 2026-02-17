@@ -18,7 +18,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
-| love.physics | **~45/60 Core done** | Box2D v3.1.1; World/Body/Fixture/5 joint types/queries/contacts; missing advanced joints, preSolve |
+| love.physics | **~55/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts; missing preSolve, gear/pulley (N/A in v3) |
 | love.graphics | **~74/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
@@ -151,16 +151,17 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~Circle, box, polygon, edge, chain shapes~~ — all shape types
 - ~~Fixture density/friction/restitution/sensor/filter~~ — fixture properties
 - ~~Distance, revolute, prismatic, weld, mouse joints~~ — 5 joint types
+- ~~Wheel, motor joints~~ — 2 additional joint types (Phase 2)
+- ~~Joint anchors, reaction force/torque~~ — joint query methods (Phase 2)
+- ~~`Body:setMassData`~~ — override mass properties (Phase 2)
+- ~~Contact positions/impulses in postSolve~~ — hit event point + approach speed (Phase 2)
 - ~~beginContact, endContact, postSolve callbacks~~ — contact event dispatch
 - ~~AABB query, ray cast~~ — world queries
 - ~~Meter scaling (setMeter/getMeter)~~ — pixel↔meter conversion
 
-**Phase 2 (future):**
-- Remaining joint types: gear, motor, pulley, rope, wheel, friction
-- Joint-specific methods: anchors, reaction force/torque, limits/motors (partially done for revolute/prismatic)
+**Remaining gaps:**
 - preSolve callback (Box2D v3 uses `b2PreSolveFcn` on shapes — more complex than v2)
-- `Body:setMassData` — override mass properties
-- Contact positions/impulses in postSolve
+- Gear/pulley/rope/friction joints — do NOT exist in Box2D v3 (only distance/revolute/prismatic/weld/mouse/wheel/motor/filter)
 - WASM fallback backend
 
 ### love.event — missing functions
@@ -198,8 +199,9 @@ Grouped by priority based on impact for typical 2D game development.
 
 #### ~~love.physics (Box2D)~~ DONE
 - **Implemented**: Box2D v3.1.1 via thin C wrapper (`box2d_jove.c`) for bun:ffi struct compatibility
-- World, Body, Fixture (wraps b2ShapeId), Shape, Joint (distance/revolute/prismatic/weld/mouse), Contact
-- Contact events (beginContact, endContact, postSolve via hit events)
+- World, Body, Fixture (wraps b2ShapeId), Shape, 7 Joint types (distance/revolute/prismatic/weld/mouse/wheel/motor), Contact
+- Contact events (beginContact, endContact, postSolve via hit events with point + approach speed)
+- Joint anchors, reaction force/torque; Body.setMassData
 - AABB query, ray cast
 - Meter scaling (default 30px/m, matching love2d)
 - `bun run build-box2d` to build from source
@@ -286,4 +288,4 @@ Grouped by priority based on impact for typical 2D game development.
 17. ~~**love.graphics newText**~~ DONE — cached text object (render-to-canvas with segment colors)
 18. ~~**love.graphics applyTransform**~~ DONE — apply/replace Transform object on stack
 19. ~~**love.image**~~ DONE — ImageData pixel manipulation (getPixel/setPixel/mapPixel/paste/encode)
-20. **Physics Phase 2** — remaining joint types, preSolve, advanced contact info
+20. ~~**Physics Phase 2**~~ DONE — wheel/motor joints, joint anchors/reactions, Body.setMassData, contact point/speed

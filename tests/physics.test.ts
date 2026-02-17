@@ -474,6 +474,113 @@ describe("jove.physics", () => {
       expect(joint.getType()).toBe("mouse");
     });
 
+    test("wheel joint", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newWheelJoint(b1, b2, 100, 100, 0, 1);
+      expect(joint.isDestroyed()).toBe(false);
+      expect(joint.getType()).toBe("wheel");
+    });
+
+    test("wheel joint spring", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newWheelJoint(b1, b2, 100, 100, 0, 1);
+      joint.setSpringEnabled(true);
+      joint.setSpringFrequency(5.0);
+      expect(joint.getSpringFrequency()).toBeCloseTo(5.0);
+      joint.setSpringDampingRatio(0.7);
+      expect(joint.getSpringDampingRatio()).toBeCloseTo(0.7);
+    });
+
+    test("wheel joint motor", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newWheelJoint(b1, b2, 100, 100, 0, 1);
+      joint.setMotorEnabled(true);
+      joint.setMotorSpeed(3.0);
+      joint.setMaxMotorTorque(100);
+      expect(() => joint.getMotorTorque()).not.toThrow();
+    });
+
+    test("motor joint", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newMotorJoint(b1, b2, 0.3);
+      expect(joint.isDestroyed()).toBe(false);
+      expect(joint.getType()).toBe("motor");
+    });
+
+    test("motor joint offsets", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newMotorJoint(b1, b2);
+      joint.setLinearOffset(30, 0);
+      const [ox, oy] = joint.getLinearOffset();
+      expect(ox).toBeCloseTo(30, 0);
+      expect(oy).toBeCloseTo(0, 0);
+
+      joint.setAngularOffset(Math.PI / 4);
+      expect(joint.getAngularOffset()).toBeCloseTo(Math.PI / 4, 2);
+    });
+
+    test("motor joint force/torque/correction", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newMotorJoint(b1, b2);
+      expect(() => joint.setMaxForce(500)).not.toThrow();
+      expect(() => joint.setMaxTorque(200)).not.toThrow();
+      expect(() => joint.setCorrectionFactor(0.5)).not.toThrow();
+    });
+
+    test("joint anchors", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 200, 100, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newDistanceJoint(b1, b2, 100, 100, 200, 100);
+      const [ax, ay] = joint.getAnchorA();
+      const [bx, by] = joint.getAnchorB();
+      expect(ax).toBeCloseTo(100, 0);
+      expect(ay).toBeCloseTo(100, 0);
+      expect(bx).toBeCloseTo(200, 0);
+      expect(by).toBeCloseTo(100, 0);
+    });
+
+    test("joint reaction force/torque", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 200, 100, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newDistanceJoint(b1, b2, 100, 100, 200, 100);
+      world.update(1/60);
+      const [fx, fy] = joint.getReactionForce(1/60);
+      expect(typeof fx).toBe("number");
+      expect(typeof fy).toBe("number");
+      const torque = joint.getReactionTorque(1/60);
+      expect(typeof torque).toBe("number");
+    });
+
     test("destroy joint", () => {
       const b1 = physics.newBody(world, 100, 100, "dynamic");
       const s1 = physics.newCircleShape(10);
@@ -486,6 +593,58 @@ describe("jove.physics", () => {
       const joint = physics.newDistanceJoint(b1, b2, 100, 100, 200, 100);
       joint.destroy();
       expect(joint.isDestroyed()).toBe(true);
+    });
+  });
+
+  // ── Body.setMassData ────────────────────────────────────────────
+
+  describe("Body.setMassData", () => {
+    test("overrides mass", () => {
+      const body = physics.newBody(world, 0, 0, "dynamic");
+      const shape = physics.newCircleShape(10);
+      physics.newFixture(body, shape, 1.0);
+
+      body.setMassData(5.0, 0, 0, 1.0);
+      expect(body.getMass()).toBeCloseTo(5.0);
+    });
+  });
+
+  // ── Contact enhancements ───────────────────────────────────────
+
+  describe("Contact", () => {
+    test("getPositions and getNormalImpulse on postSolve", () => {
+      let gotHit = false;
+      let hitPoint: [number, number] = [0, 0];
+      let hitSpeed = 0;
+
+      // Ground
+      const ground = physics.newBody(world, 400, 550, "static");
+      const gs = physics.newRectangleShape(800, 20);
+      physics.newFixture(ground, gs);
+
+      // Fast falling ball
+      const ball = physics.newBody(world, 400, 100, "dynamic");
+      const bs = physics.newCircleShape(15);
+      physics.newFixture(ball, bs);
+      ball.setBullet(true); // enable hit events
+
+      world.setCallbacks({
+        postSolve: (contact, normalImpulse, _tangentImpulse) => {
+          gotHit = true;
+          hitPoint = contact.getPositions();
+          hitSpeed = contact.getNormalImpulse();
+        },
+      });
+
+      for (let i = 0; i < 300; i++) {
+        world.update(1/60);
+        if (gotHit) break;
+      }
+
+      expect(gotHit).toBe(true);
+      expect(hitSpeed).toBeGreaterThan(0);
+      // Contact point should be near ground level
+      expect(hitPoint[1]).toBeGreaterThan(400);
     });
   });
 

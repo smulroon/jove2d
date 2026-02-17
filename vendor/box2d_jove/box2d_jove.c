@@ -53,10 +53,11 @@ static inline b2ChainId unpack_chain(uint64_t v) {
 
 /* ── World ──────────────────────────────────────────────────────────── */
 
-uint32_t jove_CreateWorld(float gx, float gy, int allowSleep) {
+uint32_t jove_CreateWorld(float gx, float gy, int allowSleep, float hitEventThreshold) {
     b2WorldDef def = b2DefaultWorldDef();
     def.gravity = (b2Vec2){gx, gy};
     def.enableSleep = allowSleep ? true : false;
+    def.hitEventThreshold = hitEventThreshold;
     return pack_world(b2CreateWorld(&def));
 }
 
@@ -294,7 +295,7 @@ void jove_Body_GetLocalPoint(uint64_t bodyId, float wx, float wy, float* outX, f
 /* ── Shapes (→ Fixture in love2d) ───────────────────────────────────── */
 
 uint64_t jove_CreateCircleShape(uint64_t bodyId, float density, float friction,
-                                 float restitution, int sensor,
+                                 float restitution, int sensor, int hitEvents,
                                  float cx, float cy, float radius) {
     b2ShapeDef def = b2DefaultShapeDef();
     def.density = density;
@@ -302,13 +303,13 @@ uint64_t jove_CreateCircleShape(uint64_t bodyId, float density, float friction,
     def.material.restitution = restitution;
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
-    def.enableHitEvents = true;
+    def.enableHitEvents = hitEvents ? true : false;
     b2Circle circle = { .center = {cx, cy}, .radius = radius };
     return pack_shape(b2CreateCircleShape(unpack_body(bodyId), &def, &circle));
 }
 
 uint64_t jove_CreateBoxShape(uint64_t bodyId, float density, float friction,
-                              float restitution, int sensor,
+                              float restitution, int sensor, int hitEvents,
                               float hw, float hh) {
     b2ShapeDef def = b2DefaultShapeDef();
     def.density = density;
@@ -316,13 +317,13 @@ uint64_t jove_CreateBoxShape(uint64_t bodyId, float density, float friction,
     def.material.restitution = restitution;
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
-    def.enableHitEvents = true;
+    def.enableHitEvents = hitEvents ? true : false;
     b2Polygon box = b2MakeBox(hw, hh);
     return pack_shape(b2CreatePolygonShape(unpack_body(bodyId), &def, &box));
 }
 
 uint64_t jove_CreatePolygonShape(uint64_t bodyId, float density, float friction,
-                                  float restitution, int sensor,
+                                  float restitution, int sensor, int hitEvents,
                                   const float* verts, int count) {
     b2ShapeDef def = b2DefaultShapeDef();
     def.density = density;
@@ -330,7 +331,7 @@ uint64_t jove_CreatePolygonShape(uint64_t bodyId, float density, float friction,
     def.material.restitution = restitution;
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
-    def.enableHitEvents = true;
+    def.enableHitEvents = hitEvents ? true : false;
     b2Vec2 points[B2_MAX_POLYGON_VERTICES];
     int n = count < B2_MAX_POLYGON_VERTICES ? count : B2_MAX_POLYGON_VERTICES;
     for (int i = 0; i < n; i++) {
@@ -342,7 +343,7 @@ uint64_t jove_CreatePolygonShape(uint64_t bodyId, float density, float friction,
 }
 
 uint64_t jove_CreateEdgeShape(uint64_t bodyId, float density, float friction,
-                               float restitution, int sensor,
+                               float restitution, int sensor, int hitEvents,
                                float x1, float y1, float x2, float y2) {
     b2ShapeDef def = b2DefaultShapeDef();
     def.density = density;
@@ -350,7 +351,7 @@ uint64_t jove_CreateEdgeShape(uint64_t bodyId, float density, float friction,
     def.material.restitution = restitution;
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
-    def.enableHitEvents = true;
+    def.enableHitEvents = hitEvents ? true : false;
     b2Segment segment = { .point1 = {x1, y1}, .point2 = {x2, y2} };
     return pack_shape(b2CreateSegmentShape(unpack_body(bodyId), &def, &segment));
 }
@@ -380,6 +381,10 @@ void jove_DestroyChain(uint64_t chainId) {
 
 void jove_Shape_SetSensor(uint64_t shapeId, int flag) {
     b2Shape_EnableSensorEvents(unpack_shape(shapeId), flag ? true : false);
+}
+
+void jove_Shape_EnableHitEvents(uint64_t shapeId, int flag) {
+    b2Shape_EnableHitEvents(unpack_shape(shapeId), flag ? true : false);
 }
 
 int jove_Shape_IsSensor(uint64_t shapeId) {
@@ -578,6 +583,161 @@ void jove_MouseJoint_GetTarget(uint64_t jointId, float* outX, float* outY) {
     b2Vec2 t = b2MouseJoint_GetTarget(unpack_joint(jointId));
     *outX = t.x;
     *outY = t.y;
+}
+
+/* Wheel joint */
+uint64_t jove_CreateWheelJoint(uint32_t worldId, uint64_t bodyA, uint64_t bodyB,
+                                float ax, float ay, float bx, float by,
+                                float axisX, float axisY, int collide) {
+    b2WheelJointDef def = b2DefaultWheelJointDef();
+    def.bodyIdA = unpack_body(bodyA);
+    def.bodyIdB = unpack_body(bodyB);
+    def.localAnchorA = (b2Vec2){ax, ay};
+    def.localAnchorB = (b2Vec2){bx, by};
+    def.localAxisA = (b2Vec2){axisX, axisY};
+    def.collideConnected = collide ? true : false;
+    return pack_joint(b2CreateWheelJoint(unpack_world(worldId), &def));
+}
+
+void jove_WheelJoint_EnableSpring(uint64_t jointId, int flag) {
+    b2WheelJoint_EnableSpring(unpack_joint(jointId), flag ? true : false);
+}
+
+void jove_WheelJoint_SetSpringHertz(uint64_t jointId, float hertz) {
+    b2WheelJoint_SetSpringHertz(unpack_joint(jointId), hertz);
+}
+
+float jove_WheelJoint_GetSpringHertz(uint64_t jointId) {
+    return b2WheelJoint_GetSpringHertz(unpack_joint(jointId));
+}
+
+void jove_WheelJoint_SetSpringDampingRatio(uint64_t jointId, float ratio) {
+    b2WheelJoint_SetSpringDampingRatio(unpack_joint(jointId), ratio);
+}
+
+float jove_WheelJoint_GetSpringDampingRatio(uint64_t jointId) {
+    return b2WheelJoint_GetSpringDampingRatio(unpack_joint(jointId));
+}
+
+void jove_WheelJoint_EnableLimit(uint64_t jointId, int flag) {
+    b2WheelJoint_EnableLimit(unpack_joint(jointId), flag ? true : false);
+}
+
+void jove_WheelJoint_SetLimits(uint64_t jointId, float lower, float upper) {
+    b2WheelJoint_SetLimits(unpack_joint(jointId), lower, upper);
+}
+
+void jove_WheelJoint_EnableMotor(uint64_t jointId, int flag) {
+    b2WheelJoint_EnableMotor(unpack_joint(jointId), flag ? true : false);
+}
+
+void jove_WheelJoint_SetMotorSpeed(uint64_t jointId, float speed) {
+    b2WheelJoint_SetMotorSpeed(unpack_joint(jointId), speed);
+}
+
+void jove_WheelJoint_SetMaxMotorTorque(uint64_t jointId, float torque) {
+    b2WheelJoint_SetMaxMotorTorque(unpack_joint(jointId), torque);
+}
+
+float jove_WheelJoint_GetMotorTorque(uint64_t jointId) {
+    return b2WheelJoint_GetMotorTorque(unpack_joint(jointId));
+}
+
+/* Motor joint */
+uint64_t jove_CreateMotorJoint(uint32_t worldId, uint64_t bodyA, uint64_t bodyB,
+                                float correctionFactor, int collide) {
+    b2MotorJointDef def = b2DefaultMotorJointDef();
+    def.bodyIdA = unpack_body(bodyA);
+    def.bodyIdB = unpack_body(bodyB);
+    def.correctionFactor = correctionFactor;
+    def.collideConnected = collide ? true : false;
+    return pack_joint(b2CreateMotorJoint(unpack_world(worldId), &def));
+}
+
+void jove_MotorJoint_SetLinearOffset(uint64_t jointId, float x, float y) {
+    b2MotorJoint_SetLinearOffset(unpack_joint(jointId), (b2Vec2){x, y});
+}
+
+void jove_MotorJoint_GetLinearOffset(uint64_t jointId, float* outX, float* outY) {
+    b2Vec2 v = b2MotorJoint_GetLinearOffset(unpack_joint(jointId));
+    *outX = v.x;
+    *outY = v.y;
+}
+
+void jove_MotorJoint_SetAngularOffset(uint64_t jointId, float offset) {
+    b2MotorJoint_SetAngularOffset(unpack_joint(jointId), offset);
+}
+
+float jove_MotorJoint_GetAngularOffset(uint64_t jointId) {
+    return b2MotorJoint_GetAngularOffset(unpack_joint(jointId));
+}
+
+void jove_MotorJoint_SetMaxForce(uint64_t jointId, float force) {
+    b2MotorJoint_SetMaxForce(unpack_joint(jointId), force);
+}
+
+void jove_MotorJoint_SetMaxTorque(uint64_t jointId, float torque) {
+    b2MotorJoint_SetMaxTorque(unpack_joint(jointId), torque);
+}
+
+void jove_MotorJoint_SetCorrectionFactor(uint64_t jointId, float factor) {
+    b2MotorJoint_SetCorrectionFactor(unpack_joint(jointId), factor);
+}
+
+/* Joint anchor queries (world-space) */
+void jove_Joint_GetAnchorA(uint64_t jointId, float* outX, float* outY) {
+    b2Vec2 a = b2Joint_GetLocalAnchorA(unpack_joint(jointId));
+    b2BodyId bodyA = b2Joint_GetBodyA(unpack_joint(jointId));
+    b2Vec2 w = b2Body_GetWorldPoint(bodyA, a);
+    *outX = w.x;
+    *outY = w.y;
+}
+
+void jove_Joint_GetAnchorB(uint64_t jointId, float* outX, float* outY) {
+    b2Vec2 a = b2Joint_GetLocalAnchorB(unpack_joint(jointId));
+    b2BodyId bodyB = b2Joint_GetBodyB(unpack_joint(jointId));
+    b2Vec2 w = b2Body_GetWorldPoint(bodyB, a);
+    *outX = w.x;
+    *outY = w.y;
+}
+
+/* Joint reaction force/torque */
+void jove_Joint_GetReactionForce(uint64_t jointId, float invDt, float* outX, float* outY) {
+    b2Vec2 f = b2Joint_GetConstraintForce(unpack_joint(jointId));
+    *outX = f.x * invDt;
+    *outY = f.y * invDt;
+}
+
+float jove_Joint_GetReactionTorque(uint64_t jointId, float invDt) {
+    return b2Joint_GetConstraintTorque(unpack_joint(jointId)) * invDt;
+}
+
+/* Body mass data override */
+void jove_Body_SetMassData(uint64_t bodyId, float mass, float cx, float cy, float inertia) {
+    b2MassData md;
+    md.mass = mass;
+    md.center = (b2Vec2){cx, cy};
+    md.rotationalInertia = inertia;
+    b2Body_SetMassData(unpack_body(bodyId), md);
+}
+
+/* Hit events with approach speed */
+int jove_World_GetContactHitEventsEx(uint32_t worldId, uint64_t* shapeA, uint64_t* shapeB,
+                                      float* normalX, float* normalY,
+                                      float* pointX, float* pointY,
+                                      float* approachSpeed, int maxCount) {
+    b2ContactEvents events = b2World_GetContactEvents(unpack_world(worldId));
+    int count = events.hitCount < maxCount ? events.hitCount : maxCount;
+    for (int i = 0; i < count; i++) {
+        shapeA[i] = pack_shape(events.hitEvents[i].shapeIdA);
+        shapeB[i] = pack_shape(events.hitEvents[i].shapeIdB);
+        normalX[i] = events.hitEvents[i].normal.x;
+        normalY[i] = events.hitEvents[i].normal.y;
+        pointX[i] = events.hitEvents[i].point.x;
+        pointY[i] = events.hitEvents[i].point.y;
+        approachSpeed[i] = events.hitEvents[i].approachSpeed;
+    }
+    return count;
 }
 
 /* ── Queries ────────────────────────────────────────────────────────── */

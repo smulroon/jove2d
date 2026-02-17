@@ -15,7 +15,7 @@ export type { Source } from "./jove/audio.ts";
 export type { ByteData } from "./jove/data.ts";
 export type { File, FileData } from "./jove/filesystem.ts";
 export type { Joystick } from "./jove/joystick.ts";
-export type { World, Body, Fixture, Shape, Joint, Contact } from "./jove/physics.ts";
+export type { World, Body, Fixture, Shape, Joint, Contact, DistanceJoint, RevoluteJoint, PrismaticJoint, WeldJoint, MouseJoint, WheelJoint, MotorJoint } from "./jove/physics.ts";
 
 import * as jove from "./jove/index.ts";
 export default jove;

@@ -39,6 +39,12 @@ export function getMeter(): number {
 function toMeters(px: number): number { return px / _meter; }
 function toPixels(m: number): number { return m * _meter; }
 
+// love2d scales forces by 1/meter and torques by 1/meter² at the API boundary
+function toForce(f: number): number { return f / _meter; }
+function fromForce(f: number): number { return f * _meter; }
+function toTorque(t: number): number { return t / (_meter * _meter); }
+function fromTorque(t: number): number { return t * _meter * _meter; }
+
 // ── Pre-allocated out-param buffers ─────────────────────────────────
 // Each out-param gets its own single-element buffer to avoid bun:ffi
 // subarray ptr() issues (ptr() gives a pointer to bun's internal copy).
@@ -71,6 +77,12 @@ const _contactNormalX = new Float32Array(MAX_CONTACT_EVENTS);
 const _contactNormalY = new Float32Array(MAX_CONTACT_EVENTS);
 const _contactNormalXPtr = ptr(_contactNormalX);
 const _contactNormalYPtr = ptr(_contactNormalY);
+const _contactPointX = new Float32Array(MAX_CONTACT_EVENTS);
+const _contactPointY = new Float32Array(MAX_CONTACT_EVENTS);
+const _contactPointXPtr = ptr(_contactPointX);
+const _contactPointYPtr = ptr(_contactPointY);
+const _contactApproachSpeed = new Float32Array(MAX_CONTACT_EVENTS);
+const _contactApproachSpeedPtr = ptr(_contactApproachSpeed);
 
 // Ray cast out-params (5 separate floats + 1 shape)
 const _rayHitX = new Float32Array(1);
@@ -166,12 +178,19 @@ export class Contact {
   _fixtureB: Fixture;
   _normalX: number;
   _normalY: number;
+  _pointX: number;
+  _pointY: number;
+  _approachSpeed: number;
 
-  constructor(fixtureA: Fixture, fixtureB: Fixture, nx: number = 0, ny: number = 0) {
+  constructor(fixtureA: Fixture, fixtureB: Fixture, nx: number = 0, ny: number = 0,
+              px: number = 0, py: number = 0, approachSpeed: number = 0) {
     this._fixtureA = fixtureA;
     this._fixtureB = fixtureB;
     this._normalX = nx;
     this._normalY = ny;
+    this._pointX = px;
+    this._pointY = py;
+    this._approachSpeed = approachSpeed;
   }
 
   getFixtures(): [Fixture, Fixture] {
@@ -179,7 +198,15 @@ export class Contact {
   }
 
   getNormal(): [number, number] {
-    return [this._normalX * _meter, this._normalY * _meter];
+    return [this._normalX, this._normalY];
+  }
+
+  getPositions(): [number, number] {
+    return [this._pointX * _meter, this._pointY * _meter];
+  }
+
+  getNormalImpulse(): number {
+    return this._approachSpeed * _meter;
   }
 }
 
@@ -358,21 +385,21 @@ export class Body {
 
   applyForce(fx: number, fy: number, x?: number, y?: number): void {
     if (x === undefined || y === undefined) {
-      lib().jove_Body_ApplyForceToCenter(this._id, fx, fy, 1);
+      lib().jove_Body_ApplyForceToCenter(this._id, toForce(fx), toForce(fy), 1);
     } else {
-      lib().jove_Body_ApplyForce(this._id, fx, fy, toMeters(x), toMeters(y), 1);
+      lib().jove_Body_ApplyForce(this._id, toForce(fx), toForce(fy), toMeters(x), toMeters(y), 1);
     }
   }
 
   applyTorque(t: number): void {
-    lib().jove_Body_ApplyTorque(this._id, t, 1);
+    lib().jove_Body_ApplyTorque(this._id, toTorque(t), 1);
   }
 
   applyLinearImpulse(ix: number, iy: number, x?: number, y?: number): void {
     if (x === undefined || y === undefined) {
-      lib().jove_Body_ApplyLinearImpulseToCenter(this._id, ix, iy, 1);
+      lib().jove_Body_ApplyLinearImpulseToCenter(this._id, toForce(ix), toForce(iy), 1);
     } else {
-      lib().jove_Body_ApplyLinearImpulse(this._id, ix, iy, toMeters(x), toMeters(y), 1);
+      lib().jove_Body_ApplyLinearImpulse(this._id, toForce(ix), toForce(iy), toMeters(x), toMeters(y), 1);
     }
   }
 
@@ -383,15 +410,20 @@ export class Body {
   getMassData(): [number, number, number, number] {
     lib().jove_Body_GetMassData(this._id, _outAPtr, _outBPtr, _outCPtr, _outDPtr);
     return [
-      read.f32(_outAPtr, 0),           // mass
-      read.f32(_outBPtr, 0) * _meter,  // center x (pixels)
-      read.f32(_outCPtr, 0) * _meter,  // center y (pixels)
-      read.f32(_outDPtr, 0),           // inertia
+      read.f32(_outAPtr, 0),                          // mass (no scaling)
+      read.f32(_outBPtr, 0) * _meter,                 // center x (pixels)
+      read.f32(_outCPtr, 0) * _meter,                 // center y (pixels)
+      fromTorque(read.f32(_outDPtr, 0)),               // inertia (*meter²)
     ];
   }
 
   getInertia(): number {
     return this.getMassData()[3];
+  }
+
+  setMassData(mass: number, x: number, y: number, inertia: number): void {
+    if (this._id === 0n) return;
+    lib().jove_Body_SetMassData(this._id, mass, toMeters(x), toMeters(y), toTorque(inertia));
   }
 
   getType(): string {
@@ -524,6 +556,12 @@ export class Joint {
 
   getBodies(): [Body, Body] { return [this._bodyA, this._bodyB]; }
 
+  /** Wake both bodies — Box2D v3 doesn't auto-wake on motor property changes */
+  protected _wake(): void {
+    this._bodyA.setAwake(true);
+    this._bodyB.setAwake(true);
+  }
+
   setCollideConnected(flag: boolean): void {
     if (this._id === 0n) return;
     lib().jove_Joint_SetCollideConnected(this._id, flag ? 1 : 0);
@@ -532,6 +570,31 @@ export class Joint {
   getCollideConnected(): boolean {
     if (this._id === 0n) return false;
     return lib().jove_Joint_GetCollideConnected(this._id) !== 0;
+  }
+
+  getAnchorA(): [number, number] {
+    if (this._id === 0n) return [0, 0];
+    lib().jove_Joint_GetAnchorA(this._id, _outAPtr, _outBPtr);
+    return [read.f32(_outAPtr, 0) * _meter, read.f32(_outBPtr, 0) * _meter];
+  }
+
+  getAnchorB(): [number, number] {
+    if (this._id === 0n) return [0, 0];
+    lib().jove_Joint_GetAnchorB(this._id, _outAPtr, _outBPtr);
+    return [read.f32(_outAPtr, 0) * _meter, read.f32(_outBPtr, 0) * _meter];
+  }
+
+  getReactionForce(dt: number): [number, number] {
+    if (this._id === 0n) return [0, 0];
+    const invDt = dt > 0 ? 1 / dt : 0;
+    lib().jove_Joint_GetReactionForce(this._id, invDt, _outAPtr, _outBPtr);
+    return [fromForce(read.f32(_outAPtr, 0)), fromForce(read.f32(_outBPtr, 0))];
+  }
+
+  getReactionTorque(dt: number): number {
+    if (this._id === 0n) return 0;
+    const invDt = dt > 0 ? 1 / dt : 0;
+    return fromTorque(lib().jove_Joint_GetReactionTorque(this._id, invDt));
   }
 
   setUserData(data: any): void { this._userData = data; }
@@ -578,16 +641,19 @@ export class RevoluteJoint extends Joint {
   setMotorEnabled(flag: boolean): void {
     if (this._id === 0n) return;
     lib().jove_RevoluteJoint_EnableMotor(this._id, flag ? 1 : 0);
+    this._wake();
   }
 
   setMotorSpeed(speed: number): void {
     if (this._id === 0n) return;
     lib().jove_RevoluteJoint_SetMotorSpeed(this._id, speed);
+    this._wake();
   }
 
   setMaxMotorTorque(torque: number): void {
     if (this._id === 0n) return;
-    lib().jove_RevoluteJoint_SetMaxMotorTorque(this._id, torque);
+    lib().jove_RevoluteJoint_SetMaxMotorTorque(this._id, toTorque(torque));
+    this._wake();
   }
 }
 
@@ -605,16 +671,19 @@ export class PrismaticJoint extends Joint {
   setMotorEnabled(flag: boolean): void {
     if (this._id === 0n) return;
     lib().jove_PrismaticJoint_EnableMotor(this._id, flag ? 1 : 0);
+    this._wake();
   }
 
   setMotorSpeed(speed: number): void {
     if (this._id === 0n) return;
     lib().jove_PrismaticJoint_SetMotorSpeed(this._id, toMeters(speed));
+    this._wake();
   }
 
   setMaxMotorForce(force: number): void {
     if (this._id === 0n) return;
-    lib().jove_PrismaticJoint_SetMaxMotorForce(this._id, force);
+    lib().jove_PrismaticJoint_SetMaxMotorForce(this._id, toForce(force));
+    this._wake();
   }
 }
 
@@ -633,6 +702,108 @@ export class MouseJoint extends Joint {
   }
 }
 
+export class WheelJoint extends Joint {
+  setSpringEnabled(flag: boolean): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_EnableSpring(this._id, flag ? 1 : 0);
+  }
+
+  setSpringFrequency(hz: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_SetSpringHertz(this._id, hz);
+  }
+
+  getSpringFrequency(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_WheelJoint_GetSpringHertz(this._id);
+  }
+
+  setSpringDampingRatio(ratio: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_SetSpringDampingRatio(this._id, ratio);
+  }
+
+  getSpringDampingRatio(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_WheelJoint_GetSpringDampingRatio(this._id);
+  }
+
+  setLimitsEnabled(flag: boolean): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_EnableLimit(this._id, flag ? 1 : 0);
+  }
+
+  setLimits(lower: number, upper: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_SetLimits(this._id, toMeters(lower), toMeters(upper));
+  }
+
+  setMotorEnabled(flag: boolean): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_EnableMotor(this._id, flag ? 1 : 0);
+    this._wake();
+  }
+
+  setMotorSpeed(speed: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_SetMotorSpeed(this._id, speed);
+    this._wake();
+  }
+
+  setMaxMotorTorque(torque: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WheelJoint_SetMaxMotorTorque(this._id, toTorque(torque));
+    this._wake();
+  }
+
+  getMotorTorque(): number {
+    if (this._id === 0n) return 0;
+    return fromTorque(lib().jove_WheelJoint_GetMotorTorque(this._id));
+  }
+}
+
+export class MotorJoint extends Joint {
+  setLinearOffset(x: number, y: number): void {
+    if (this._id === 0n) return;
+    lib().jove_MotorJoint_SetLinearOffset(this._id, toMeters(x), toMeters(y));
+    this._wake();
+  }
+
+  getLinearOffset(): [number, number] {
+    if (this._id === 0n) return [0, 0];
+    lib().jove_MotorJoint_GetLinearOffset(this._id, _outAPtr, _outBPtr);
+    return [read.f32(_outAPtr, 0) * _meter, read.f32(_outBPtr, 0) * _meter];
+  }
+
+  setAngularOffset(angle: number): void {
+    if (this._id === 0n) return;
+    lib().jove_MotorJoint_SetAngularOffset(this._id, angle);
+    this._wake();
+  }
+
+  getAngularOffset(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_MotorJoint_GetAngularOffset(this._id);
+  }
+
+  setMaxForce(force: number): void {
+    if (this._id === 0n) return;
+    lib().jove_MotorJoint_SetMaxForce(this._id, toForce(force));
+    this._wake();
+  }
+
+  setMaxTorque(torque: number): void {
+    if (this._id === 0n) return;
+    lib().jove_MotorJoint_SetMaxTorque(this._id, toTorque(torque));
+    this._wake();
+  }
+
+  setCorrectionFactor(factor: number): void {
+    if (this._id === 0n) return;
+    lib().jove_MotorJoint_SetCorrectionFactor(this._id, factor);
+  }
+}
+
 // ── World class ─────────────────────────────────────────────────────
 
 export class World {
@@ -647,7 +818,7 @@ export class World {
   };
 
   constructor(gx: number = 0, gy: number = 0, sleep: boolean = true) {
-    this._id = lib().jove_CreateWorld(toMeters(gx), toMeters(gy), sleep ? 1 : 0);
+    this._id = lib().jove_CreateWorld(toMeters(gx), toMeters(gy), sleep ? 1 : 0, 0.01);
     this._bodies = new Map();
     this._joints = new Map();
     this._shapeToFixture = new Map();
@@ -693,10 +864,12 @@ export class World {
       }
     }
 
-    // Hit events (≈ postSolve)
+    // Hit events (≈ postSolve) — uses Ex variant for point + approach speed
     if (this._callbacks.postSolve) {
-      const count = b2.jove_World_GetContactHitEvents(this._id, _contactShapeAPtr, _contactShapeBPtr,
-        _contactNormalXPtr, _contactNormalYPtr, MAX_CONTACT_EVENTS);
+      const count = b2.jove_World_GetContactHitEventsEx(this._id, _contactShapeAPtr, _contactShapeBPtr,
+        _contactNormalXPtr, _contactNormalYPtr,
+        _contactPointXPtr, _contactPointYPtr,
+        _contactApproachSpeedPtr, MAX_CONTACT_EVENTS);
       for (let i = 0; i < count; i++) {
         const shA = read.u64(_contactShapeAPtr, i * 8);
         const shB = read.u64(_contactShapeBPtr, i * 8);
@@ -705,7 +878,10 @@ export class World {
         if (fA && fB) {
           const nx = read.f32(_contactNormalXPtr, i * 4);
           const ny = read.f32(_contactNormalYPtr, i * 4);
-          this._callbacks.postSolve(new Contact(fA, fB, nx, ny), 0, 0);
+          const px = read.f32(_contactPointXPtr, i * 4);
+          const py = read.f32(_contactPointYPtr, i * 4);
+          const speed = read.f32(_contactApproachSpeedPtr, i * 4);
+          this._callbacks.postSolve(new Contact(fA, fB, nx, ny, px, py, speed), speed, 0);
         }
       }
     }
@@ -716,7 +892,15 @@ export class World {
     endContact?: (contact: Contact) => void;
     postSolve?: (contact: Contact, normalImpulse: number, tangentImpulse: number) => void;
   }): void {
+    const hadPostSolve = !!this._callbacks.postSolve;
     this._callbacks = callbacks;
+    // Enable hit events on all existing shapes when postSolve is newly registered
+    if (callbacks.postSolve && !hadPostSolve) {
+      const b2 = lib();
+      for (const [shapeId] of this._shapeToFixture) {
+        b2.jove_Shape_EnableHitEvents(shapeId, 1);
+      }
+    }
   }
 
   setGravity(gx: number, gy: number): void {
@@ -886,13 +1070,14 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
   const pts = shape._points;
   let shapeId: bigint;
   let isChain = false;
+  const hitEvents = body._world._callbacks.postSolve ? 1 : 0;
 
   switch (type) {
     case "circle": {
       const cx = pts.length >= 2 ? toMeters(pts[0]) : 0;
       const cy = pts.length >= 2 ? toMeters(pts[1]) : 0;
       shapeId = b2.jove_CreateCircleShape(
-        body._id, density, 0.2, 0, 0,
+        body._id, density, 0.2, 0, 0, hitEvents,
         cx, cy, toMeters(shape._radius)
       );
       break;
@@ -906,7 +1091,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
           const hw = toMeters(Math.abs(x1 - x0) / 2);
           const hh = toMeters(Math.abs(y2 - y1) / 2);
           shapeId = b2.jove_CreateBoxShape(
-            body._id, density, 0.2, 0, 0, hw, hh
+            body._id, density, 0.2, 0, 0, hitEvents, hw, hh
           );
           break;
         }
@@ -917,14 +1102,14 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
         vertBuf[i] = toMeters(pts[i]);
       }
       shapeId = b2.jove_CreatePolygonShape(
-        body._id, density, 0.2, 0, 0,
+        body._id, density, 0.2, 0, 0, hitEvents,
         ptr(vertBuf), pts.length / 2
       );
       break;
     }
     case "edge": {
       shapeId = b2.jove_CreateEdgeShape(
-        body._id, density, 0.2, 0, 0,
+        body._id, density, 0.2, 0, 0, hitEvents,
         toMeters(pts[0]), toMeters(pts[1]),
         toMeters(pts[2]), toMeters(pts[3])
       );
@@ -1036,6 +1221,38 @@ export function newMouseJoint(body: Body, x: number, y: number): MouseJoint {
     toMeters(x), toMeters(y)
   );
   const joint = new MouseJoint(world, jointId, ground, body);
+  world._joints.set(jointId, joint);
+  return joint;
+}
+
+export function newWheelJoint(bodyA: Body, bodyB: Body,
+                               x: number, y: number,
+                               ax: number, ay: number,
+                               collideConnected: boolean = false): WheelJoint {
+  const world = bodyA._world;
+  const [lax, lay] = bodyA.getLocalPoint(x, y);
+  const [lbx, lby] = bodyB.getLocalPoint(x, y);
+  const jointId = lib().jove_CreateWheelJoint(
+    world._id, bodyA._id, bodyB._id,
+    toMeters(lax), toMeters(lay), toMeters(lbx), toMeters(lby),
+    ax, ay,
+    collideConnected ? 1 : 0
+  );
+  const joint = new WheelJoint(world, jointId, bodyA, bodyB);
+  world._joints.set(jointId, joint);
+  return joint;
+}
+
+export function newMotorJoint(bodyA: Body, bodyB: Body,
+                               correctionFactor: number = 0.3,
+                               collideConnected: boolean = false): MotorJoint {
+  const world = bodyA._world;
+  const jointId = lib().jove_CreateMotorJoint(
+    world._id, bodyA._id, bodyB._id,
+    correctionFactor,
+    collideConnected ? 1 : 0
+  );
+  const joint = new MotorJoint(world, jointId, bodyA, bodyB);
   world._joints.set(jointId, joint);
   return joint;
 }
