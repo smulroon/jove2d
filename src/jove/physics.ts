@@ -1,5 +1,9 @@
 // jove2d physics module — love2d-compatible Box2D v3 wrapper
 // Provides World, Body, Fixture, Shape, Joint, Contact classes with meter scaling.
+//
+// Body/shape IDs are int indices into C-side static arrays (no BigInt).
+// Joint IDs remain as packed u64 BigInt (infrequent operations).
+// World.update() uses jove_World_UpdateFull for 1 FFI call per frame.
 
 import { loadBox2D } from "../sdl/ffi_box2d.ts";
 import { ptr, read } from "bun:ffi";
@@ -57,8 +61,6 @@ const _outC = new Float32Array(1);
 const _outCPtr = ptr(_outC);
 const _outD = new Float32Array(1);
 const _outDPtr = ptr(_outD);
-const _outE = new Float32Array(1);
-const _outEPtr = ptr(_outE);
 
 const _outU16a = new Uint16Array(1);
 const _outU16aPtr = ptr(_outU16a);
@@ -67,24 +69,54 @@ const _outU16bPtr = ptr(_outU16b);
 const _outI16 = new Int16Array(1);
 const _outI16Ptr = ptr(_outI16);
 
-// Contact event buffers (max 256 events per step)
-const MAX_CONTACT_EVENTS = 256;
-const _contactShapeA = new BigUint64Array(MAX_CONTACT_EVENTS);
-const _contactShapeB = new BigUint64Array(MAX_CONTACT_EVENTS);
-const _contactShapeAPtr = ptr(_contactShapeA);
-const _contactShapeBPtr = ptr(_contactShapeB);
-const _contactNormalX = new Float32Array(MAX_CONTACT_EVENTS);
-const _contactNormalY = new Float32Array(MAX_CONTACT_EVENTS);
-const _contactNormalXPtr = ptr(_contactNormalX);
-const _contactNormalYPtr = ptr(_contactNormalY);
-const _contactPointX = new Float32Array(MAX_CONTACT_EVENTS);
-const _contactPointY = new Float32Array(MAX_CONTACT_EVENTS);
-const _contactPointXPtr = ptr(_contactPointX);
-const _contactPointYPtr = ptr(_contactPointY);
-const _contactApproachSpeed = new Float32Array(MAX_CONTACT_EVENTS);
-const _contactApproachSpeedPtr = ptr(_contactApproachSpeed);
+// ── UpdateFull event buffers (module-level, single-threaded) ────────
 
-// Ray cast out-params (5 separate floats + 1 shape)
+const MAX_MOVE_EVENTS = 1024;
+const MAX_CONTACT_EVENTS = 256;
+
+// Body move events
+const _moveBodyIdx = new Int32Array(MAX_MOVE_EVENTS);
+const _moveBodyIdxPtr = ptr(_moveBodyIdx);
+const _movePosX = new Float32Array(MAX_MOVE_EVENTS);
+const _movePosXPtr = ptr(_movePosX);
+const _movePosY = new Float32Array(MAX_MOVE_EVENTS);
+const _movePosYPtr = ptr(_movePosY);
+const _moveAngle = new Float32Array(MAX_MOVE_EVENTS);
+const _moveAnglePtr = ptr(_moveAngle);
+
+// Contact begin events
+const _beginShapeA = new Int32Array(MAX_CONTACT_EVENTS);
+const _beginShapeAPtr = ptr(_beginShapeA);
+const _beginShapeB = new Int32Array(MAX_CONTACT_EVENTS);
+const _beginShapeBPtr = ptr(_beginShapeB);
+
+// Contact end events
+const _endShapeA = new Int32Array(MAX_CONTACT_EVENTS);
+const _endShapeAPtr = ptr(_endShapeA);
+const _endShapeB = new Int32Array(MAX_CONTACT_EVENTS);
+const _endShapeBPtr = ptr(_endShapeB);
+
+// Contact hit events
+const _hitShapeA = new Int32Array(MAX_CONTACT_EVENTS);
+const _hitShapeAPtr = ptr(_hitShapeA);
+const _hitShapeB = new Int32Array(MAX_CONTACT_EVENTS);
+const _hitShapeBPtr = ptr(_hitShapeB);
+const _hitNormX = new Float32Array(MAX_CONTACT_EVENTS);
+const _hitNormXPtr = ptr(_hitNormX);
+const _hitNormY = new Float32Array(MAX_CONTACT_EVENTS);
+const _hitNormYPtr = ptr(_hitNormY);
+const _hitPointX = new Float32Array(MAX_CONTACT_EVENTS);
+const _hitPointXPtr = ptr(_hitPointX);
+const _hitPointY = new Float32Array(MAX_CONTACT_EVENTS);
+const _hitPointYPtr = ptr(_hitPointY);
+const _hitSpeed = new Float32Array(MAX_CONTACT_EVENTS);
+const _hitSpeedPtr = ptr(_hitSpeed);
+
+// Output counts [moveCount, beginCount, endCount, hitCount]
+const _outCounts = new Int32Array(4);
+const _outCountsPtr = ptr(_outCounts);
+
+// Ray cast out-params
 const _rayHitX = new Float32Array(1);
 const _rayHitXPtr = ptr(_rayHitX);
 const _rayHitY = new Float32Array(1);
@@ -95,12 +127,12 @@ const _rayNY = new Float32Array(1);
 const _rayNYPtr = ptr(_rayNY);
 const _rayFrac = new Float32Array(1);
 const _rayFracPtr = ptr(_rayFrac);
-const _rayShape = new BigUint64Array(1);
+const _rayShape = new Int32Array(1);
 const _rayShapePtr = ptr(_rayShape);
 
 // AABB query out-params
 const MAX_QUERY_SHAPES = 256;
-const _queryShapes = new BigUint64Array(MAX_QUERY_SHAPES);
+const _queryShapes = new Int32Array(MAX_QUERY_SHAPES);
 const _queryShapesPtr = ptr(_queryShapes);
 
 // ── Body type constants ─────────────────────────────────────────────
@@ -133,7 +165,6 @@ const SHAPE_TYPE_CIRCLE = 0;
 const SHAPE_TYPE_CAPSULE = 1;
 const SHAPE_TYPE_SEGMENT = 2;
 const SHAPE_TYPE_POLYGON = 3;
-// const SHAPE_TYPE_CHAIN_SEGMENT = 4;
 
 function shapeTypeToString(type: number): string {
   switch (type) {
@@ -147,7 +178,6 @@ function shapeTypeToString(type: number): string {
 
 // ── Joint type constants (b2JointType) ──────────────────────────────
 
-// b2JointType enum values (v3.1.1)
 const JOINT_TYPE_DISTANCE = 0;
 const JOINT_TYPE_FILTER = 1;
 const JOINT_TYPE_MOTOR = 2;
@@ -235,17 +265,17 @@ export class Shape {
   }
 }
 
-// ── Fixture class (wraps b2ShapeId) ─────────────────────────────────
+// ── Fixture class (wraps shape index) ───────────────────────────────
 
 export class Fixture {
-  _shapeId: bigint; // packed u64 (0n = destroyed)
+  _shapeId: number; // int index into C-side g_shapes[] (-1 = destroyed)
   _body: Body;
   _shape: Shape;
   _userData: any;
   _isChain: boolean;
 
-  constructor(body: Body, shapeId: bigint, shape: Shape, isChain: boolean = false) {
-    this._shapeId = shapeId;
+  constructor(body: Body, shapeIdx: number, shape: Shape, isChain: boolean = false) {
+    this._shapeId = shapeIdx;
     this._body = body;
     this._shape = shape;
     this._userData = null;
@@ -256,52 +286,52 @@ export class Fixture {
   getShape(): Shape { return this._shape; }
 
   setSensor(s: boolean): void {
-    if (this._shapeId === 0n || this._isChain) return;
+    if (this._shapeId < 0 || this._isChain) return;
     lib().jove_Shape_SetSensor(this._shapeId, s ? 1 : 0);
   }
 
   isSensor(): boolean {
-    if (this._shapeId === 0n || this._isChain) return false;
+    if (this._shapeId < 0 || this._isChain) return false;
     return lib().jove_Shape_IsSensor(this._shapeId) !== 0;
   }
 
   setFriction(f: number): void {
-    if (this._shapeId === 0n || this._isChain) return;
+    if (this._shapeId < 0 || this._isChain) return;
     lib().jove_Shape_SetFriction(this._shapeId, f);
   }
 
   getFriction(): number {
-    if (this._shapeId === 0n || this._isChain) return 0;
+    if (this._shapeId < 0 || this._isChain) return 0;
     return lib().jove_Shape_GetFriction(this._shapeId);
   }
 
   setRestitution(r: number): void {
-    if (this._shapeId === 0n || this._isChain) return;
+    if (this._shapeId < 0 || this._isChain) return;
     lib().jove_Shape_SetRestitution(this._shapeId, r);
   }
 
   getRestitution(): number {
-    if (this._shapeId === 0n || this._isChain) return 0;
+    if (this._shapeId < 0 || this._isChain) return 0;
     return lib().jove_Shape_GetRestitution(this._shapeId);
   }
 
   setDensity(d: number): void {
-    if (this._shapeId === 0n || this._isChain) return;
+    if (this._shapeId < 0 || this._isChain) return;
     lib().jove_Shape_SetDensity(this._shapeId, d);
   }
 
   getDensity(): number {
-    if (this._shapeId === 0n || this._isChain) return 0;
+    if (this._shapeId < 0 || this._isChain) return 0;
     return lib().jove_Shape_GetDensity(this._shapeId);
   }
 
   setFilterData(categories: number, mask: number, group: number): void {
-    if (this._shapeId === 0n || this._isChain) return;
+    if (this._shapeId < 0 || this._isChain) return;
     lib().jove_Shape_SetFilter(this._shapeId, categories, mask, group);
   }
 
   getFilterData(): [number, number, number] {
-    if (this._shapeId === 0n || this._isChain) return [0, 0, 0];
+    if (this._shapeId < 0 || this._isChain) return [0, 0, 0];
     lib().jove_Shape_GetFilter(this._shapeId, _outU16aPtr, _outU16bPtr, _outI16Ptr);
     return [
       read.u16(_outU16aPtr, 0),
@@ -314,7 +344,7 @@ export class Fixture {
   getUserData(): any { return this._userData; }
 
   destroy(): void {
-    if (this._shapeId === 0n) return;
+    if (this._shapeId < 0) return;
     if (this._isChain) {
       lib().jove_DestroyChain(this._shapeId);
     } else {
@@ -323,30 +353,44 @@ export class Fixture {
     // Remove from body's fixture list
     const idx = this._body._fixtures.indexOf(this);
     if (idx !== -1) this._body._fixtures.splice(idx, 1);
-    // Remove from world's shape map
-    this._body._world._shapeToFixture.delete(this._shapeId);
-    this._shapeId = 0n;
+    // Remove from world's fixture index
+    this._body._world._fixturesByIndex[this._shapeId] = null;
+    this._shapeId = -1;
   }
 
-  isDestroyed(): boolean { return this._shapeId === 0n; }
+  isDestroyed(): boolean { return this._shapeId < 0; }
 }
 
 // ── Body class ──────────────────────────────────────────────────────
 
 export class Body {
-  _id: bigint; // packed u64 (0n = destroyed)
+  _id: number; // int index into C-side g_bodies[] (-1 = destroyed)
   _world: World;
   _fixtures: Fixture[];
   _userData: any;
+  // Transform cache — updated from UpdateFull move events
+  _cachedX: number;
+  _cachedY: number;
+  _cachedAngle: number;
+  _cachedType: string;
+  _transformCached: boolean;
 
-  constructor(world: World, bodyId: bigint) {
-    this._id = bodyId;
+  constructor(world: World, bodyIdx: number) {
+    this._id = bodyIdx;
     this._world = world;
     this._fixtures = [];
     this._userData = null;
+    this._cachedX = 0;
+    this._cachedY = 0;
+    this._cachedAngle = 0;
+    this._cachedType = "static";
+    this._transformCached = false;
   }
 
   getPosition(): [number, number] {
+    if (this._transformCached) {
+      return [this._cachedX * _meter, this._cachedY * _meter];
+    }
     lib().jove_Body_GetPosition(this._id, _outAPtr, _outBPtr);
     return [read.f32(_outAPtr, 0) * _meter, read.f32(_outBPtr, 0) * _meter];
   }
@@ -355,15 +399,22 @@ export class Body {
   getY(): number { return this.getPosition()[1]; }
 
   setPosition(x: number, y: number): void {
-    lib().jove_Body_SetPosition(this._id, toMeters(x), toMeters(y));
+    const mx = toMeters(x), my = toMeters(y);
+    lib().jove_Body_SetPosition(this._id, mx, my);
+    this._cachedX = mx;
+    this._cachedY = my;
   }
 
   getAngle(): number {
+    if (this._transformCached) {
+      return this._cachedAngle;
+    }
     return lib().jove_Body_GetAngle(this._id);
   }
 
   setAngle(a: number): void {
     lib().jove_Body_SetAngle(this._id, a);
+    this._cachedAngle = a;
   }
 
   getLinearVelocity(): [number, number] {
@@ -422,16 +473,17 @@ export class Body {
   }
 
   setMassData(mass: number, x: number, y: number, inertia: number): void {
-    if (this._id === 0n) return;
+    if (this._id < 0) return;
     lib().jove_Body_SetMassData(this._id, mass, toMeters(x), toMeters(y), toTorque(inertia));
   }
 
   getType(): string {
-    return bodyTypeToString(lib().jove_Body_GetType(this._id));
+    return this._cachedType;
   }
 
   setType(type: string): void {
     lib().jove_Body_SetType(this._id, bodyTypeToInt(type));
+    this._cachedType = type;
   }
 
   isBullet(): boolean {
@@ -517,19 +569,22 @@ export class Body {
   getUserData(): any { return this._userData; }
 
   destroy(): void {
-    if (this._id === 0n) return;
-    // Mark fixtures as destroyed
+    if (this._id < 0) return;
+    // Free shape indices in C (body destroy also destroys shapes in Box2D)
     for (const f of this._fixtures) {
-      this._world._shapeToFixture.delete(f._shapeId);
-      f._shapeId = 0n;
+      if (f._shapeId >= 0) {
+        this._world._fixturesByIndex[f._shapeId] = null;
+        lib().jove_FreeShapeIndex(f._shapeId);
+        f._shapeId = -1;
+      }
     }
     this._fixtures.length = 0;
     lib().jove_DestroyBody(this._id);
-    this._world._bodies.delete(this._id);
-    this._id = 0n;
+    this._world._bodiesByIndex[this._id] = null;
+    this._id = -1;
   }
 
-  isDestroyed(): boolean { return this._id === 0n; }
+  isDestroyed(): boolean { return this._id < 0; }
 }
 
 // ── Joint class ─────────────────────────────────────────────────────
@@ -808,9 +863,9 @@ export class MotorJoint extends Joint {
 
 export class World {
   _id: number; // packed u32 (0 = destroyed)
-  _bodies: Map<bigint, Body>;
+  _bodiesByIndex: (Body | null)[];
+  _fixturesByIndex: (Fixture | null)[];
   _joints: Map<bigint, Joint>;
-  _shapeToFixture: Map<bigint, Fixture>;
   _callbacks: {
     beginContact?: (contact: Contact) => void;
     endContact?: (contact: Contact) => void;
@@ -819,31 +874,63 @@ export class World {
 
   constructor(gx: number = 0, gy: number = 0, sleep: boolean = true) {
     this._id = lib().jove_CreateWorld(toMeters(gx), toMeters(gy), sleep ? 1 : 0, 0.01);
-    this._bodies = new Map();
+    this._bodiesByIndex = [];
+    this._fixturesByIndex = [];
     this._joints = new Map();
-    this._shapeToFixture = new Map();
     this._callbacks = {};
   }
 
   update(dt: number, subSteps: number = 4): void {
     if (this._id === 0) return;
-    lib().jove_World_Step(this._id, dt, subSteps);
-    this._dispatchContactEvents();
-  }
-
-  private _dispatchContactEvents(): void {
-    if (!this._callbacks.beginContact && !this._callbacks.endContact && !this._callbacks.postSolve) return;
 
     const b2 = lib();
 
+    // Single FFI call: step + read all events
+    b2.jove_World_UpdateFull(
+      this._id, dt, subSteps,
+      _moveBodyIdxPtr, _movePosXPtr, _movePosYPtr, _moveAnglePtr, MAX_MOVE_EVENTS,
+      _beginShapeAPtr, _beginShapeBPtr, MAX_CONTACT_EVENTS,
+      _endShapeAPtr, _endShapeBPtr, MAX_CONTACT_EVENTS,
+      _hitShapeAPtr, _hitShapeBPtr,
+      _hitNormXPtr, _hitNormYPtr,
+      _hitPointXPtr, _hitPointYPtr, _hitSpeedPtr, MAX_CONTACT_EVENTS,
+      _outCountsPtr
+    );
+
+    // Read counts
+    const moveCount = read.i32(_outCountsPtr, 0);
+    const beginCount = read.i32(_outCountsPtr, 4);
+    const endCount = read.i32(_outCountsPtr, 8);
+    const hitCount = read.i32(_outCountsPtr, 12);
+
+    // Cache body transforms BEFORE dispatching contact events
+    for (let i = 0; i < moveCount; i++) {
+      const bodyIdx = read.i32(_moveBodyIdxPtr, i * 4);
+      if (bodyIdx < 0) continue;
+      const body = this._bodiesByIndex[bodyIdx];
+      if (body) {
+        body._cachedX = read.f32(_movePosXPtr, i * 4);
+        body._cachedY = read.f32(_movePosYPtr, i * 4);
+        body._cachedAngle = read.f32(_moveAnglePtr, i * 4);
+        body._transformCached = true;
+      }
+    }
+
+    // Dispatch contact events
+    this._dispatchFromBuffers(beginCount, endCount, hitCount);
+  }
+
+  private _dispatchFromBuffers(beginCount: number, endCount: number, hitCount: number): void {
+    if (!this._callbacks.beginContact && !this._callbacks.endContact && !this._callbacks.postSolve) return;
+
     // Begin events
-    if (this._callbacks.beginContact) {
-      const count = b2.jove_World_GetContactBeginEvents(this._id, _contactShapeAPtr, _contactShapeBPtr, MAX_CONTACT_EVENTS);
-      for (let i = 0; i < count; i++) {
-        const shA = read.u64(_contactShapeAPtr, i * 8);
-        const shB = read.u64(_contactShapeBPtr, i * 8);
-        const fA = this._shapeToFixture.get(shA);
-        const fB = this._shapeToFixture.get(shB);
+    if (this._callbacks.beginContact && beginCount > 0) {
+      for (let i = 0; i < beginCount; i++) {
+        const idxA = read.i32(_beginShapeAPtr, i * 4);
+        const idxB = read.i32(_beginShapeBPtr, i * 4);
+        if (idxA < 0 || idxB < 0) continue;
+        const fA = this._fixturesByIndex[idxA];
+        const fB = this._fixturesByIndex[idxB];
         if (fA && fB) {
           this._callbacks.beginContact(new Contact(fA, fB));
         }
@@ -851,36 +938,33 @@ export class World {
     }
 
     // End events
-    if (this._callbacks.endContact) {
-      const count = b2.jove_World_GetContactEndEvents(this._id, _contactShapeAPtr, _contactShapeBPtr, MAX_CONTACT_EVENTS);
-      for (let i = 0; i < count; i++) {
-        const shA = read.u64(_contactShapeAPtr, i * 8);
-        const shB = read.u64(_contactShapeBPtr, i * 8);
-        const fA = this._shapeToFixture.get(shA);
-        const fB = this._shapeToFixture.get(shB);
+    if (this._callbacks.endContact && endCount > 0) {
+      for (let i = 0; i < endCount; i++) {
+        const idxA = read.i32(_endShapeAPtr, i * 4);
+        const idxB = read.i32(_endShapeBPtr, i * 4);
+        if (idxA < 0 || idxB < 0) continue;
+        const fA = this._fixturesByIndex[idxA];
+        const fB = this._fixturesByIndex[idxB];
         if (fA && fB) {
           this._callbacks.endContact(new Contact(fA, fB));
         }
       }
     }
 
-    // Hit events (≈ postSolve) — uses Ex variant for point + approach speed
-    if (this._callbacks.postSolve) {
-      const count = b2.jove_World_GetContactHitEventsEx(this._id, _contactShapeAPtr, _contactShapeBPtr,
-        _contactNormalXPtr, _contactNormalYPtr,
-        _contactPointXPtr, _contactPointYPtr,
-        _contactApproachSpeedPtr, MAX_CONTACT_EVENTS);
-      for (let i = 0; i < count; i++) {
-        const shA = read.u64(_contactShapeAPtr, i * 8);
-        const shB = read.u64(_contactShapeBPtr, i * 8);
-        const fA = this._shapeToFixture.get(shA);
-        const fB = this._shapeToFixture.get(shB);
+    // Hit events (≈ postSolve)
+    if (this._callbacks.postSolve && hitCount > 0) {
+      for (let i = 0; i < hitCount; i++) {
+        const idxA = read.i32(_hitShapeAPtr, i * 4);
+        const idxB = read.i32(_hitShapeBPtr, i * 4);
+        if (idxA < 0 || idxB < 0) continue;
+        const fA = this._fixturesByIndex[idxA];
+        const fB = this._fixturesByIndex[idxB];
         if (fA && fB) {
-          const nx = read.f32(_contactNormalXPtr, i * 4);
-          const ny = read.f32(_contactNormalYPtr, i * 4);
-          const px = read.f32(_contactPointXPtr, i * 4);
-          const py = read.f32(_contactPointYPtr, i * 4);
-          const speed = read.f32(_contactApproachSpeedPtr, i * 4);
+          const nx = read.f32(_hitNormXPtr, i * 4);
+          const ny = read.f32(_hitNormYPtr, i * 4);
+          const px = read.f32(_hitPointXPtr, i * 4);
+          const py = read.f32(_hitPointYPtr, i * 4);
+          const speed = read.f32(_hitSpeedPtr, i * 4);
           this._callbacks.postSolve(new Contact(fA, fB, nx, ny, px, py, speed), speed, 0);
         }
       }
@@ -897,8 +981,10 @@ export class World {
     // Enable hit events on all existing shapes when postSolve is newly registered
     if (callbacks.postSolve && !hadPostSolve) {
       const b2 = lib();
-      for (const [shapeId] of this._shapeToFixture) {
-        b2.jove_Shape_EnableHitEvents(shapeId, 1);
+      for (const fixture of this._fixturesByIndex) {
+        if (fixture && fixture._shapeId >= 0 && !fixture._isChain) {
+          b2.jove_Shape_EnableHitEvents(fixture._shapeId, 1);
+        }
       }
     }
   }
@@ -920,7 +1006,11 @@ export class World {
   }
 
   getBodies(): Body[] {
-    return [...this._bodies.values()];
+    const result: Body[] = [];
+    for (const body of this._bodiesByIndex) {
+      if (body && body._id >= 0) result.push(body);
+    }
+    return result;
   }
 
   getBodyList(): Body[] {
@@ -937,8 +1027,9 @@ export class World {
       _queryShapesPtr, MAX_QUERY_SHAPES
     );
     for (let i = 0; i < count; i++) {
-      const shapeId = read.u64(_queryShapesPtr, i * 8);
-      const fixture = this._shapeToFixture.get(shapeId);
+      const shapeIdx = read.i32(_queryShapesPtr, i * 4);
+      if (shapeIdx < 0) continue;
+      const fixture = this._fixturesByIndex[shapeIdx];
       if (fixture) {
         if (!callback(fixture)) break;
       }
@@ -961,32 +1052,41 @@ export class World {
       const nx = read.f32(_rayNXPtr, 0);
       const ny = read.f32(_rayNYPtr, 0);
       const frac = read.f32(_rayFracPtr, 0);
-      const shapeId = read.u64(_rayShapePtr, 0);
-      const fixture = this._shapeToFixture.get(shapeId);
-      if (fixture) {
-        callback(fixture, hx, hy, nx, ny, frac);
+      const shapeIdx = read.i32(_rayShapePtr, 0);
+      if (shapeIdx >= 0) {
+        const fixture = this._fixturesByIndex[shapeIdx];
+        if (fixture) {
+          callback(fixture, hx, hy, nx, ny, frac);
+        }
       }
     }
   }
 
   destroy(): void {
     if (this._id === 0) return;
-    // Mark all bodies and their fixtures as destroyed
-    for (const body of this._bodies.values()) {
-      for (const f of body._fixtures) {
-        f._shapeId = 0n;
+    const b2 = lib();
+    // Free all body/shape indices in C
+    for (const body of this._bodiesByIndex) {
+      if (body && body._id >= 0) {
+        for (const f of body._fixtures) {
+          if (f._shapeId >= 0) {
+            b2.jove_FreeShapeIndex(f._shapeId);
+            f._shapeId = -1;
+          }
+        }
+        body._fixtures.length = 0;
+        b2.jove_FreeBodyIndex(body._id);
+        body._id = -1;
       }
-      body._fixtures.length = 0;
-      body._id = 0n;
     }
     // Mark all joints as destroyed
     for (const joint of this._joints.values()) {
       joint._id = 0n;
     }
-    this._bodies.clear();
+    this._bodiesByIndex.length = 0;
+    this._fixturesByIndex.length = 0;
     this._joints.clear();
-    this._shapeToFixture.clear();
-    lib().jove_DestroyWorld(this._id);
+    b2.jove_DestroyWorld(this._id);
     this._id = 0;
   }
 
@@ -1000,14 +1100,20 @@ export function newWorld(gx: number = 0, gy: number = 0, sleep: boolean = true):
 }
 
 export function newBody(world: World, x: number = 0, y: number = 0, type: string = "static"): Body {
-  const bodyId = lib().jove_CreateBody(
+  const mx = toMeters(x), my = toMeters(y);
+  const bodyIdx = lib().jove_CreateBody(
     world._id,
     bodyTypeToInt(type),
-    toMeters(x), toMeters(y),
+    mx, my,
     0 // angle
   );
-  const body = new Body(world, bodyId);
-  world._bodies.set(bodyId, body);
+  const body = new Body(world, bodyIdx);
+  body._cachedX = mx;
+  body._cachedY = my;
+  body._cachedAngle = 0;
+  body._cachedType = type;
+  body._transformCached = true;
+  world._bodiesByIndex[bodyIdx] = body;
   return body;
 }
 
@@ -1068,7 +1174,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
   const b2 = lib();
   const type = shape.getType();
   const pts = shape._points;
-  let shapeId: bigint;
+  let shapeIdx: number;
   let isChain = false;
   const hitEvents = body._world._callbacks.postSolve ? 1 : 0;
 
@@ -1076,7 +1182,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
     case "circle": {
       const cx = pts.length >= 2 ? toMeters(pts[0]) : 0;
       const cy = pts.length >= 2 ? toMeters(pts[1]) : 0;
-      shapeId = b2.jove_CreateCircleShape(
+      shapeIdx = b2.jove_CreateCircleShape(
         body._id, density, 0.2, 0, 0, hitEvents,
         cx, cy, toMeters(shape._radius)
       );
@@ -1090,7 +1196,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
         if (isRect) {
           const hw = toMeters(Math.abs(x1 - x0) / 2);
           const hh = toMeters(Math.abs(y2 - y1) / 2);
-          shapeId = b2.jove_CreateBoxShape(
+          shapeIdx = b2.jove_CreateBoxShape(
             body._id, density, 0.2, 0, 0, hitEvents, hw, hh
           );
           break;
@@ -1101,14 +1207,14 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
       for (let i = 0; i < pts.length; i++) {
         vertBuf[i] = toMeters(pts[i]);
       }
-      shapeId = b2.jove_CreatePolygonShape(
+      shapeIdx = b2.jove_CreatePolygonShape(
         body._id, density, 0.2, 0, 0, hitEvents,
         ptr(vertBuf), pts.length / 2
       );
       break;
     }
     case "edge": {
-      shapeId = b2.jove_CreateEdgeShape(
+      shapeIdx = b2.jove_CreateEdgeShape(
         body._id, density, 0.2, 0, 0, hitEvents,
         toMeters(pts[0]), toMeters(pts[1]),
         toMeters(pts[2]), toMeters(pts[3])
@@ -1121,7 +1227,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
       for (let i = 0; i < pts.length; i++) {
         vertBuf[i] = toMeters(pts[i]);
       }
-      shapeId = b2.jove_CreateChainShape(
+      shapeIdx = b2.jove_CreateChainShape(
         body._id, 0.2, 0,
         ptr(vertBuf), pts.length / 2,
         (shape as any)._loop ? 1 : 0
@@ -1132,9 +1238,9 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
       throw new Error(`Unknown shape type: ${type}`);
   }
 
-  const fixture = new Fixture(body, shapeId, shape, isChain);
+  const fixture = new Fixture(body, shapeIdx, shape, isChain);
   body._fixtures.push(fixture);
-  body._world._shapeToFixture.set(shapeId, fixture);
+  body._world._fixturesByIndex[shapeIdx] = fixture;
   return fixture;
 }
 
@@ -1211,13 +1317,14 @@ export function newWeldJoint(bodyA: Body, bodyB: Body,
 export function newMouseJoint(body: Body, x: number, y: number): MouseJoint {
   const world = body._world;
   // MouseJoint needs a static body as bodyA — create a temp static body
-  // In love2d, bodyA is typically a ground body
-  const groundId = lib().jove_CreateBody(world._id, BODY_TYPE_STATIC, 0, 0, 0);
-  const ground = new Body(world, groundId);
-  world._bodies.set(groundId, ground);
+  const groundIdx = lib().jove_CreateBody(world._id, BODY_TYPE_STATIC, 0, 0, 0);
+  const ground = new Body(world, groundIdx);
+  ground._cachedType = "static";
+  ground._transformCached = true;
+  world._bodiesByIndex[groundIdx] = ground;
 
   const jointId = lib().jove_CreateMouseJoint(
-    world._id, groundId, body._id,
+    world._id, groundIdx, body._id,
     toMeters(x), toMeters(y)
   );
   const joint = new MouseJoint(world, jointId, ground, body);
