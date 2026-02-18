@@ -22,6 +22,7 @@ import {
 } from "../sdl/types.ts";
 import type { WindowFlags, WindowMode } from "./types.ts";
 import { _getRenderer } from "./graphics.ts";
+import { SDL_PIXELFORMAT_RGBA8888 } from "../sdl/types.ts";
 
 // Pre-allocated out-param buffers to avoid per-call allocation.
 // IMPORTANT: After SDL writes to these via ptr(), we must use read.i32()
@@ -42,6 +43,7 @@ const _vsyncPtr = ptr(_vsyncBuf);
 // Internal state
 let _window: SDLWindow | null = null;
 let _isOpen = false;
+let _currentIcon: any = null; // cached ImageData for getIcon()
 
 /** Get the raw SDL window pointer (for internal use) */
 export function _getSDLWindow(): SDLWindow | null {
@@ -144,6 +146,28 @@ export function getTitle(): string {
   const result = sdl.SDL_GetWindowTitle(_window);
   if (!result) return "";
   return String(result);
+}
+
+/** Set the window icon from an ImageData. Returns true on success. */
+export function setIcon(imagedata: any): boolean {
+  if (!_window || !imagedata) return false;
+  const { data, width, height } = imagedata;
+  if (!data || !width || !height) return false;
+
+  const surface = sdl.SDL_CreateSurfaceFrom(
+    width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), width * 4
+  );
+  if (!surface) return false;
+
+  const ok = sdl.SDL_SetWindowIcon(_window, surface);
+  sdl.SDL_DestroySurface(surface);
+  if (ok) _currentIcon = imagedata;
+  return ok;
+}
+
+/** Get the current window icon as ImageData, or null if none set. */
+export function getIcon(): any {
+  return _currentIcon;
 }
 
 /** Returns true if a window is currently open. */

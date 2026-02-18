@@ -49,8 +49,8 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`requestAttention`~~ — flash taskbar
 - ~~`updateMode`~~ — resize without recreating window
 
-**Should add:**
-- `setIcon` / `getIcon` — window icon from ImageData (FFI binding exists, needs ImageData type)
+**Done:**
+- ~~`setIcon` / `getIcon`~~ — window icon from ImageData
 
 **Low priority (mobile/niche):**
 - `getDisplayOrientation` — mobile-only
