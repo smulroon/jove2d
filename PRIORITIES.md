@@ -18,7 +18,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
-| love.physics | **~55/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts; missing preSolve, gear/pulley (N/A in v3) |
+| love.physics | **~56/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve; gear/pulley N/A in v3 |
 | love.graphics | **~80/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
@@ -154,12 +154,12 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~Joint anchors, reaction force/torque~~ — joint query methods (Phase 2)
 - ~~`Body:setMassData`~~ — override mass properties (Phase 2)
 - ~~Contact positions/impulses in postSolve~~ — hit event point + approach speed (Phase 2)
-- ~~beginContact, endContact, postSolve callbacks~~ — contact event dispatch
+- ~~beginContact, endContact, postSolve, preSolve callbacks~~ — contact event dispatch
 - ~~AABB query, ray cast~~ — world queries
 - ~~Meter scaling (setMeter/getMeter)~~ — pixel↔meter conversion
 
 **Remaining gaps:**
-- preSolve callback (Box2D v3 uses `b2PreSolveFcn` on shapes — more complex than v2)
+- ~~preSolve callback~~ DONE — 1-frame-delay enable-list pattern (C records events, JS decides, sends enable list next frame)
 - Gear/pulley/rope/friction joints — do NOT exist in Box2D v3 (only distance/revolute/prismatic/weld/mouse/wheel/motor/filter)
 - WASM fallback backend
 
@@ -199,7 +199,7 @@ Grouped by priority based on impact for typical 2D game development.
 #### ~~love.physics (Box2D)~~ DONE
 - **Implemented**: Box2D v3.1.1 via thin C wrapper (`box2d_jove.c`) for bun:ffi struct compatibility
 - World, Body, Fixture (wraps b2ShapeId), Shape, 7 Joint types (distance/revolute/prismatic/weld/mouse/wheel/motor), Contact
-- Contact events (beginContact, endContact, postSolve via hit events with point + approach speed)
+- Contact events (beginContact, endContact, postSolve via hit events with point + approach speed, preSolve with 1-frame-delay enable-list)
 - Joint anchors, reaction force/torque; Body.setMassData
 - AABB query, ray cast
 - Meter scaling (default 30px/m, matching love2d)
@@ -294,10 +294,10 @@ Grouped by priority based on impact for typical 2D game development.
 **Quick wins:**
 22. ~~**Graphics DPI/info queries**~~ DONE — getDPIScale, getPixelDimensions, getPixelWidth, getPixelHeight, getRendererInfo, getStats
 23. ~~**setLineJoin / getLineJoin**~~ DONE — miter/bevel/none line join styles
+24. ~~**preSolve callback**~~ DONE — 1-frame-delay enable-list pattern, Contact.setEnabled, one-way platforms
 
 **Real game value:**
-24. **newQueueableSource** — streaming/procedural audio via SDL audio streams
-25. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
-26. **preSolve callback** — selective collision filtering, one-way platforms (Box2D v3 b2PreSolveFcn)
+25. **newQueueableSource** — streaming/procedural audio via SDL audio streams
+26. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
 27. **Bitmap font support** — BMFont/AngelCode format loading for pixel-art and stylized text
 28. **Error recovery** — graceful error messages, catch-and-display for load/update/draw failures

@@ -612,6 +612,83 @@ describe("jove.physics", () => {
   // ── Contact enhancements ───────────────────────────────────────
 
   describe("Contact", () => {
+    test("setEnabled/isEnabled", () => {
+      const b1 = physics.newBody(world, 0, 0, "static");
+      const b2 = physics.newBody(world, 0, 0, "dynamic");
+      const s1 = physics.newCircleShape(10);
+      const s2 = physics.newCircleShape(10);
+      const f1 = physics.newFixture(b1, s1);
+      const f2 = physics.newFixture(b2, s2);
+
+      const contact = new physics.Contact(f1, f2, 0, 1);
+      expect(contact.isEnabled()).toBe(true);
+      contact.setEnabled(false);
+      expect(contact.isEnabled()).toBe(false);
+    });
+
+    test("preSolve callback fires and can disable contacts", () => {
+      let preSolveCount = 0;
+      let disabledCount = 0;
+
+      // Ground
+      const ground = physics.newBody(world, 400, 550, "static");
+      const gs = physics.newRectangleShape(800, 20);
+      physics.newFixture(ground, gs);
+
+      // Falling ball
+      const ball = physics.newBody(world, 400, 100, "dynamic");
+      const bs = physics.newCircleShape(15);
+      physics.newFixture(ball, bs);
+
+      world.setCallbacks({
+        preSolve: (contact) => {
+          preSolveCount++;
+          // Disable the contact — ball should pass through
+          contact.setEnabled(false);
+          disabledCount++;
+        },
+      });
+
+      // Step until ball reaches ground level and beyond
+      for (let i = 0; i < 300; i++) {
+        world.update(1/60);
+      }
+
+      // preSolve should have fired at least once
+      expect(preSolveCount).toBeGreaterThan(0);
+      expect(disabledCount).toBeGreaterThan(0);
+
+      // Ball should have passed through ground (Y > 550 ground level)
+      const [, ballY] = ball.getPosition();
+      expect(ballY).toBeGreaterThan(550);
+    });
+
+    test("preSolve with setCallbacks enables events on existing shapes", () => {
+      let preSolveCount = 0;
+
+      // Create bodies/fixtures BEFORE setting callbacks
+      const ground = physics.newBody(world, 400, 550, "static");
+      const gs = physics.newRectangleShape(800, 20);
+      physics.newFixture(ground, gs);
+
+      const ball = physics.newBody(world, 400, 100, "dynamic");
+      const bs = physics.newCircleShape(15);
+      physics.newFixture(ball, bs);
+
+      // Set preSolve callback AFTER fixtures created
+      world.setCallbacks({
+        preSolve: (_contact) => {
+          preSolveCount++;
+        },
+      });
+
+      for (let i = 0; i < 300; i++) {
+        world.update(1/60);
+      }
+
+      expect(preSolveCount).toBeGreaterThan(0);
+    });
+
     test("getPositions and getNormalImpulse on postSolve", () => {
       let gotHit = false;
       let hitPoint: [number, number] = [0, 0];

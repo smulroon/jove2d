@@ -112,8 +112,22 @@ const _hitPointYPtr = ptr(_hitPointY);
 const _hitSpeed = new Float32Array(MAX_CONTACT_EVENTS);
 const _hitSpeedPtr = ptr(_hitSpeed);
 
-// Output counts [moveCount, beginCount, endCount, hitCount]
-const _outCounts = new Int32Array(4);
+// PreSolve events
+const _preSolveShapeA = new Int32Array(MAX_CONTACT_EVENTS);
+const _preSolveShapeAPtr = ptr(_preSolveShapeA);
+const _preSolveShapeB = new Int32Array(MAX_CONTACT_EVENTS);
+const _preSolveShapeBPtr = ptr(_preSolveShapeB);
+const _preSolveNormX = new Float32Array(MAX_CONTACT_EVENTS);
+const _preSolveNormXPtr = ptr(_preSolveNormX);
+const _preSolveNormY = new Float32Array(MAX_CONTACT_EVENTS);
+const _preSolveNormYPtr = ptr(_preSolveNormY);
+
+// PreSolve enable list (pairs to enable next frame — default is disabled)
+const _enableShapeA = new Int32Array(MAX_CONTACT_EVENTS);
+const _enableShapeB = new Int32Array(MAX_CONTACT_EVENTS);
+
+// Output counts [moveCount, beginCount, endCount, hitCount, preSolveCount]
+const _outCounts = new Int32Array(5);
 const _outCountsPtr = ptr(_outCounts);
 
 // Ray cast out-params
@@ -211,6 +225,7 @@ export class Contact {
   _pointX: number;
   _pointY: number;
   _approachSpeed: number;
+  _enabled: boolean;
 
   constructor(fixtureA: Fixture, fixtureB: Fixture, nx: number = 0, ny: number = 0,
               px: number = 0, py: number = 0, approachSpeed: number = 0) {
@@ -221,6 +236,7 @@ export class Contact {
     this._pointX = px;
     this._pointY = py;
     this._approachSpeed = approachSpeed;
+    this._enabled = true;
   }
 
   getFixtures(): [Fixture, Fixture] {
@@ -237,6 +253,14 @@ export class Contact {
 
   getNormalImpulse(): number {
     return this._approachSpeed * _meter;
+  }
+
+  setEnabled(flag: boolean): void {
+    this._enabled = flag;
+  }
+
+  isEnabled(): boolean {
+    return this._enabled;
   }
 }
 
@@ -870,7 +894,9 @@ export class World {
     beginContact?: (contact: Contact) => void;
     endContact?: (contact: Contact) => void;
     postSolve?: (contact: Contact, normalImpulse: number, tangentImpulse: number) => void;
+    preSolve?: (contact: Contact) => void;
   };
+  _enableCount: number;
 
   constructor(gx: number = 0, gy: number = 0, sleep: boolean = true) {
     this._id = lib().jove_CreateWorld(toMeters(gx), toMeters(gy), sleep ? 1 : 0, 0.01);
@@ -878,12 +904,24 @@ export class World {
     this._fixturesByIndex = [];
     this._joints = new Map();
     this._callbacks = {};
+    this._enableCount = 0;
   }
 
   update(dt: number, subSteps: number = 4): void {
     if (this._id === 0) return;
 
     const b2 = lib();
+
+    // Send enable list to C (pairs approved by JS last frame)
+    if (this._callbacks.preSolve) {
+      b2.jove_World_SetPreSolveEnableList(
+        ptr(_enableShapeA), ptr(_enableShapeB), this._enableCount
+      );
+    } else if (this._enableCount > 0) {
+      // Clear the enable list if preSolve was removed
+      b2.jove_World_SetPreSolveEnableList(ptr(_enableShapeA), ptr(_enableShapeB), 0);
+      this._enableCount = 0;
+    }
 
     // Single FFI call: step + read all events
     b2.jove_World_UpdateFull(
@@ -894,6 +932,8 @@ export class World {
       _hitShapeAPtr, _hitShapeBPtr,
       _hitNormXPtr, _hitNormYPtr,
       _hitPointXPtr, _hitPointYPtr, _hitSpeedPtr, MAX_CONTACT_EVENTS,
+      _preSolveShapeAPtr, _preSolveShapeBPtr,
+      _preSolveNormXPtr, _preSolveNormYPtr, MAX_CONTACT_EVENTS,
       _outCountsPtr
     );
 
@@ -902,6 +942,7 @@ export class World {
     const beginCount = read.i32(_outCountsPtr, 4);
     const endCount = read.i32(_outCountsPtr, 8);
     const hitCount = read.i32(_outCountsPtr, 12);
+    const preSolveCount = read.i32(_outCountsPtr, 16);
 
     // Cache body transforms BEFORE dispatching contact events
     for (let i = 0; i < moveCount; i++) {
@@ -918,10 +959,13 @@ export class World {
 
     // Dispatch contact events
     this._dispatchFromBuffers(beginCount, endCount, hitCount);
+
+    // Dispatch preSolve events and build disable list for next frame
+    this._dispatchPreSolve(preSolveCount);
   }
 
   private _dispatchFromBuffers(beginCount: number, endCount: number, hitCount: number): void {
-    if (!this._callbacks.beginContact && !this._callbacks.endContact && !this._callbacks.postSolve) return;
+    if (!this._callbacks.beginContact && !this._callbacks.endContact && !this._callbacks.postSolve && !this._callbacks.preSolve) return;
 
     // Begin events
     if (this._callbacks.beginContact && beginCount > 0) {
@@ -971,21 +1015,63 @@ export class World {
     }
   }
 
+  private _dispatchPreSolve(preSolveCount: number): void {
+    // Reset enable count for next frame
+    this._enableCount = 0;
+
+    if (!this._callbacks.preSolve || preSolveCount === 0) return;
+
+    for (let i = 0; i < preSolveCount; i++) {
+      const idxA = read.i32(_preSolveShapeAPtr, i * 4);
+      const idxB = read.i32(_preSolveShapeBPtr, i * 4);
+      if (idxA < 0 || idxB < 0) continue;
+      const fA = this._fixturesByIndex[idxA];
+      const fB = this._fixturesByIndex[idxB];
+      if (fA && fB) {
+        const nx = read.f32(_preSolveNormXPtr, i * 4);
+        const ny = read.f32(_preSolveNormYPtr, i * 4);
+        const contact = new Contact(fA, fB, nx, ny);
+        this._callbacks.preSolve(contact);
+        // Build enable list: pairs where user left contact enabled (default)
+        // Pairs where user called setEnabled(false) are NOT added → C will disable them
+        if (contact._enabled && this._enableCount < MAX_CONTACT_EVENTS) {
+          _enableShapeA[this._enableCount] = idxA;
+          _enableShapeB[this._enableCount] = idxB;
+          this._enableCount++;
+        }
+      }
+    }
+  }
+
   setCallbacks(callbacks: {
     beginContact?: (contact: Contact) => void;
     endContact?: (contact: Contact) => void;
     postSolve?: (contact: Contact, normalImpulse: number, tangentImpulse: number) => void;
+    preSolve?: (contact: Contact) => void;
   }): void {
     const hadPostSolve = !!this._callbacks.postSolve;
+    const hadPreSolve = !!this._callbacks.preSolve;
     this._callbacks = callbacks;
+    const b2 = lib();
     // Enable hit events on all existing shapes when postSolve is newly registered
     if (callbacks.postSolve && !hadPostSolve) {
-      const b2 = lib();
       for (const fixture of this._fixturesByIndex) {
         if (fixture && fixture._shapeId >= 0 && !fixture._isChain) {
           b2.jove_Shape_EnableHitEvents(fixture._shapeId, 1);
         }
       }
+    }
+    // Enable preSolve events on all existing shapes when preSolve is newly registered
+    if (callbacks.preSolve && !hadPreSolve) {
+      for (const fixture of this._fixturesByIndex) {
+        if (fixture && fixture._shapeId >= 0 && !fixture._isChain) {
+          b2.jove_Shape_EnablePreSolveEvents(fixture._shapeId, 1);
+        }
+      }
+    }
+    // Clear enable list when preSolve is removed
+    if (!callbacks.preSolve && hadPreSolve) {
+      this._enableCount = 0;
     }
   }
 
@@ -1177,13 +1263,14 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
   let shapeIdx: number;
   let isChain = false;
   const hitEvents = body._world._callbacks.postSolve ? 1 : 0;
+  const preSolveEvents = body._world._callbacks.preSolve ? 1 : 0;
 
   switch (type) {
     case "circle": {
       const cx = pts.length >= 2 ? toMeters(pts[0]) : 0;
       const cy = pts.length >= 2 ? toMeters(pts[1]) : 0;
       shapeIdx = b2.jove_CreateCircleShape(
-        body._id, density, 0.2, 0, 0, hitEvents,
+        body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents,
         cx, cy, toMeters(shape._radius)
       );
       break;
@@ -1197,7 +1284,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
           const hw = toMeters(Math.abs(x1 - x0) / 2);
           const hh = toMeters(Math.abs(y2 - y1) / 2);
           shapeIdx = b2.jove_CreateBoxShape(
-            body._id, density, 0.2, 0, 0, hitEvents, hw, hh
+            body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents, hw, hh
           );
           break;
         }
@@ -1208,14 +1295,14 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
         vertBuf[i] = toMeters(pts[i]);
       }
       shapeIdx = b2.jove_CreatePolygonShape(
-        body._id, density, 0.2, 0, 0, hitEvents,
+        body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents,
         ptr(vertBuf), pts.length / 2
       );
       break;
     }
     case "edge": {
       shapeIdx = b2.jove_CreateEdgeShape(
-        body._id, density, 0.2, 0, 0, hitEvents,
+        body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents,
         toMeters(pts[0]), toMeters(pts[1]),
         toMeters(pts[2]), toMeters(pts[3])
       );

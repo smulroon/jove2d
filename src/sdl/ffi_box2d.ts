@@ -54,8 +54,16 @@ function _load() {
              FFIType.pointer, FFIType.pointer, FFIType.i32,
              // hit events
              FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32,
+             // preSolve events
+             FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32,
              // output counts
              FFIType.pointer],
+      returns: FFIType.void,
+    },
+
+    /* PreSolve enable list */
+    jove_World_SetPreSolveEnableList: {
+      args: [FFIType.pointer, FFIType.pointer, FFIType.i32],
       returns: FFIType.void,
     },
 
@@ -225,22 +233,22 @@ function _load() {
 
     /* ── Shapes ─────────────────────────────────────────────────── */
     jove_CreateCircleShape: {
-      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32,
+      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32, FFIType.i32,
              FFIType.f32, FFIType.f32, FFIType.f32],
       returns: FFIType.i32,
     },
     jove_CreateBoxShape: {
-      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32,
+      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32, FFIType.i32,
              FFIType.f32, FFIType.f32],
       returns: FFIType.i32,
     },
     jove_CreatePolygonShape: {
-      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32,
+      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32, FFIType.i32,
              FFIType.pointer, FFIType.i32],
       returns: FFIType.i32,
     },
     jove_CreateEdgeShape: {
-      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32,
+      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.i32, FFIType.i32, FFIType.i32,
              FFIType.f32, FFIType.f32, FFIType.f32, FFIType.f32],
       returns: FFIType.i32,
     },
@@ -266,6 +274,10 @@ function _load() {
       returns: FFIType.i32,
     },
     jove_Shape_EnableHitEvents: {
+      args: [FFIType.i32, FFIType.i32],
+      returns: FFIType.void,
+    },
+    jove_Shape_EnablePreSolveEvents: {
       args: [FFIType.i32, FFIType.i32],
       returns: FFIType.void,
     },

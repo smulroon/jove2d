@@ -31,6 +31,21 @@ static inline b2JointId unpack_joint(uint64_t v) {
     b2JointId r; memcpy(&r, &v, sizeof(b2JointId)); return r;
 }
 
+/* ── PreSolve callback storage ────────────────────────────────────── */
+
+#define MAX_PRESOLVE 256
+
+static int   g_preSolveShapeA[MAX_PRESOLVE];
+static int   g_preSolveShapeB[MAX_PRESOLVE];
+static float g_preSolveNormX[MAX_PRESOLVE];
+static float g_preSolveNormY[MAX_PRESOLVE];
+static int   g_preSolveCount = 0;
+
+/* Enable list: pairs of shape indices to enable this frame (default=disabled) */
+static int   g_enableShapeA[MAX_PRESOLVE];
+static int   g_enableShapeB[MAX_PRESOLVE];
+static int   g_enableCount = 0;
+
 /* ── C-side body/shape index storage ──────────────────────────────── */
 
 #define MAX_BODIES 4096
@@ -76,6 +91,49 @@ static void free_shape(int idx) {
 void jove_FreeBodyIndex(int idx) { free_body(idx); }
 void jove_FreeShapeIndex(int idx) { free_shape(idx); }
 
+/* ── PreSolve callback ──────────────────────────────────────────────── */
+
+static bool jove_preSolveFcn(b2ShapeId shapeIdA, b2ShapeId shapeIdB,
+                              b2Manifold* manifold, void* context) {
+    (void)context;
+    void* udA = b2Shape_GetUserData(shapeIdA);
+    void* udB = b2Shape_GetUserData(shapeIdB);
+    int idxA = udA ? (int)(intptr_t)udA - 1 : -1;
+    int idxB = udB ? (int)(intptr_t)udB - 1 : -1;
+
+    /* Record the event for JS to see */
+    if (g_preSolveCount < MAX_PRESOLVE && idxA >= 0 && idxB >= 0) {
+        g_preSolveShapeA[g_preSolveCount] = idxA;
+        g_preSolveShapeB[g_preSolveCount] = idxB;
+        g_preSolveNormX[g_preSolveCount] = manifold->normal.x;
+        g_preSolveNormY[g_preSolveCount] = manifold->normal.y;
+        g_preSolveCount++;
+    }
+
+    /* Check enable list from JS (set last frame).
+     * Default is DISABLED — only pairs explicitly approved by JS are enabled.
+     * This prevents 1-frame-delay bounce on new contacts. */
+    for (int i = 0; i < g_enableCount; i++) {
+        if ((g_enableShapeA[i] == idxA && g_enableShapeB[i] == idxB) ||
+            (g_enableShapeA[i] == idxB && g_enableShapeB[i] == idxA)) {
+            return true; /* enable this contact */
+        }
+    }
+    return false; /* disable by default */
+}
+
+void jove_World_SetPreSolveEnableList(int* shapeA, int* shapeB, int count) {
+    g_enableCount = count < MAX_PRESOLVE ? count : MAX_PRESOLVE;
+    if (g_enableCount > 0) {
+        memcpy(g_enableShapeA, shapeA, g_enableCount * sizeof(int));
+        memcpy(g_enableShapeB, shapeB, g_enableCount * sizeof(int));
+    }
+}
+
+void jove_Shape_EnablePreSolveEvents(int shapeIdx, int flag) {
+    b2Shape_EnablePreSolveEvents(g_shapes[shapeIdx], flag ? true : false);
+}
+
 /* ── World ──────────────────────────────────────────────────────────── */
 
 uint32_t jove_CreateWorld(float gx, float gy, int allowSleep, float hitEventThreshold) {
@@ -83,7 +141,9 @@ uint32_t jove_CreateWorld(float gx, float gy, int allowSleep, float hitEventThre
     def.gravity = (b2Vec2){gx, gy};
     def.enableSleep = allowSleep ? true : false;
     def.hitEventThreshold = hitEventThreshold;
-    return pack_world(b2CreateWorld(&def));
+    b2WorldId wid = b2CreateWorld(&def);
+    b2World_SetPreSolveCallback(wid, jove_preSolveFcn, NULL);
+    return pack_world(wid);
 }
 
 void jove_DestroyWorld(uint32_t worldId) {
@@ -123,10 +183,16 @@ void jove_World_UpdateFull(
     int* hitShapeA, int* hitShapeB,
     float* hitNormX, float* hitNormY,
     float* hitPointX, float* hitPointY, float* hitSpeed, int maxHit,
-    /* Output counts: [moveCount, beginCount, endCount, hitCount] */
+    /* PreSolve events (out) */
+    int* preSolveShapeA, int* preSolveShapeB,
+    float* preSolveNormX, float* preSolveNormY, int maxPreSolve,
+    /* Output counts: [moveCount, beginCount, endCount, hitCount, preSolveCount] */
     int* outCounts)
 {
     b2WorldId wid = unpack_world(worldId);
+
+    /* 0. Reset preSolve event buffer */
+    g_preSolveCount = 0;
 
     /* 1. Step */
     b2World_Step(wid, dt, subSteps);
@@ -182,6 +248,16 @@ void jove_World_UpdateFull(
         hitSpeed[i] = he->approachSpeed;
     }
     outCounts[3] = hc;
+
+    /* 5. PreSolve events (recorded by callback during step) */
+    int pc = g_preSolveCount < maxPreSolve ? g_preSolveCount : maxPreSolve;
+    if (pc > 0) {
+        memcpy(preSolveShapeA, g_preSolveShapeA, pc * sizeof(int));
+        memcpy(preSolveShapeB, g_preSolveShapeB, pc * sizeof(int));
+        memcpy(preSolveNormX, g_preSolveNormX, pc * sizeof(float));
+        memcpy(preSolveNormY, g_preSolveNormY, pc * sizeof(float));
+    }
+    outCounts[4] = pc;
 }
 
 /* ── Body ───────────────────────────────────────────────────────────── */
@@ -374,6 +450,7 @@ void jove_Body_SetMassData(int bodyIdx, float mass, float cx, float cy, float in
 
 int jove_CreateCircleShape(int bodyIdx, float density, float friction,
                            float restitution, int sensor, int hitEvents,
+                           int preSolveEvents,
                            float cx, float cy, float radius) {
     int idx = alloc_shape();
     if (idx < 0) return -1;
@@ -384,6 +461,7 @@ int jove_CreateCircleShape(int bodyIdx, float density, float friction,
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
     def.enableHitEvents = hitEvents ? true : false;
+    def.enablePreSolveEvents = preSolveEvents ? true : false;
     def.userData = (void*)(intptr_t)(idx + 1);
     b2Circle circle = { .center = {cx, cy}, .radius = radius };
     g_shapes[idx] = b2CreateCircleShape(g_bodies[bodyIdx], &def, &circle);
@@ -393,6 +471,7 @@ int jove_CreateCircleShape(int bodyIdx, float density, float friction,
 
 int jove_CreateBoxShape(int bodyIdx, float density, float friction,
                         float restitution, int sensor, int hitEvents,
+                        int preSolveEvents,
                         float hw, float hh) {
     int idx = alloc_shape();
     if (idx < 0) return -1;
@@ -403,6 +482,7 @@ int jove_CreateBoxShape(int bodyIdx, float density, float friction,
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
     def.enableHitEvents = hitEvents ? true : false;
+    def.enablePreSolveEvents = preSolveEvents ? true : false;
     def.userData = (void*)(intptr_t)(idx + 1);
     b2Polygon box = b2MakeBox(hw, hh);
     g_shapes[idx] = b2CreatePolygonShape(g_bodies[bodyIdx], &def, &box);
@@ -412,6 +492,7 @@ int jove_CreateBoxShape(int bodyIdx, float density, float friction,
 
 int jove_CreatePolygonShape(int bodyIdx, float density, float friction,
                             float restitution, int sensor, int hitEvents,
+                            int preSolveEvents,
                             const float* verts, int count) {
     int idx = alloc_shape();
     if (idx < 0) return -1;
@@ -422,6 +503,7 @@ int jove_CreatePolygonShape(int bodyIdx, float density, float friction,
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
     def.enableHitEvents = hitEvents ? true : false;
+    def.enablePreSolveEvents = preSolveEvents ? true : false;
     def.userData = (void*)(intptr_t)(idx + 1);
     b2Vec2 points[B2_MAX_POLYGON_VERTICES];
     int n = count < B2_MAX_POLYGON_VERTICES ? count : B2_MAX_POLYGON_VERTICES;
@@ -437,6 +519,7 @@ int jove_CreatePolygonShape(int bodyIdx, float density, float friction,
 
 int jove_CreateEdgeShape(int bodyIdx, float density, float friction,
                          float restitution, int sensor, int hitEvents,
+                         int preSolveEvents,
                          float x1, float y1, float x2, float y2) {
     int idx = alloc_shape();
     if (idx < 0) return -1;
@@ -447,6 +530,7 @@ int jove_CreateEdgeShape(int bodyIdx, float density, float friction,
     def.isSensor = sensor ? true : false;
     def.enableContactEvents = true;
     def.enableHitEvents = hitEvents ? true : false;
+    def.enablePreSolveEvents = preSolveEvents ? true : false;
     def.userData = (void*)(intptr_t)(idx + 1);
     b2Segment segment = { .point1 = {x1, y1}, .point2 = {x2, y2} };
     g_shapes[idx] = b2CreateSegmentShape(g_bodies[bodyIdx], &def, &segment);
