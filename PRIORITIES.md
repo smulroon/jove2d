@@ -19,7 +19,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.physics | **~56/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve; gear/pulley N/A in v3 |
-| love.graphics | **~80/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats done |
+| love.graphics | **~81/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats/bitmap fonts done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
@@ -27,10 +27,10 @@ Grouped by priority based on impact for typical 2D game development.
 | love.video | **Not implemented** | Needs video decoder (P4) |
 | love.sound | **Not implemented** | Data-level audio APIs (P3) |
 | love.image | **7/7 Complete** | newImageData, getPixel/setPixel, mapPixel, paste, encode, getString |
-| love.font | **Inline** | Integrated into graphics module; standalone module not needed |
+| love.font | **Inline** | Integrated into graphics module; bitmap fonts via newImageFont |
 | love.sensor | **Not planned** | Mobile-only |
 
-**Summary: 14/20 modules implemented, 8 at 100%, 10 at 75%+**
+**Summary: 14/20 modules implemented, 8 at 100%, 11 at 75%+**
 
 ---
 
@@ -243,10 +243,10 @@ Grouped by priority based on impact for typical 2D game development.
 - **Why P4**: Rarely used. Most games use sprite animations.
 
 #### love.font (standalone module)
-- **Current**: Font functionality is in graphics module
+- **Current**: Font functionality is in graphics module; bitmap fonts supported via `newImageFont`
 - **Needed**: Separate module for GlyphData, Rasterizer access
 - **Approach**: Low priority — current Font API covers 99% of use cases
-- **Why P4**: Only needed for advanced text rendering (bitmap fonts, SDF).
+- **Why P4**: Only needed for advanced text rendering (SDF fonts, custom rasterizers).
 
 ---
 
@@ -295,9 +295,9 @@ Grouped by priority based on impact for typical 2D game development.
 22. ~~**Graphics DPI/info queries**~~ DONE — getDPIScale, getPixelDimensions, getPixelWidth, getPixelHeight, getRendererInfo, getStats
 23. ~~**setLineJoin / getLineJoin**~~ DONE — miter/bevel/none line join styles
 24. ~~**preSolve callback**~~ DONE — 1-frame-delay enable-list pattern, Contact.setEnabled, one-way platforms
+25. ~~**Bitmap font support**~~ DONE — newImageFont with separator-color glyph detection, pixel-art font rendering
 
 **Real game value:**
-25. **newQueueableSource** — streaming/procedural audio via SDL audio streams
-26. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
-27. **Bitmap font support** — BMFont/AngelCode format loading for pixel-art and stylized text
+26. **newQueueableSource** — streaming/procedural audio via SDL audio streams
+27. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
 28. **Error recovery** — graceful error messages, catch-and-display for load/update/draw failures
