@@ -123,6 +123,11 @@ function _errorLoop(error: unknown): void {
       graphics.reset();
       graphics._beginFrame();
 
+      const winW = graphics.getWidth();
+      const winH = graphics.getHeight();
+      const margin = 70;
+      const wrapW = winW - margin * 2;
+
       // Blue background (love2d style)
       graphics.setBackgroundColor(29, 43, 83, 255);
       sdl.SDL_SetRenderDrawColor(
@@ -130,14 +135,16 @@ function _errorLoop(error: unknown): void {
       );
       sdl.SDL_RenderClear(graphics._getRenderer()!);
 
-      // White text
+      // Title
       graphics.setColor(255, 255, 255, 255);
-      graphics.print("Error", 70, 70);
-      graphics.print(errMsg, 70, 100);
+      graphics.print("Error", margin, margin);
+
+      // Error message body — word-wrapped
+      graphics.printf(errMsg, margin, margin + 30, wrapW, "left");
 
       // Footer
       graphics.setColor(160, 160, 160, 255);
-      graphics.print("Press Escape to quit.  Error copied to clipboard.", 70, 570);
+      graphics.print("Press Escape to quit.  Error copied to clipboard.", margin, winH - 30);
 
       graphics._endFrame();
     } catch {
