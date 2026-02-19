@@ -6,20 +6,31 @@ import { CURSOR_TYPE_TO_SDL, SDL_PIXELFORMAT_RGBA8888 } from "../sdl/types.ts";
 import type { CursorType } from "../sdl/types.ts";
 import type { ImageData } from "./types.ts";
 import { _getSDLWindow } from "./window.ts";
+import { _getRenderer } from "./graphics.ts";
 
 // Pre-allocated out-param buffers for x/y (float)
 const _xBuf = new Float32Array(1);
 const _yBuf = new Float32Array(1);
 const _xPtr = ptr(_xBuf);
 const _yPtr = ptr(_yBuf);
+// Separate out-param buffers for render coordinate conversion
+const _rxBuf = new Float32Array(1);
+const _ryBuf = new Float32Array(1);
+const _rxPtr = ptr(_rxBuf);
+const _ryPtr = ptr(_ryBuf);
 
 function _getState(): { x: number; y: number; buttons: number } {
   const buttons = sdl.SDL_GetMouseState(_xPtr, _yPtr);
-  return {
-    x: read.f32(_xPtr, 0),
-    y: read.f32(_yPtr, 0),
-    buttons,
-  };
+  let x = read.f32(_xPtr, 0);
+  let y = read.f32(_yPtr, 0);
+  // Convert from window coordinates to render (logical) coordinates.
+  // Required when SDL_SetRenderLogicalPresentation is active (high-DPI scaling).
+  const renderer = _getRenderer();
+  if (renderer && sdl.SDL_RenderCoordinatesFromWindow(renderer, x, y, _rxPtr, _ryPtr)) {
+    x = read.f32(_rxPtr, 0);
+    y = read.f32(_ryPtr, 0);
+  }
+  return { x, y, buttons };
 }
 
 /** Get the current mouse position. */

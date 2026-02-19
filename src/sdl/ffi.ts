@@ -553,6 +553,16 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer],
     returns: FFIType.bool,
   },
+  // bool SDL_ConvertEventToRenderCoordinates(SDL_Renderer* renderer, SDL_Event* event)
+  SDL_ConvertEventToRenderCoordinates: {
+    args: [FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_RenderCoordinatesFromWindow(SDL_Renderer* renderer, float window_x, float window_y, float* x, float* y)
+  SDL_RenderCoordinatesFromWindow: {
+    args: [FFIType.pointer, FFIType.f32, FFIType.f32, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
   // const char* SDL_GetRendererName(SDL_Renderer* renderer)
   SDL_GetRendererName: {
     args: [FFIType.pointer],

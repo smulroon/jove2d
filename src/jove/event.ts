@@ -61,6 +61,7 @@ import {
   SCANCODE_NAMES,
 } from "../sdl/types.ts";
 import type { JoveEvent } from "./types.ts";
+import { _getRenderer } from "./graphics.ts";
 
 // Pre-allocate event buffer — reused every poll call.
 // IMPORTANT: We must use read.u32/read.i32 from bun:ffi to read from the
@@ -100,7 +101,13 @@ export function pollEvents(): JoveEvent[] {
     events.push(_injectedEvents.shift()!);
   }
 
+  const renderer = _getRenderer();
   while (sdl.SDL_PollEvent(eventPtr)) {
+    // Convert mouse/touch coordinates from window space to render (logical) space.
+    // Required when SDL_SetRenderLogicalPresentation is active (high-DPI scaling).
+    if (renderer) {
+      sdl.SDL_ConvertEventToRenderCoordinates(renderer, eventPtr);
+    }
     const eventType = read.u32(eventPtr, 0);
     const event = mapEvent(eventType, eventPtr);
     if (event) {
