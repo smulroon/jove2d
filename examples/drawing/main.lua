@@ -68,15 +68,20 @@ function love.draw()
   end
   love.graphics.polygon("line", pentVerts)
 
-  -- Multi-segment line
-  love.graphics.setColor(50/255, 220/255, 220/255)
-  love.graphics.line(310, 280, 370, 350, 340, 360, 400, 290)
-
-  -- Multiple points
-  love.graphics.setColor(1, 200/255, 50/255)
-  for i = 0, 29 do
-    love.graphics.points(430 + (i % 10) * 8, 290 + math.floor(i / 10) * 8)
+  -- Line joins comparison (smooth lines, width=12, sharp zigzag)
+  love.graphics.setLineWidth(12)
+  love.graphics.setLineStyle("smooth")
+  local joins = {"miter", "bevel", "none"}
+  local colors = {{50,220,220}, {255,160,50}, {180,100,255}}
+  for j = 1, 3 do
+    love.graphics.setLineJoin(joins[j])
+    love.graphics.setColor(colors[j][1]/255, colors[j][2]/255, colors[j][3]/255)
+    local bx = 310 + (j-1) * 70
+    love.graphics.line(bx, 290, bx + 40, 330, bx, 350, bx + 40, 370)
   end
+  love.graphics.setLineWidth(1)
+  love.graphics.setLineStyle("rough")
+  love.graphics.setLineJoin("miter")
 
   -- --- Row 4: Transform stack demo ---
 
@@ -155,7 +160,7 @@ function love.draw()
   love.graphics.setColor(160/255, 160/255, 160/255)
   love.graphics.print("rect  rect   circle circle", 20, 120)
   love.graphics.print("ellipse ellipse  arc    arc", 20, 230)
-  love.graphics.print("polygon pentagon line  points", 20, 370)
+  love.graphics.print("polygon pentagon joins:miter/bevel/none", 20, 370)
   love.graphics.print("rotate     scale     shear", 100, 490)
 end
 

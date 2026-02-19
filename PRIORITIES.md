@@ -78,7 +78,7 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`applyTransform` / `replaceTransform`~~ DONE — apply Transform object to stack
 
 **P3 — Useful for specific cases:**
-- `setLineJoin` / `getLineJoin` — miter/bevel/none line joins
+- ~~`setLineJoin` / `getLineJoin`~~ — miter/bevel/none line joins DONE
 - ~~`setLineStyle` / `getLineStyle`~~ — rough/smooth line style
 - ~~`getDPIScale` / `getPixelDimensions` / `getPixelHeight` / `getPixelWidth`~~ — HiDPI pixel queries DONE
 - ~~`getRendererInfo` / `getStats`~~ — renderer info and per-frame draw stats DONE
@@ -293,7 +293,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 **Quick wins:**
 22. ~~**Graphics DPI/info queries**~~ DONE — getDPIScale, getPixelDimensions, getPixelWidth, getPixelHeight, getRendererInfo, getStats
-23. **setLineJoin / getLineJoin** — miter/bevel/none line join styles
+23. ~~**setLineJoin / getLineJoin**~~ DONE — miter/bevel/none line join styles
 
 **Real game value:**
 24. **newQueueableSource** — streaming/procedural audio via SDL audio streams

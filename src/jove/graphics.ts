@@ -54,6 +54,9 @@ let _pointSize = 1;
 type LineStyle = "rough" | "smooth";
 let _lineStyle: LineStyle = "rough";
 
+type LineJoin = "miter" | "bevel" | "none";
+let _lineJoin: LineJoin = "miter";
+
 // Default texture filter mode (applied to new images/canvases)
 let _defaultFilterMin: FilterMode = "nearest";
 let _defaultFilterMag: FilterMode = "nearest";
@@ -2034,6 +2037,16 @@ export function getLineStyle(): LineStyle {
   return _lineStyle;
 }
 
+/** Set the line join style ("miter", "bevel", or "none"). */
+export function setLineJoin(join: LineJoin): void {
+  _lineJoin = join;
+}
+
+/** Get the current line join style. */
+export function getLineJoin(): LineJoin {
+  return _lineJoin;
+}
+
 // ============================================================
 // Default filter
 // ============================================================
@@ -2135,6 +2148,7 @@ export function reset(): void {
   _lineWidth = 1;
   _pointSize = 1;
   _lineStyle = "rough";
+  _lineJoin = "miter";
   setScissor();
   if (_stencilActive) setStencilTest(); // disable stencil
   _transform = [1, 0, 0, 1, 0, 0];
@@ -2152,10 +2166,15 @@ export function reset(): void {
 
 /**
  * Draw anti-aliased lines using SDL_RenderGeometry with per-vertex alpha fringe.
- * Points must be in screen-space (pre-transformed). Uses miter joins at interior vertices.
+ * Points must be in screen-space (pre-transformed). Join style controlled by _lineJoin.
  */
 function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): void {
   if (!_renderer || numPoints < 2) return;
+
+  if (_lineJoin !== "miter") {
+    _smoothLinesPerSegment(points, numPoints, loop, _lineJoin === "none");
+    return;
+  }
 
   const hw = _lineWidth / 2;
   const fringe = 0.75; // AA fringe width in pixels
@@ -2276,6 +2295,138 @@ function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): v
   }
 
   sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), totalVerts, ptr(idxBuf), totalIndices);
+}
+
+/**
+ * Draw per-segment line strips for bevel and none join styles.
+ * Each segment uses its own perpendicular normal (constant width per segment).
+ * - bevel (withGaps=false): per-segment quads + triangles filling outer-bend gaps
+ * - none (withGaps=true): per-segment quads with inset endpoints, no fill
+ */
+function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: boolean, withGaps: boolean): void {
+  if (!_renderer || numPoints < 2) return;
+
+  const hw = _lineWidth / 2;
+  const fringe = 0.75;
+  const gapInset = withGaps ? Math.max(1, _lineWidth * 0.15) : 0;
+  const [dr, dg, db, da] = _drawColor;
+  const cr = dr / 255, cg = dg / 255, cb = db / 255, ca = da / 255;
+
+  const numSegments = loop ? numPoints : numPoints - 1;
+  const numJoins = withGaps ? 0 : (loop ? numPoints : Math.max(0, numPoints - 2));
+  const totalVerts = numSegments * 8;
+  const totalIndices = numSegments * 18;
+
+  const vertBuf = new Float32Array(totalVerts * 8);
+  const idxBuf = new Int32Array(totalIndices);
+
+  // Pre-compute per-segment normals for bevel triangle emission
+  const segNx = new Float32Array(numSegments);
+  const segNy = new Float32Array(numSegments);
+
+  for (let s = 0; s < numSegments; s++) {
+    const i0 = s;
+    const i1 = loop ? ((s + 1) % numPoints) : (s + 1);
+    const dx = points[i1 * 2] - points[i0 * 2];
+    const dy = points[i1 * 2 + 1] - points[i0 * 2 + 1];
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len > 0) { segNx[s] = -dy / len; segNy[s] = dx / len; }
+  }
+
+  for (let s = 0; s < numSegments; s++) {
+    const i0 = s;
+    const i1 = loop ? ((s + 1) % numPoints) : (s + 1);
+    let x0 = points[i0 * 2], y0 = points[i0 * 2 + 1];
+    let x1 = points[i1 * 2], y1 = points[i1 * 2 + 1];
+    const nx = segNx[s], ny = segNy[s];
+    const outerDist = hw + fringe;
+
+    // Inset endpoints for "none" to create visible gaps
+    if (gapInset > 0) {
+      const dx = x1 - x0, dy = y1 - y0;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len > gapInset * 2) {
+        const tx = dx / len * gapInset, ty = dy / len * gapInset;
+        x0 += tx; y0 += ty;
+        x1 -= tx; y1 -= ty;
+      }
+    }
+
+    const vBase = s * 8 * 8;
+    const pts = [x0, y0, x1, y1];
+    for (let p = 0; p < 2; p++) {
+      const px = pts[p * 2], py = pts[p * 2 + 1];
+      for (let v = 0; v < 4; v++) {
+        const sign = v < 2 ? 1 : -1;
+        const isOuter = v === 0 || v === 3;
+        const dist = isOuter ? outerDist : hw;
+        const off = vBase + (p * 4 + v) * 8;
+        vertBuf[off] = px + nx * sign * dist;
+        vertBuf[off + 1] = py + ny * sign * dist;
+        vertBuf[off + 2] = cr; vertBuf[off + 3] = cg;
+        vertBuf[off + 4] = cb; vertBuf[off + 5] = isOuter ? 0 : ca;
+      }
+    }
+
+    const vi0 = s * 8, vi1 = vi0 + 4;
+    const base = s * 18;
+    idxBuf[base] = vi0; idxBuf[base + 1] = vi1; idxBuf[base + 2] = vi1 + 1;
+    idxBuf[base + 3] = vi0; idxBuf[base + 4] = vi1 + 1; idxBuf[base + 5] = vi0 + 1;
+    idxBuf[base + 6] = vi0 + 1; idxBuf[base + 7] = vi1 + 1; idxBuf[base + 8] = vi1 + 2;
+    idxBuf[base + 9] = vi0 + 1; idxBuf[base + 10] = vi1 + 2; idxBuf[base + 11] = vi0 + 2;
+    idxBuf[base + 12] = vi0 + 2; idxBuf[base + 13] = vi1 + 2; idxBuf[base + 14] = vi1 + 3;
+    idxBuf[base + 15] = vi0 + 2; idxBuf[base + 16] = vi1 + 3; idxBuf[base + 17] = vi0 + 3;
+  }
+
+  sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), numSegments * 8, ptr(idxBuf), numSegments * 18);
+
+  // Emit bevel fill triangles at interior joints as a separate draw call
+  if (!withGaps && numJoins > 0) {
+    const bvBuf = new Float32Array(numJoins * 3 * 8);
+    const biBuf = new Int32Array(numJoins * 3);
+    let bv = 0, bi = 0;
+
+    const startJ = loop ? 0 : 1;
+    const endJ = loop ? numPoints : numPoints - 1;
+    for (let j = startJ; j < endJ; j++) {
+      const prevSeg = loop ? ((j - 1 + numSegments) % numSegments) : (j - 1);
+      const nextSeg = loop ? (j % numSegments) : j;
+      const px = points[j * 2], py = points[j * 2 + 1];
+
+      const pi = loop ? ((j - 1 + numPoints) % numPoints) : (j - 1);
+      const ni = loop ? ((j + 1) % numPoints) : (j + 1);
+      const dAx = px - points[pi * 2], dAy = py - points[pi * 2 + 1];
+      const dBx = points[ni * 2] - px, dBy = points[ni * 2 + 1] - py;
+
+      // Gap is on the SAME side of both normals
+      const cross = dAx * dBy - dAy * dBx;
+      if (Math.abs(cross) < 0.001) continue; // collinear, no gap
+      const sign = cross > 0 ? -1 : 1;
+
+      const nAx = segNx[prevSeg], nAy = segNy[prevSeg];
+      const nBx = segNx[nextSeg], nBy = segNy[nextSeg];
+
+      const vi = bv / 8;
+      // Vertex 0: center (join point)
+      bvBuf[bv++] = px; bvBuf[bv++] = py;
+      bvBuf[bv++] = cr; bvBuf[bv++] = cg; bvBuf[bv++] = cb; bvBuf[bv++] = ca;
+      bvBuf[bv++] = 0; bvBuf[bv++] = 0;
+      // Vertex 1: outer edge of prev segment at join (same side as gap)
+      bvBuf[bv++] = px + nAx * sign * hw; bvBuf[bv++] = py + nAy * sign * hw;
+      bvBuf[bv++] = cr; bvBuf[bv++] = cg; bvBuf[bv++] = cb; bvBuf[bv++] = ca;
+      bvBuf[bv++] = 0; bvBuf[bv++] = 0;
+      // Vertex 2: outer edge of next segment at join (same side as gap)
+      bvBuf[bv++] = px + nBx * sign * hw; bvBuf[bv++] = py + nBy * sign * hw;
+      bvBuf[bv++] = cr; bvBuf[bv++] = cg; bvBuf[bv++] = cb; bvBuf[bv++] = ca;
+      bvBuf[bv++] = 0; bvBuf[bv++] = 0;
+
+      biBuf[bi++] = vi; biBuf[bi++] = vi + 1; biBuf[bi++] = vi + 2;
+    }
+
+    if (bi > 0) {
+      sdl.SDL_RenderGeometry(_renderer, null, ptr(bvBuf), bv / 8, ptr(biBuf), bi);
+    }
+  }
 }
 
 // ============================================================

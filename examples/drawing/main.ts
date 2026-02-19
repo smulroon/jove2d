@@ -68,15 +68,21 @@ await jove.run({
     }
     jove.graphics.polygon("line", ...pentVerts);
 
-    // Multi-segment line
-    jove.graphics.setColor(50, 220, 220);
-    jove.graphics.line(310, 280, 370, 350, 340, 360, 400, 290);
-
-    // Multiple points
-    jove.graphics.setColor(255, 200, 50);
-    for (let i = 0; i < 30; i++) {
-      jove.graphics.point(430 + (i % 10) * 8, 290 + Math.floor(i / 10) * 8);
+    // Line joins comparison (smooth lines, width=12, sharp zigzag)
+    jove.graphics.setLineWidth(12);
+    jove.graphics.setLineStyle("smooth");
+    const joins = ["miter", "bevel", "none"] as const;
+    for (let j = 0; j < 3; j++) {
+      jove.graphics.setLineJoin(joins[j]);
+      jove.graphics.setColor(j === 0 ? 50 : j === 1 ? 255 : 180,
+                             j === 0 ? 220 : j === 1 ? 160 : 100,
+                             j === 0 ? 220 : j === 1 ? 50 : 255);
+      const bx = 310 + j * 70;
+      jove.graphics.line(bx, 290, bx + 40, 330, bx, 350, bx + 40, 370);
     }
+    jove.graphics.setLineWidth(1);
+    jove.graphics.setLineStyle("rough");
+    jove.graphics.setLineJoin("miter");
 
     // --- Row 4: Transform stack demo ---
 
@@ -155,7 +161,7 @@ await jove.run({
     jove.graphics.setColor(160, 160, 160);
     jove.graphics.print("rect  rect   circle circle", 20, 120);
     jove.graphics.print("ellipse ellipse  arc    arc", 20, 230);
-    jove.graphics.print("polygon pentagon line  points", 20, 370);
+    jove.graphics.print("polygon pentagon joins:miter/bevel/none", 20, 370);
     jove.graphics.print("rotate     scale     shear", 100, 490);
   },
 
