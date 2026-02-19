@@ -24,7 +24,7 @@ jobs:
             libfreetype-dev libpng-dev \
             mingw-w64 \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
-            libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev libxkbcommon-dev \
             libasound2-dev libpulse-dev libdbus-1-dev \
             zip
 
