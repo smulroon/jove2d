@@ -76,6 +76,78 @@ export function getVersion(): string {
   return `${major}.${minor}.${micro}`;
 }
 
+// Custom error handler override — set via setErrorHandler() for custom behavior
+let _customErrorHandler: ((error: unknown) => void) | null = null;
+
+/** Override the default error display. Pass null to restore the blue screen. */
+export function setErrorHandler(handler: ((error: unknown) => void) | null): void {
+  _customErrorHandler = handler;
+}
+
+/**
+ * Error display loop — shows a love2d-style blue screen with the error message.
+ * Keeps the window open so the user can read the error, copy it, or quit.
+ */
+function _errorLoop(error: unknown): void {
+  const errMsg = error instanceof Error
+    ? error.message + "\n\n" + (error.stack ?? "")
+    : String(error);
+
+  // Log to console as well
+  console.error("\njove2d error:\n" + errMsg);
+
+  // If a custom handler is set, call it and return
+  if (_customErrorHandler) {
+    _customErrorHandler(error);
+    return;
+  }
+
+  // Try to copy to clipboard on entry
+  try { system.setClipboardText(errMsg); } catch {}
+
+  while (window.isOpen()) {
+    const events = pollEvents();
+    for (const ev of events) {
+      if (ev.type === "quit" || ev.type === "close") return;
+      if (ev.type === "keypressed") {
+        if (ev.key === "escape") return;
+        // Ctrl+C copies error to clipboard
+        if (ev.key === "c" && keyboard.isDown("lctrl", "rctrl")) {
+          try { system.setClipboardText(errMsg); } catch {}
+        }
+      }
+    }
+
+    try {
+      // Reset graphics state so we can draw reliably
+      graphics.reset();
+      graphics._beginFrame();
+
+      // Blue background (love2d style)
+      graphics.setBackgroundColor(29, 43, 83, 255);
+      sdl.SDL_SetRenderDrawColor(
+        graphics._getRenderer()!, 29, 43, 83, 255,
+      );
+      sdl.SDL_RenderClear(graphics._getRenderer()!);
+
+      // White text
+      graphics.setColor(255, 255, 255, 255);
+      graphics.print("Error", 70, 70);
+      graphics.print(errMsg, 70, 100);
+
+      // Footer
+      graphics.setColor(160, 160, 160, 255);
+      graphics.print("Press Escape to quit.  Error copied to clipboard.", 70, 570);
+
+      graphics._endFrame();
+    } catch {
+      // If rendering the error screen itself fails, just wait
+    }
+
+    sdl.SDL_Delay(16);
+  }
+}
+
 /**
  * Synchronous game loop — extracted from run() so the JIT can fully optimize
  * the hot while-loop without async state machine overhead.
@@ -90,107 +162,112 @@ function _gameLoop(callbacks: GameCallbacks): void {
     // Poll and dispatch events
     const events = pollEvents();
     for (const ev of events) {
-      switch (ev.type) {
-        case "quit":
-        case "close": {
-          let shouldQuit = true;
-          if (callbacks.quit) {
-            const result = callbacks.quit();
-            // If quit callback returns true, abort the quit
-            if (result === true) {
-              shouldQuit = false;
+      try {
+        switch (ev.type) {
+          case "quit":
+          case "close": {
+            let shouldQuit = true;
+            if (callbacks.quit) {
+              const result = callbacks.quit();
+              // If quit callback returns true, abort the quit
+              if (result === true) {
+                shouldQuit = false;
+              }
             }
+            if (shouldQuit) {
+              running = false;
+            }
+            break;
           }
-          if (shouldQuit) {
-            running = false;
-          }
-          break;
-        }
-        case "focus":
-          callbacks.focus?.(ev.hasFocus);
-          break;
-        case "resize":
-          callbacks.resize?.(ev.width, ev.height);
-          break;
-        case "keypressed":
-          if (!keyboard._shouldFilterRepeat(ev.isRepeat)) {
-            callbacks.keypressed?.(ev.key, ev.scancode, ev.isRepeat);
-          }
-          break;
-        case "keyreleased":
-          callbacks.keyreleased?.(ev.key, ev.scancode);
-          break;
-        case "mousepressed":
-          callbacks.mousepressed?.(ev.x, ev.y, ev.button, false);
-          break;
-        case "mousereleased":
-          callbacks.mousereleased?.(ev.x, ev.y, ev.button, false);
-          break;
-        case "mousemoved":
-          callbacks.mousemoved?.(ev.x, ev.y, ev.dx, ev.dy);
-          break;
-        case "wheelmoved":
-          callbacks.wheelmoved?.(ev.x, ev.y);
-          break;
-        case "textinput":
-          callbacks.textinput?.(ev.text);
-          break;
-        case "filedropped":
-          callbacks.filedropped?.(ev.path);
-          break;
-        case "shown":
-          callbacks.visible?.(true);
-          break;
-        case "hidden":
-          callbacks.visible?.(false);
-          break;
+          case "focus":
+            callbacks.focus?.(ev.hasFocus);
+            break;
+          case "resize":
+            callbacks.resize?.(ev.width, ev.height);
+            break;
+          case "keypressed":
+            if (!keyboard._shouldFilterRepeat(ev.isRepeat)) {
+              callbacks.keypressed?.(ev.key, ev.scancode, ev.isRepeat);
+            }
+            break;
+          case "keyreleased":
+            callbacks.keyreleased?.(ev.key, ev.scancode);
+            break;
+          case "mousepressed":
+            callbacks.mousepressed?.(ev.x, ev.y, ev.button, false);
+            break;
+          case "mousereleased":
+            callbacks.mousereleased?.(ev.x, ev.y, ev.button, false);
+            break;
+          case "mousemoved":
+            callbacks.mousemoved?.(ev.x, ev.y, ev.dx, ev.dy);
+            break;
+          case "wheelmoved":
+            callbacks.wheelmoved?.(ev.x, ev.y);
+            break;
+          case "textinput":
+            callbacks.textinput?.(ev.text);
+            break;
+          case "filedropped":
+            callbacks.filedropped?.(ev.path);
+            break;
+          case "shown":
+            callbacks.visible?.(true);
+            break;
+          case "hidden":
+            callbacks.visible?.(false);
+            break;
 
-        // --- Joystick events ---
-        case "joystickadded": {
-          const joy = joystick._onJoystickAdded(ev.instanceId);
-          if (joy) callbacks.joystickadded?.(joy);
-          break;
+          // --- Joystick events ---
+          case "joystickadded": {
+            const joy = joystick._onJoystickAdded(ev.instanceId);
+            if (joy) callbacks.joystickadded?.(joy);
+            break;
+          }
+          case "joystickremoved": {
+            const joy = joystick._onJoystickRemoved(ev.instanceId);
+            if (joy) callbacks.joystickremoved?.(joy);
+            break;
+          }
+          case "joystickpressed": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.joystickpressed?.(joy, ev.button);
+            break;
+          }
+          case "joystickreleased": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.joystickreleased?.(joy, ev.button);
+            break;
+          }
+          case "joystickaxis": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.joystickaxis?.(joy, ev.axis, ev.value);
+            break;
+          }
+          case "joystickhat": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.joystickhat?.(joy, ev.hat, ev.direction);
+            break;
+          }
+          case "gamepadpressed": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.gamepadpressed?.(joy, ev.button);
+            break;
+          }
+          case "gamepadreleased": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.gamepadreleased?.(joy, ev.button);
+            break;
+          }
+          case "gamepadaxis": {
+            const joy = joystick._getByInstanceId(ev.instanceId);
+            if (joy) callbacks.gamepadaxis?.(joy, ev.axis, ev.value);
+            break;
+          }
         }
-        case "joystickremoved": {
-          const joy = joystick._onJoystickRemoved(ev.instanceId);
-          if (joy) callbacks.joystickremoved?.(joy);
-          break;
-        }
-        case "joystickpressed": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.joystickpressed?.(joy, ev.button);
-          break;
-        }
-        case "joystickreleased": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.joystickreleased?.(joy, ev.button);
-          break;
-        }
-        case "joystickaxis": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.joystickaxis?.(joy, ev.axis, ev.value);
-          break;
-        }
-        case "joystickhat": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.joystickhat?.(joy, ev.hat, ev.direction);
-          break;
-        }
-        case "gamepadpressed": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.gamepadpressed?.(joy, ev.button);
-          break;
-        }
-        case "gamepadreleased": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.gamepadreleased?.(joy, ev.button);
-          break;
-        }
-        case "gamepadaxis": {
-          const joy = joystick._getByInstanceId(ev.instanceId);
-          if (joy) callbacks.gamepadaxis?.(joy, ev.axis, ev.value);
-          break;
-        }
+      } catch (err) {
+        _errorLoop(err);
+        return;
       }
     }
 
@@ -203,8 +280,14 @@ function _gameLoop(callbacks: GameCallbacks): void {
     audio._updateSources();
 
     // Update and draw
-    callbacks.update?.(dt);
-    callbacks.draw?.();
+    try {
+      callbacks.update?.(dt);
+      callbacks.draw?.();
+    } catch (err) {
+      graphics._endFrame();
+      _errorLoop(err);
+      return;
+    }
 
     // End frame (flush captures + present)
     graphics._endFrame();
@@ -247,7 +330,13 @@ export async function run(callbacks: GameCallbacks): Promise<void> {
 
   // Call load() once (may be async)
   if (callbacks.load) {
-    await callbacks.load();
+    try {
+      await callbacks.load();
+    } catch (err) {
+      _errorLoop(err);
+      quit();
+      return;
+    }
   }
 
   // Run the synchronous game loop (JIT-friendly — no async overhead)

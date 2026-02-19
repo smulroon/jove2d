@@ -1,7 +1,7 @@
 // jove2d entry point
 
 export {
-  init, quit, getVersion, run,
+  init, quit, getVersion, run, setErrorHandler,
   window, graphics, keyboard, mouse,
   timer, filesystem, math, system, audio, data, event, joystick, physics, image,
 } from "./jove/index.ts";

@@ -297,7 +297,8 @@ Grouped by priority based on impact for typical 2D game development.
 24. ~~**preSolve callback**~~ DONE — 1-frame-delay enable-list pattern, Contact.setEnabled, one-way platforms
 25. ~~**Bitmap font support**~~ DONE — newImageFont with separator-color glyph detection, pixel-art font rendering
 
+26. ~~**Error recovery**~~ DONE — blue error screen for load/update/draw/event failures, setErrorHandler override, clipboard copy
+
 **Real game value:**
-26. **newQueueableSource** — streaming/procedural audio via SDL audio streams
-27. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
-28. **Error recovery** — graceful error messages, catch-and-display for load/update/draw failures
+27. **newQueueableSource** — streaming/procedural audio via SDL audio streams
+28. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
