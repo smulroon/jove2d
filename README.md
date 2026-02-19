@@ -89,6 +89,13 @@ Without optional libraries, the engine gracefully falls back:
 - No SDL_image: loads BMP images only
 - No Box2D: `love.physics` module unavailable
 - No audio_decode: loads WAV files only
+- No glslang-tools: `newShader()` unavailable
+
+Shaders require the `glslangValidator` CLI for SPIR-V compilation:
+
+```bash
+sudo apt install glslang-tools
+```
 
 ## Examples
 
