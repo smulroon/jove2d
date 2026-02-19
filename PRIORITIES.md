@@ -16,10 +16,10 @@ Grouped by priority based on impact for typical 2D game development.
 | love.joystick | **~16/17 Complete** | Full gamepad support, vibration, hot-plug; needs real device testing |
 | love.event | **4/6 Complete** | Missing `pump` (internal), `wait` (rarely used) |
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
-| love.window | **31/36 Mostly done** | Missing icon set/get, display orientation, safe area, sleep control |
+| love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.physics | **~55/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts; missing preSolve, gear/pulley (N/A in v3) |
-| love.graphics | **~74/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform done |
+| love.graphics | **~80/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
@@ -48,8 +48,6 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`showMessageBox`~~ — native dialog box
 - ~~`requestAttention`~~ — flash taskbar
 - ~~`updateMode`~~ — resize without recreating window
-
-**Done:**
 - ~~`setIcon` / `getIcon`~~ — window icon from ImageData
 
 **Low priority (mobile/niche):**
@@ -82,8 +80,9 @@ Grouped by priority based on impact for typical 2D game development.
 **P3 — Useful for specific cases:**
 - `setLineJoin` / `getLineJoin` — miter/bevel/none line joins
 - ~~`setLineStyle` / `getLineStyle`~~ — rough/smooth line style
-- `getDPIScale` / `getPixelDimensions` / `getPixelHeight` / `getPixelWidth` — HiDPI pixel queries
-- `getRendererInfo` / `getStats` / `getSupported` / `getSystemLimits` — info/capability queries
+- ~~`getDPIScale` / `getPixelDimensions` / `getPixelHeight` / `getPixelWidth`~~ — HiDPI pixel queries DONE
+- ~~`getRendererInfo` / `getStats`~~ — renderer info and per-frame draw stats DONE
+- `getSupported` / `getSystemLimits` — capability queries
 - `getCanvasFormats` / `getImageFormats` / `getTextureTypes` — format queries
 - `isActive` / `isGammaCorrect` — state queries
 - `drawInstanced` / `drawLayer` — advanced drawing
@@ -264,7 +263,9 @@ Grouped by priority based on impact for typical 2D game development.
 
 ---
 
-## Implementation Order (completed)
+## Implementation Order
+
+### Completed
 
 1. ~~**SDL_image**~~ DONE
 2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
@@ -281,11 +282,22 @@ Grouped by priority based on impact for typical 2D game development.
 13. ~~**Filesystem gaps**~~ DONE — directory queries, mount/unmount, File handle, FileData
 14. ~~**Joystick**~~ DONE — gamepad support via SDL3 joystick/gamepad API
 15. ~~**Physics**~~ DONE — Box2D v3.1.1 integration via C wrapper
-
-## Suggested Next Steps
-
 16. ~~**Audio codecs**~~ DONE — OGG/MP3/FLAC via stb_vorbis + dr_mp3 + dr_flac
 17. ~~**love.graphics newText**~~ DONE — cached text object (render-to-canvas with segment colors)
 18. ~~**love.graphics applyTransform**~~ DONE — apply/replace Transform object on stack
 19. ~~**love.image**~~ DONE — ImageData pixel manipulation (getPixel/setPixel/mapPixel/paste/encode)
 20. ~~**Physics Phase 2**~~ DONE — wheel/motor joints, joint anchors/reactions, Body.setMassData, contact point/speed
+21. ~~**window.setIcon/getIcon**~~ DONE — window icon from ImageData
+
+### Next Up
+
+**Quick wins:**
+22. ~~**Graphics DPI/info queries**~~ DONE — getDPIScale, getPixelDimensions, getPixelWidth, getPixelHeight, getRendererInfo, getStats
+23. **setLineJoin / getLineJoin** — miter/bevel/none line join styles
+
+**Real game value:**
+24. **newQueueableSource** — streaming/procedural audio via SDL audio streams
+25. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
+26. **preSolve callback** — selective collision filtering, one-way platforms (Box2D v3 b2PreSolveFcn)
+27. **Bitmap font support** — BMFont/AngelCode format loading for pixel-art and stylized text
+28. **Error recovery** — graceful error messages, catch-and-display for load/update/draw failures

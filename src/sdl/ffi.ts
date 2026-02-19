@@ -538,6 +538,17 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
     returns: FFIType.bool,
   },
 
+  // bool SDL_GetRenderOutputSize(SDL_Renderer* renderer, int* w, int* h)
+  SDL_GetRenderOutputSize: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // const char* SDL_GetRendererName(SDL_Renderer* renderer)
+  SDL_GetRendererName: {
+    args: [FFIType.pointer],
+    returns: FFIType.cstring,
+  },
+
   // --- Clipboard ---
 
   // bool SDL_SetClipboardText(const char* text)

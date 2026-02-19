@@ -414,6 +414,7 @@ export function newCanvas(w: number, h: number): Canvas | null {
 export function setCanvas(canvas: Canvas | null): void {
   if (!_renderer) return;
   _activeCanvas = canvas;
+  _statCanvasSwitches++;
   sdl.SDL_SetRenderTarget(_renderer, canvas ? canvas._texture : null);
 }
 
@@ -1370,6 +1371,7 @@ export function draw(
   }
 
   if (!drawable?._texture) return;
+  _statDrawCalls++;
 
   // Apply current blend mode to the texture (SDL_RenderGeometry / SDL_RenderTexture
   // use the texture's blend mode, not the renderer's draw blend mode)
@@ -1668,6 +1670,7 @@ export function _destroyRenderer(): void {
 /** Begin a frame: clear with background color. */
 export function _beginFrame(): void {
   if (!_renderer) return;
+  _statReset();
   const [br, bg, bb, ba] = _bgColor;
   sdl.SDL_SetRenderDrawColor(_renderer, br, bg, bb, ba);
   sdl.SDL_RenderClear(_renderer);
@@ -2299,7 +2302,7 @@ export function clear(r?: number, g?: number, b?: number, a?: number): void {
 /** Draw a rectangle. */
 export function rectangle(mode: "fill" | "line", x: number, y: number, w: number, h: number): void {
   if (!_renderer) return;
-
+  _statDrawCalls++;
   if (_isIdentity()) {
     // Fast path: no transform
     if (mode === "fill") {
@@ -2342,6 +2345,7 @@ export function rectangle(mode: "fill" | "line", x: number, y: number, w: number
 /** Draw line(s). Variadic: line(x1, y1, x2, y2, ...) like love2d. */
 export function line(...coords: number[]): void {
   if (!_renderer || coords.length < 4) return;
+  _statDrawCalls++;
 
   const numPoints = coords.length / 2;
   const identity = _isIdentity();
@@ -2388,6 +2392,7 @@ export function line(...coords: number[]): void {
 /** Draw a circle approximated with line segments. */
 export function circle(mode: "fill" | "line", cx: number, cy: number, radius: number, segments?: number): void {
   if (!_renderer) return;
+  _statDrawCalls++;
   const n = segments ?? Math.min(256, Math.max(16, Math.ceil(radius * 2)));
   const angleStep = (Math.PI * 2) / n;
 
@@ -2478,6 +2483,7 @@ function _fillCircle(cx: number, cy: number, radius: number, n: number, angleSte
 /** Draw an ellipse. */
 export function ellipse(mode: "fill" | "line", cx: number, cy: number, rx: number, ry: number, segments?: number): void {
   if (!_renderer) return;
+  _statDrawCalls++;
   const n = segments ?? Math.min(256, Math.max(16, Math.ceil(Math.max(rx, ry) * 2)));
   const angleStep = (Math.PI * 2) / n;
 
@@ -2545,6 +2551,7 @@ export function ellipse(mode: "fill" | "line", cx: number, cy: number, rx: numbe
 /** Draw an arc. arctype: "open" (default for line), "closed", or "pie" (default for fill). */
 export function arc(mode: "fill" | "line", cx: number, cy: number, radius: number, angle1: number, angle2: number, segments?: number, arctype?: "open" | "closed" | "pie"): void {
   if (!_renderer) return;
+  _statDrawCalls++;
   const arcLength = angle2 - angle1;
   const n = segments ?? Math.min(256, Math.max(8, Math.ceil(Math.abs(arcLength) * radius)));
   const angleStep = arcLength / n;
@@ -2674,6 +2681,7 @@ export function arc(mode: "fill" | "line", cx: number, cy: number, radius: numbe
 /** Draw a polygon from flat vertex coordinates [x1, y1, x2, y2, ...]. */
 export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
   if (!_renderer || vertices.length < 6) return; // Need at least 3 points
+  _statDrawCalls++;
 
   const numPoints = vertices.length / 2;
   const identity = _isIdentity();
@@ -2742,6 +2750,7 @@ export function point(x: number, y: number): void {
 /** Draw multiple points with optional per-point colors. */
 export function points(...coords: number[]): void {
   if (!_renderer) return;
+  _statDrawCalls++;
   const identity = _isIdentity();
   for (let i = 0; i < coords.length; i += 2) {
     const [tx, ty] = identity
@@ -2754,6 +2763,7 @@ export function points(...coords: number[]): void {
 /** Draw text at the given position. Uses TTF fonts when available, falls back to SDL debug text. */
 export function print(text: string, x: number, y: number): void {
   if (!_renderer) return;
+  _statDrawCalls++;
 
   if (_ttf && _ttfEngine && _currentFont) {
     _printTTF(String(text), x, y);
@@ -2768,6 +2778,7 @@ export function print(text: string, x: number, y: number): void {
  */
 export function printf(text: string, x: number, y: number, limit: number, align: "left" | "center" | "right" = "left"): void {
   if (!_renderer) return;
+  _statDrawCalls++;
 
   if (_ttf && _ttfEngine && _currentFont) {
     _printfTTF(String(text), x, y, limit, align);
@@ -3148,6 +3159,70 @@ export function getHeight(): number {
 export function getDimensions(): [number, number] {
   const mode = getMode();
   return [mode.width, mode.height];
+}
+
+// Pre-allocated buffers for pixel dimension queries
+const _pixW = new Int32Array(1);
+const _pixH = new Int32Array(1);
+const _pixWPtr = ptr(_pixW);
+const _pixHPtr = ptr(_pixH);
+
+/** Get the window width in pixels (not DPI-scaled). */
+export function getPixelWidth(): number {
+  if (!_renderer) return 0;
+  sdl.SDL_GetRenderOutputSize(_renderer, _pixWPtr, _pixHPtr);
+  return read.i32(_pixWPtr, 0);
+}
+
+/** Get the window height in pixels (not DPI-scaled). */
+export function getPixelHeight(): number {
+  if (!_renderer) return 0;
+  sdl.SDL_GetRenderOutputSize(_renderer, _pixWPtr, _pixHPtr);
+  return read.i32(_pixHPtr, 0);
+}
+
+/** Get the window dimensions in pixels (not DPI-scaled). */
+export function getPixelDimensions(): [number, number] {
+  if (!_renderer) return [0, 0];
+  sdl.SDL_GetRenderOutputSize(_renderer, _pixWPtr, _pixHPtr);
+  return [read.i32(_pixWPtr, 0), read.i32(_pixHPtr, 0)];
+}
+
+/** Get the DPI scale factor of the window. */
+export function getDPIScale(): number {
+  const win = _getSDLWindow();
+  if (!win) return 1.0;
+  return sdl.SDL_GetWindowDisplayScale(win);
+}
+
+/** Get renderer information. Returns name, version, vendor, device. */
+export function getRendererInfo(): { name: string; version: string; vendor: string; device: string } {
+  const name = _renderer ? String(sdl.SDL_GetRendererName(_renderer) ?? "") : "";
+  const device = _gpuDevice ? String(sdl.SDL_GetGPUDeviceDriver(_gpuDevice) ?? "") : "";
+  return { name, version: "SDL3", vendor: device, device };
+}
+
+// Stats tracking (reset each frame in _beginFrame)
+let _statDrawCalls = 0;
+let _statCanvasSwitches = 0;
+
+/** Increment draw call counter (called internally). */
+export function _statDraw(): void { _statDrawCalls++; }
+/** Increment canvas switch counter (called internally). */
+export function _statCanvasSwitch(): void { _statCanvasSwitches++; }
+/** Reset stats at start of frame (called internally). */
+export function _statReset(): void { _statDrawCalls = 0; _statCanvasSwitches = 0; }
+
+/** Get rendering statistics for the current frame. */
+export function getStats(): { drawcalls: number; canvasswitches: number; texturememory: number; images: number; canvases: number; fonts: number } {
+  return {
+    drawcalls: _statDrawCalls,
+    canvasswitches: _statCanvasSwitches,
+    texturememory: 0, // not tracked
+    images: 0, // not tracked
+    canvases: 0, // not tracked
+    fonts: 0, // not tracked
+  };
 }
 
 // ============================================================

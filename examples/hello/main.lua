@@ -42,6 +42,24 @@ function love.draw()
   love.graphics.print(string.format("Time: %.1fs", love.timer.getTime()), 10, 50)
   love.graphics.print("Frames: " .. frameCount, 10, 70)
   love.graphics.print(string.format("Avg dt: %.1fms", love.timer.getAverageDelta() * 1000), 10, 90)
+
+  -- Renderer info
+  local name, version, vendor, device = love.graphics.getRendererInfo()
+  love.graphics.setColor(180/255, 200/255, 1)
+  love.graphics.print("Renderer: " .. name, 10, 130)
+  love.graphics.print("GPU driver: " .. (device or "N/A"), 10, 150)
+
+  -- DPI / pixel dimensions
+  local dpi = love.graphics.getDPIScale()
+  local w, h = love.graphics.getDimensions()
+  local pw, ph = love.graphics.getPixelDimensions()
+  love.graphics.setColor(180/255, 1, 200/255)
+  love.graphics.print(string.format("Window: %dx%d  Pixels: %dx%d  DPI: %.2f", w, h, pw, ph, dpi), 10, 190)
+
+  -- Draw stats
+  local stats = love.graphics.getStats()
+  love.graphics.setColor(1, 220/255, 180/255)
+  love.graphics.print(string.format("Draw calls: %d  Canvas switches: %d", stats.drawcalls, stats.canvasswitches), 10, 210)
 end
 
 function love.keypressed(key)

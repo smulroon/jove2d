@@ -45,6 +45,24 @@ await jove.run({
     jove.graphics.print(`Time: ${jove.timer.getTime().toFixed(1)}s`, 10, 50);
     jove.graphics.print(`Frames: ${frameCount}`, 10, 70);
     jove.graphics.print(`Avg dt: ${(jove.timer.getAverageDelta() * 1000).toFixed(1)}ms`, 10, 90);
+
+    // Renderer info
+    const info = jove.graphics.getRendererInfo();
+    jove.graphics.setColor(180, 200, 255);
+    jove.graphics.print(`Renderer: ${info.name}`, 10, 130);
+    jove.graphics.print(`GPU driver: ${info.device || "N/A"}`, 10, 150);
+
+    // DPI / pixel dimensions
+    const dpi = jove.graphics.getDPIScale();
+    const [w, h] = jove.graphics.getDimensions();
+    const [pw, ph] = jove.graphics.getPixelDimensions();
+    jove.graphics.setColor(180, 255, 200);
+    jove.graphics.print(`Window: ${w}x${h}  Pixels: ${pw}x${ph}  DPI: ${dpi.toFixed(2)}`, 10, 190);
+
+    // Draw stats (read AFTER drawing the above, so count includes these prints)
+    const stats = jove.graphics.getStats();
+    jove.graphics.setColor(255, 220, 180);
+    jove.graphics.print(`Draw calls: ${stats.drawcalls}  Canvas switches: ${stats.canvasswitches}`, 10, 210);
   },
 
   keypressed(key) {
