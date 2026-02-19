@@ -7,7 +7,9 @@
  *
  * Joints remain as packed u64 (infrequent operations).
  *
- * jove_World_UpdateFull does step + event reads in 1 call (instead of ~650).
+ * jove_World_UpdateFull2 does step + event reads in 1 call (instead of ~650).
+ * Event buffers are C-side static arrays (bun:ffi ptr() is unsafe for C→JS
+ * writes on Windows). JS reads them via read.i32()/read.f32().
  */
 
 #include "box2d/box2d.h"
@@ -169,26 +171,69 @@ int jove_World_GetBodyCount(uint32_t worldId) {
     return c.bodyCount;
 }
 
-/* ── Combined update — 1 FFI call per frame ────────────────────────── */
+/* ── C-side event buffers ───────────────────────────────────────────── */
+/* Allocated in C to avoid bun:ffi ptr() corruption on Windows.        */
+/* JS reads from these via read.i32/read.f32 using pointers from       */
+/* jove_World_GetEventPtrs().                                          */
 
-void jove_World_UpdateFull(
-    uint32_t worldId, float dt, int subSteps,
-    /* Body move events (out) */
-    int* moveBodyIdx, float* movePosX, float* movePosY, float* moveAngle, int maxMove,
-    /* Contact begin events (out) */
-    int* beginShapeA, int* beginShapeB, int maxBegin,
-    /* Contact end events (out) */
-    int* endShapeA, int* endShapeB, int maxEnd,
-    /* Contact hit events (out) */
-    int* hitShapeA, int* hitShapeB,
-    float* hitNormX, float* hitNormY,
-    float* hitPointX, float* hitPointY, float* hitSpeed, int maxHit,
-    /* PreSolve events (out) */
-    int* preSolveShapeA, int* preSolveShapeB,
-    float* preSolveNormX, float* preSolveNormY, int maxPreSolve,
-    /* Output counts: [moveCount, beginCount, endCount, hitCount, preSolveCount] */
-    int* outCounts)
-{
+#define EV_MAX_MOVE 1024
+#define EV_MAX_CONTACT 256
+
+static int   g_evMoveBodyIdx[EV_MAX_MOVE];
+static float g_evMovePosX[EV_MAX_MOVE];
+static float g_evMovePosY[EV_MAX_MOVE];
+static float g_evMoveAngle[EV_MAX_MOVE];
+
+static int   g_evBeginA[EV_MAX_CONTACT];
+static int   g_evBeginB[EV_MAX_CONTACT];
+static int   g_evEndA[EV_MAX_CONTACT];
+static int   g_evEndB[EV_MAX_CONTACT];
+
+static int   g_evHitA[EV_MAX_CONTACT];
+static int   g_evHitB[EV_MAX_CONTACT];
+static float g_evHitNormX[EV_MAX_CONTACT];
+static float g_evHitNormY[EV_MAX_CONTACT];
+static float g_evHitPointX[EV_MAX_CONTACT];
+static float g_evHitPointY[EV_MAX_CONTACT];
+static float g_evHitSpeed[EV_MAX_CONTACT];
+
+static int   g_evCounts[5]; /* [moveCount, beginCount, endCount, hitCount, preSolveCount] */
+
+/* Pointer table — JS reads this once at init to get all buffer addresses */
+/* Order: moveBodyIdx, movePosX, movePosY, moveAngle,                    */
+/*        beginA, beginB, endA, endB,                                     */
+/*        hitA, hitB, hitNormX, hitNormY, hitPointX, hitPointY, hitSpeed, */
+/*        preSolveShapeA, preSolveShapeB, preSolveNormX, preSolveNormY,  */
+/*        counts                                                          */
+#define EV_PTR_COUNT 20
+static void* g_evPtrs[EV_PTR_COUNT];
+
+void* jove_World_GetEventPtrs(void) {
+    g_evPtrs[0]  = g_evMoveBodyIdx;
+    g_evPtrs[1]  = g_evMovePosX;
+    g_evPtrs[2]  = g_evMovePosY;
+    g_evPtrs[3]  = g_evMoveAngle;
+    g_evPtrs[4]  = g_evBeginA;
+    g_evPtrs[5]  = g_evBeginB;
+    g_evPtrs[6]  = g_evEndA;
+    g_evPtrs[7]  = g_evEndB;
+    g_evPtrs[8]  = g_evHitA;
+    g_evPtrs[9]  = g_evHitB;
+    g_evPtrs[10] = g_evHitNormX;
+    g_evPtrs[11] = g_evHitNormY;
+    g_evPtrs[12] = g_evHitPointX;
+    g_evPtrs[13] = g_evHitPointY;
+    g_evPtrs[14] = g_evHitSpeed;
+    g_evPtrs[15] = g_preSolveShapeA;
+    g_evPtrs[16] = g_preSolveShapeB;
+    g_evPtrs[17] = g_preSolveNormX;
+    g_evPtrs[18] = g_preSolveNormY;
+    g_evPtrs[19] = g_evCounts;
+    return g_evPtrs;
+}
+
+/* Step + read all events into C-side buffers (3 params!) */
+void jove_World_UpdateFull2(uint32_t worldId, float dt, int subSteps) {
     b2WorldId wid = unpack_world(worldId);
 
     /* 0. Reset preSolve event buffer */
@@ -199,65 +244,59 @@ void jove_World_UpdateFull(
 
     /* 2. Body move events */
     b2BodyEvents bodyEvents = b2World_GetBodyEvents(wid);
-    int mc = bodyEvents.moveCount < maxMove ? bodyEvents.moveCount : maxMove;
+    int mc = bodyEvents.moveCount < EV_MAX_MOVE ? bodyEvents.moveCount : EV_MAX_MOVE;
     for (int i = 0; i < mc; i++) {
         b2BodyMoveEvent* me = &bodyEvents.moveEvents[i];
         int idx = me->userData ? (int)(intptr_t)me->userData - 1 : -1;
-        moveBodyIdx[i] = idx;
-        movePosX[i] = me->transform.p.x;
-        movePosY[i] = me->transform.p.y;
-        moveAngle[i] = b2Rot_GetAngle(me->transform.q);
+        g_evMoveBodyIdx[i] = idx;
+        g_evMovePosX[i] = me->transform.p.x;
+        g_evMovePosY[i] = me->transform.p.y;
+        g_evMoveAngle[i] = b2Rot_GetAngle(me->transform.q);
     }
-    outCounts[0] = mc;
+    g_evCounts[0] = mc;
 
     /* 3. Contact events */
     b2ContactEvents contactEvents = b2World_GetContactEvents(wid);
 
     /* Begin */
-    int bc = contactEvents.beginCount < maxBegin ? contactEvents.beginCount : maxBegin;
+    int bc = contactEvents.beginCount < EV_MAX_CONTACT ? contactEvents.beginCount : EV_MAX_CONTACT;
     for (int i = 0; i < bc; i++) {
         void* udA = b2Shape_GetUserData(contactEvents.beginEvents[i].shapeIdA);
         void* udB = b2Shape_GetUserData(contactEvents.beginEvents[i].shapeIdB);
-        beginShapeA[i] = udA ? (int)(intptr_t)udA - 1 : -1;
-        beginShapeB[i] = udB ? (int)(intptr_t)udB - 1 : -1;
+        g_evBeginA[i] = udA ? (int)(intptr_t)udA - 1 : -1;
+        g_evBeginB[i] = udB ? (int)(intptr_t)udB - 1 : -1;
     }
-    outCounts[1] = bc;
+    g_evCounts[1] = bc;
 
     /* End */
-    int ec = contactEvents.endCount < maxEnd ? contactEvents.endCount : maxEnd;
+    int ec = contactEvents.endCount < EV_MAX_CONTACT ? contactEvents.endCount : EV_MAX_CONTACT;
     for (int i = 0; i < ec; i++) {
         void* udA = b2Shape_GetUserData(contactEvents.endEvents[i].shapeIdA);
         void* udB = b2Shape_GetUserData(contactEvents.endEvents[i].shapeIdB);
-        endShapeA[i] = udA ? (int)(intptr_t)udA - 1 : -1;
-        endShapeB[i] = udB ? (int)(intptr_t)udB - 1 : -1;
+        g_evEndA[i] = udA ? (int)(intptr_t)udA - 1 : -1;
+        g_evEndB[i] = udB ? (int)(intptr_t)udB - 1 : -1;
     }
-    outCounts[2] = ec;
+    g_evCounts[2] = ec;
 
     /* Hit */
-    int hc = contactEvents.hitCount < maxHit ? contactEvents.hitCount : maxHit;
+    int hc = contactEvents.hitCount < EV_MAX_CONTACT ? contactEvents.hitCount : EV_MAX_CONTACT;
     for (int i = 0; i < hc; i++) {
         b2ContactHitEvent* he = &contactEvents.hitEvents[i];
         void* udA = b2Shape_GetUserData(he->shapeIdA);
         void* udB = b2Shape_GetUserData(he->shapeIdB);
-        hitShapeA[i] = udA ? (int)(intptr_t)udA - 1 : -1;
-        hitShapeB[i] = udB ? (int)(intptr_t)udB - 1 : -1;
-        hitNormX[i] = he->normal.x;
-        hitNormY[i] = he->normal.y;
-        hitPointX[i] = he->point.x;
-        hitPointY[i] = he->point.y;
-        hitSpeed[i] = he->approachSpeed;
+        g_evHitA[i] = udA ? (int)(intptr_t)udA - 1 : -1;
+        g_evHitB[i] = udB ? (int)(intptr_t)udB - 1 : -1;
+        g_evHitNormX[i] = he->normal.x;
+        g_evHitNormY[i] = he->normal.y;
+        g_evHitPointX[i] = he->point.x;
+        g_evHitPointY[i] = he->point.y;
+        g_evHitSpeed[i] = he->approachSpeed;
     }
-    outCounts[3] = hc;
+    g_evCounts[3] = hc;
 
-    /* 5. PreSolve events (recorded by callback during step) */
-    int pc = g_preSolveCount < maxPreSolve ? g_preSolveCount : maxPreSolve;
-    if (pc > 0) {
-        memcpy(preSolveShapeA, g_preSolveShapeA, pc * sizeof(int));
-        memcpy(preSolveShapeB, g_preSolveShapeB, pc * sizeof(int));
-        memcpy(preSolveNormX, g_preSolveNormX, pc * sizeof(float));
-        memcpy(preSolveNormY, g_preSolveNormY, pc * sizeof(float));
-    }
-    outCounts[4] = pc;
+    /* 4. PreSolve events (recorded by callback during step) */
+    g_evCounts[4] = g_preSolveCount < MAX_PRESOLVE ? g_preSolveCount : MAX_PRESOLVE;
+    /* preSolve data already in g_preSolveShapeA/B, g_preSolveNormX/Y — no copy needed */
 }
 
 /* ── Body ───────────────────────────────────────────────────────────── */

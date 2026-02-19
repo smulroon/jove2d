@@ -7,6 +7,7 @@
 
 import { loadBox2D } from "../sdl/ffi_box2d.ts";
 import { ptr, read } from "bun:ffi";
+import type { Pointer } from "bun:ffi";
 
 type Box2DLib = NonNullable<ReturnType<typeof loadBox2D>>;
 let _lib: Box2DLib | null = null;
@@ -19,6 +20,35 @@ function lib(): Box2DLib {
 /** Try to load Box2D. Called during init — non-fatal if missing. */
 export function _init(): void {
   _lib = loadBox2D();
+  if (_lib) _initEventBuffers();
+}
+
+/** Read C-side event buffer pointers (called once at init).
+ *  Buffers are allocated in C to avoid bun:ffi ptr() heap corruption on Windows.
+ *  JS reads from them via read.i32/read.f32 using these pointers. */
+function _initEventBuffers(): void {
+  const ptrsBase = lib().jove_World_GetEventPtrs() as Pointer;
+  // Read 20 pointers from the C-side pointer table (8 bytes each on 64-bit)
+  _moveBodyIdxPtr = read.ptr(ptrsBase, 0 * 8) as Pointer;
+  _movePosXPtr    = read.ptr(ptrsBase, 1 * 8) as Pointer;
+  _movePosYPtr    = read.ptr(ptrsBase, 2 * 8) as Pointer;
+  _moveAnglePtr   = read.ptr(ptrsBase, 3 * 8) as Pointer;
+  _beginShapeAPtr = read.ptr(ptrsBase, 4 * 8) as Pointer;
+  _beginShapeBPtr = read.ptr(ptrsBase, 5 * 8) as Pointer;
+  _endShapeAPtr   = read.ptr(ptrsBase, 6 * 8) as Pointer;
+  _endShapeBPtr   = read.ptr(ptrsBase, 7 * 8) as Pointer;
+  _hitShapeAPtr   = read.ptr(ptrsBase, 8 * 8) as Pointer;
+  _hitShapeBPtr   = read.ptr(ptrsBase, 9 * 8) as Pointer;
+  _hitNormXPtr    = read.ptr(ptrsBase, 10 * 8) as Pointer;
+  _hitNormYPtr    = read.ptr(ptrsBase, 11 * 8) as Pointer;
+  _hitPointXPtr   = read.ptr(ptrsBase, 12 * 8) as Pointer;
+  _hitPointYPtr   = read.ptr(ptrsBase, 13 * 8) as Pointer;
+  _hitSpeedPtr    = read.ptr(ptrsBase, 14 * 8) as Pointer;
+  _preSolveShapeAPtr = read.ptr(ptrsBase, 15 * 8) as Pointer;
+  _preSolveShapeBPtr = read.ptr(ptrsBase, 16 * 8) as Pointer;
+  _preSolveNormXPtr  = read.ptr(ptrsBase, 17 * 8) as Pointer;
+  _preSolveNormYPtr  = read.ptr(ptrsBase, 18 * 8) as Pointer;
+  _outCountsPtr      = read.ptr(ptrsBase, 19 * 8) as Pointer;
 }
 
 /** Check if physics module is available */
@@ -69,66 +99,37 @@ const _outU16bPtr = ptr(_outU16b);
 const _outI16 = new Int16Array(1);
 const _outI16Ptr = ptr(_outI16);
 
-// ── UpdateFull event buffers (module-level, single-threaded) ────────
+// ── Event buffer pointers (C-side allocated, read at init) ──────────
+// Buffers live in C to avoid bun:ffi ptr() heap corruption on Windows.
+// Pointers are read once from C at init via jove_World_GetEventPtrs().
 
-const MAX_MOVE_EVENTS = 1024;
 const MAX_CONTACT_EVENTS = 256;
 
-// Body move events
-const _moveBodyIdx = new Int32Array(MAX_MOVE_EVENTS);
-const _moveBodyIdxPtr = ptr(_moveBodyIdx);
-const _movePosX = new Float32Array(MAX_MOVE_EVENTS);
-const _movePosXPtr = ptr(_movePosX);
-const _movePosY = new Float32Array(MAX_MOVE_EVENTS);
-const _movePosYPtr = ptr(_movePosY);
-const _moveAngle = new Float32Array(MAX_MOVE_EVENTS);
-const _moveAnglePtr = ptr(_moveAngle);
+// These are assigned in _initEventBuffers() from C-side pointer table
+let _moveBodyIdxPtr: Pointer = null as any;
+let _movePosXPtr: Pointer = null as any;
+let _movePosYPtr: Pointer = null as any;
+let _moveAnglePtr: Pointer = null as any;
+let _beginShapeAPtr: Pointer = null as any;
+let _beginShapeBPtr: Pointer = null as any;
+let _endShapeAPtr: Pointer = null as any;
+let _endShapeBPtr: Pointer = null as any;
+let _hitShapeAPtr: Pointer = null as any;
+let _hitShapeBPtr: Pointer = null as any;
+let _hitNormXPtr: Pointer = null as any;
+let _hitNormYPtr: Pointer = null as any;
+let _hitPointXPtr: Pointer = null as any;
+let _hitPointYPtr: Pointer = null as any;
+let _hitSpeedPtr: Pointer = null as any;
+let _preSolveShapeAPtr: Pointer = null as any;
+let _preSolveShapeBPtr: Pointer = null as any;
+let _preSolveNormXPtr: Pointer = null as any;
+let _preSolveNormYPtr: Pointer = null as any;
+let _outCountsPtr: Pointer = null as any;
 
-// Contact begin events
-const _beginShapeA = new Int32Array(MAX_CONTACT_EVENTS);
-const _beginShapeAPtr = ptr(_beginShapeA);
-const _beginShapeB = new Int32Array(MAX_CONTACT_EVENTS);
-const _beginShapeBPtr = ptr(_beginShapeB);
-
-// Contact end events
-const _endShapeA = new Int32Array(MAX_CONTACT_EVENTS);
-const _endShapeAPtr = ptr(_endShapeA);
-const _endShapeB = new Int32Array(MAX_CONTACT_EVENTS);
-const _endShapeBPtr = ptr(_endShapeB);
-
-// Contact hit events
-const _hitShapeA = new Int32Array(MAX_CONTACT_EVENTS);
-const _hitShapeAPtr = ptr(_hitShapeA);
-const _hitShapeB = new Int32Array(MAX_CONTACT_EVENTS);
-const _hitShapeBPtr = ptr(_hitShapeB);
-const _hitNormX = new Float32Array(MAX_CONTACT_EVENTS);
-const _hitNormXPtr = ptr(_hitNormX);
-const _hitNormY = new Float32Array(MAX_CONTACT_EVENTS);
-const _hitNormYPtr = ptr(_hitNormY);
-const _hitPointX = new Float32Array(MAX_CONTACT_EVENTS);
-const _hitPointXPtr = ptr(_hitPointX);
-const _hitPointY = new Float32Array(MAX_CONTACT_EVENTS);
-const _hitPointYPtr = ptr(_hitPointY);
-const _hitSpeed = new Float32Array(MAX_CONTACT_EVENTS);
-const _hitSpeedPtr = ptr(_hitSpeed);
-
-// PreSolve events
-const _preSolveShapeA = new Int32Array(MAX_CONTACT_EVENTS);
-const _preSolveShapeAPtr = ptr(_preSolveShapeA);
-const _preSolveShapeB = new Int32Array(MAX_CONTACT_EVENTS);
-const _preSolveShapeBPtr = ptr(_preSolveShapeB);
-const _preSolveNormX = new Float32Array(MAX_CONTACT_EVENTS);
-const _preSolveNormXPtr = ptr(_preSolveNormX);
-const _preSolveNormY = new Float32Array(MAX_CONTACT_EVENTS);
-const _preSolveNormYPtr = ptr(_preSolveNormY);
-
-// PreSolve enable list (pairs to enable next frame — default is disabled)
+// PreSolve enable list (pairs to enable next frame — JS→C, uses ptr())
 const _enableShapeA = new Int32Array(MAX_CONTACT_EVENTS);
 const _enableShapeB = new Int32Array(MAX_CONTACT_EVENTS);
-
-// Output counts [moveCount, beginCount, endCount, hitCount, preSolveCount]
-const _outCounts = new Int32Array(5);
-const _outCountsPtr = ptr(_outCounts);
 
 // Ray cast out-params
 const _rayHitX = new Float32Array(1);
@@ -923,19 +924,9 @@ export class World {
       this._enableCount = 0;
     }
 
-    // Single FFI call: step + read all events
-    b2.jove_World_UpdateFull(
-      this._id, dt, subSteps,
-      _moveBodyIdxPtr, _movePosXPtr, _movePosYPtr, _moveAnglePtr, MAX_MOVE_EVENTS,
-      _beginShapeAPtr, _beginShapeBPtr, MAX_CONTACT_EVENTS,
-      _endShapeAPtr, _endShapeBPtr, MAX_CONTACT_EVENTS,
-      _hitShapeAPtr, _hitShapeBPtr,
-      _hitNormXPtr, _hitNormYPtr,
-      _hitPointXPtr, _hitPointYPtr, _hitSpeedPtr, MAX_CONTACT_EVENTS,
-      _preSolveShapeAPtr, _preSolveShapeBPtr,
-      _preSolveNormXPtr, _preSolveNormYPtr, MAX_CONTACT_EVENTS,
-      _outCountsPtr
-    );
+    // Step + read all events using pre-registered buffers (3-param call).
+    // Buffer pointers were registered once at init via jove_World_SetEventBuffers.
+    b2.jove_World_UpdateFull2(this._id, dt, subSteps);
 
     // Read counts
     const moveCount = read.i32(_outCountsPtr, 0);

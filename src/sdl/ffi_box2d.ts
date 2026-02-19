@@ -38,21 +38,14 @@ function _load() {
       returns: FFIType.i32,
     },
 
-    /* Combined update — 1 FFI call per frame */
-    jove_World_UpdateFull: {
-      args: [FFIType.u32, FFIType.f32, FFIType.i32,
-             // move events
-             FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32,
-             // begin events
-             FFIType.pointer, FFIType.pointer, FFIType.i32,
-             // end events
-             FFIType.pointer, FFIType.pointer, FFIType.i32,
-             // hit events
-             FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32,
-             // preSolve events
-             FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32,
-             // output counts
-             FFIType.pointer],
+    /* Get C-side event buffer pointers (returns pointer to array of 20 void*) */
+    jove_World_GetEventPtrs: {
+      args: [],
+      returns: FFIType.pointer,
+    },
+    /* Step + read all events into C-side buffers */
+    jove_World_UpdateFull2: {
+      args: [FFIType.u32, FFIType.f32, FFIType.i32],
       returns: FFIType.void,
     },
 
