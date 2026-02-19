@@ -40,8 +40,8 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
   ```bash
   sudo apt install cmake ninja-build build-essential \
     libx11-dev libxext-dev libxrandr-dev libxcursor-dev \
-    libxi-dev libxfixes-dev libxss-dev libwayland-dev \
-    libxkbcommon-dev
+    libxi-dev libxfixes-dev libxss-dev libxtst-dev \
+    libwayland-dev libxkbcommon-dev
   ```
 
 ### Setup
