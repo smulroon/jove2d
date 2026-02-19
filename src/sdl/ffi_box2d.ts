@@ -5,18 +5,13 @@
 // Joint IDs remain u64 (infrequent operations).
 
 import { dlopen, FFIType } from "bun:ffi";
-import { resolve } from "path";
-
-const BOX2D_LIB_PATH = resolve(
-  import.meta.dir,
-  "../../vendor/box2d/install/lib/libbox2d_jove.so"
-);
+import { libPath } from "./lib-path";
 
 let box2d: ReturnType<typeof _load> | null = null;
 let _tried = false;
 
 function _load() {
-  const { symbols } = dlopen(BOX2D_LIB_PATH, {
+  const { symbols } = dlopen(libPath("box2d", "box2d_jove"), {
     /* ── World ──────────────────────────────────────────────────── */
     jove_CreateWorld: {
       args: [FFIType.f32, FFIType.f32, FFIType.i32, FFIType.f32],

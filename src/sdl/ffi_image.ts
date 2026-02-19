@@ -2,18 +2,13 @@
 // Separate from ffi.ts so the engine works even without SDL_image installed.
 
 import { dlopen, FFIType } from "bun:ffi";
-import { resolve } from "path";
-
-const SDL_IMAGE_LIB_PATH = resolve(
-  import.meta.dir,
-  "../../vendor/SDL_image/install/lib/libSDL3_image.so"
-);
+import { libPath } from "./lib-path";
 
 let img: ReturnType<typeof _load> | null = null;
 let _tried = false;
 
 function _load() {
-  const { symbols } = dlopen(SDL_IMAGE_LIB_PATH, {
+  const { symbols } = dlopen(libPath("SDL_image", "SDL3_image"), {
     // SDL_Texture* IMG_LoadTexture(SDL_Renderer* renderer, const char* file)
     IMG_LoadTexture: {
       args: [FFIType.pointer, FFIType.cstring],

@@ -11,6 +11,10 @@
 #include <string.h>
 #include <stdint.h>
 
+#ifdef _WIN32
+#define strcasecmp _stricmp
+#endif
+
 #define DR_MP3_IMPLEMENTATION
 #include "dr_mp3.h"
 

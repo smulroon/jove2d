@@ -1,14 +1,9 @@
 // SDL3 FFI bindings via bun:ffi
 
-import { dlopen, FFIType, ptr, toArrayBuffer, suffix } from "bun:ffi";
-import { resolve } from "path";
+import { dlopen, FFIType, ptr, toArrayBuffer } from "bun:ffi";
+import { libPath } from "./lib-path";
 
-const SDL3_LIB_PATH = resolve(
-  import.meta.dir,
-  "../../vendor/SDL3/install/lib/libSDL3.so"
-);
-
-const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
+const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
   // bool SDL_Init(SDL_InitFlags flags)
   SDL_Init: {
     args: [FFIType.u32],
@@ -155,6 +150,11 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
   SDL_GetFullscreenDisplayModes: {
     args: [FFIType.u32, FFIType.pointer],
     returns: FFIType.pointer,
+  },
+  // float SDL_GetDisplayContentScale(SDL_DisplayID displayID)
+  SDL_GetDisplayContentScale: {
+    args: [FFIType.u32],
+    returns: FFIType.f32,
   },
   // float SDL_GetWindowPixelDensity(SDL_Window* window)
   SDL_GetWindowPixelDensity: {
@@ -541,6 +541,16 @@ const { symbols: sdl } = dlopen(SDL3_LIB_PATH, {
   // bool SDL_GetRenderOutputSize(SDL_Renderer* renderer, int* w, int* h)
   SDL_GetRenderOutputSize: {
     args: [FFIType.pointer, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
+  // bool SDL_SetRenderLogicalPresentation(SDL_Renderer* renderer, int w, int h, SDL_RendererLogicalPresentation mode)
+  SDL_SetRenderLogicalPresentation: {
+    args: [FFIType.pointer, FFIType.i32, FFIType.i32, FFIType.i32],
+    returns: FFIType.bool,
+  },
+  // bool SDL_GetRenderLogicalPresentation(SDL_Renderer* renderer, int* w, int* h, SDL_RendererLogicalPresentation* mode)
+  SDL_GetRenderLogicalPresentation: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.pointer],
     returns: FFIType.bool,
   },
   // const char* SDL_GetRendererName(SDL_Renderer* renderer)

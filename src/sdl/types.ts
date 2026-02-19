@@ -130,6 +130,13 @@ export const SDL_TEXTUREACCESS_TARGET = 2;
 export const SDL_SCALEMODE_NEAREST = 0;
 export const SDL_SCALEMODE_LINEAR = 1;
 
+/** SDL_RendererLogicalPresentation constants */
+export const SDL_LOGICAL_PRESENTATION_DISABLED = 0;
+export const SDL_LOGICAL_PRESENTATION_STRETCH = 1;
+export const SDL_LOGICAL_PRESENTATION_LETTERBOX = 2;
+export const SDL_LOGICAL_PRESENTATION_OVERSCAN = 3;
+export const SDL_LOGICAL_PRESENTATION_INTEGER_SCALE = 4;
+
 /** SDL_PixelFormat constants */
 export const SDL_PIXELFORMAT_RGBA8888 = 0x16362004;
 export const SDL_PIXELFORMAT_ARGB8888 = 0x16862004;

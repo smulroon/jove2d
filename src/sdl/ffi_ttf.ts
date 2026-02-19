@@ -2,18 +2,13 @@
 // Separate from ffi.ts so the engine works even without SDL_ttf installed.
 
 import { dlopen, FFIType } from "bun:ffi";
-import { resolve } from "path";
-
-const SDL_TTF_LIB_PATH = resolve(
-  import.meta.dir,
-  "../../vendor/SDL_ttf/install/lib/libSDL3_ttf.so"
-);
+import { libPath } from "./lib-path";
 
 let ttf: ReturnType<typeof _load> | null = null;
 let _tried = false;
 
 function _load() {
-  const { symbols } = dlopen(SDL_TTF_LIB_PATH, {
+  const { symbols } = dlopen(libPath("SDL_ttf", "SDL3_ttf"), {
     // bool TTF_Init(void)
     TTF_Init: {
       args: [],

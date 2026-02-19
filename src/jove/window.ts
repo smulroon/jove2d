@@ -19,6 +19,7 @@ import {
   SDL_MESSAGEBOX_ERROR,
   SDL_MESSAGEBOX_WARNING,
   SDL_MESSAGEBOX_INFORMATION,
+  SDL_LOGICAL_PRESENTATION_LETTERBOX,
 } from "../sdl/types.ts";
 import type { WindowFlags, WindowMode } from "./types.ts";
 import { _getRenderer } from "./graphics.ts";
@@ -44,6 +45,20 @@ const _vsyncPtr = ptr(_vsyncBuf);
 let _window: SDLWindow | null = null;
 let _isOpen = false;
 let _currentIcon: any = null; // cached ImageData for getIcon()
+let _logicalWidth = 0;
+let _logicalHeight = 0;
+
+/** Get display content scale (DPI factor) before window creation. */
+function _getDisplayScale(): number {
+  const displayId = sdl.SDL_GetPrimaryDisplay();
+  if (!displayId) return 1.0;
+  return sdl.SDL_GetDisplayContentScale(displayId) || 1.0;
+}
+
+/** Get the logical window size (pre-DPI-scaling). Used by renderer for logical presentation. */
+export function _getLogicalSize(): { width: number; height: number } {
+  return { width: _logicalWidth, height: _logicalHeight };
+}
 
 /** Get the raw SDL window pointer (for internal use) */
 export function _getSDLWindow(): SDLWindow | null {
@@ -74,12 +89,21 @@ export function setMode(
   if (flags.fullscreen) sdlFlags |= SDL_WINDOW_FULLSCREEN;
   if (flags.resizable !== false) sdlFlags |= SDL_WINDOW_RESIZABLE; // default: resizable
   if (flags.borderless) sdlFlags |= SDL_WINDOW_BORDERLESS;
-  if (flags.highdpi) sdlFlags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+  // Always enable high pixel density for sharp rendering on high-DPI displays.
+  // SDL_SetRenderLogicalPresentation in _createRenderer() keeps coordinates consistent.
+  sdlFlags |= SDL_WINDOW_HIGH_PIXEL_DENSITY;
+
+  // Scale window size by display DPI factor so the window appears at the same
+  // physical size as on a 1x display. SDL3 is DPI-aware (unlike SDL2/love2d),
+  // so without scaling, windows appear smaller on high-DPI displays.
+  const dpiScale = _getDisplayScale();
+  const scaledW = Math.round(width * dpiScale);
+  const scaledH = Math.round(height * dpiScale);
 
   const win = sdl.SDL_CreateWindow(
     Buffer.from("jove2d\0"),
-    width,
-    height,
+    scaledW,
+    scaledH,
     sdlFlags
   );
 
@@ -89,13 +113,15 @@ export function setMode(
 
   _window = win;
   _isOpen = true;
+  _logicalWidth = width;
+  _logicalHeight = height;
 
-  // Apply minimum size if specified
+  // Apply minimum size if specified (also scaled by DPI)
   if (flags.minwidth || flags.minheight) {
     sdl.SDL_SetWindowMinimumSize(
       win,
-      flags.minwidth ?? 1,
-      flags.minheight ?? 1
+      Math.round((flags.minwidth ?? 1) * dpiScale),
+      Math.round((flags.minheight ?? 1) * dpiScale),
     );
   }
 
@@ -108,9 +134,16 @@ export function getMode(): WindowMode {
     return { width: 0, height: 0, flags: {} };
   }
 
-  sdl.SDL_GetWindowSize(_window, _ptrA, _ptrB);
-  const width = read.i32(_ptrA, 0);
-  const height = read.i32(_ptrB, 0);
+  // Return logical size (pre-DPI-scaling) so it matches drawing coordinates.
+  // The actual SDL window may be larger on high-DPI displays.
+  const width = _logicalWidth || (() => {
+    sdl.SDL_GetWindowSize(_window!, _ptrA, _ptrB);
+    return read.i32(_ptrA, 0);
+  })();
+  const height = _logicalHeight || (() => {
+    sdl.SDL_GetWindowSize(_window!, _ptrA, _ptrB);
+    return read.i32(_ptrB, 0);
+  })();
 
   const sdlFlags = BigInt(sdl.SDL_GetWindowFlags(_window));
 
@@ -431,7 +464,20 @@ export function updateMode(
     return setMode(width, height, flags);
   }
 
-  sdl.SDL_SetWindowSize(_window, width, height);
+  // Scale by DPI factor (same as setMode)
+  const dpiScale = _getDisplayScale();
+  const scaledW = Math.round(width * dpiScale);
+  const scaledH = Math.round(height * dpiScale);
+
+  sdl.SDL_SetWindowSize(_window, scaledW, scaledH);
+  _logicalWidth = width;
+  _logicalHeight = height;
+
+  // Update logical presentation to match new logical size
+  const renderer = _getRenderer();
+  if (renderer) {
+    sdl.SDL_SetRenderLogicalPresentation(renderer, width, height, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+  }
 
   // Apply fullscreen
   if (flags.fullscreen !== undefined) {
@@ -443,12 +489,12 @@ export function updateMode(
 
   // Apply borderless — similarly set at creation time only in SDL3
 
-  // Apply minimum size
+  // Apply minimum size (also scaled by DPI)
   if (flags.minwidth || flags.minheight) {
     sdl.SDL_SetWindowMinimumSize(
       _window,
-      flags.minwidth ?? 1,
-      flags.minheight ?? 1,
+      Math.round((flags.minwidth ?? 1) * dpiScale),
+      Math.round((flags.minheight ?? 1) * dpiScale),
     );
   }
 

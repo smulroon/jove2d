@@ -26,6 +26,7 @@ import {
   SDL_SCALEMODE_NEAREST,
   SDL_SCALEMODE_LINEAR,
   SDL_GPU_SHADERFORMAT_SPIRV,
+  SDL_LOGICAL_PRESENTATION_LETTERBOX,
 } from "../sdl/types.ts";
 import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
@@ -1607,6 +1608,13 @@ export function _createRenderer(): void {
     throw new Error(`SDL_CreateRenderer failed: ${sdl.SDL_GetError()}`);
   }
   sdl.SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
+
+  // Set logical presentation to match the window's logical size.
+  // This ensures consistent rendering coordinates on high-DPI displays (Windows scaling).
+  const { width: logW, height: logH } = getMode();
+  if (logW > 0 && logH > 0) {
+    sdl.SDL_SetRenderLogicalPresentation(_renderer, logW, logH, SDL_LOGICAL_PRESENTATION_LETTERBOX);
+  }
 
   // Try to init SDL_ttf for proper font rendering
   _ttf = loadTTF();
