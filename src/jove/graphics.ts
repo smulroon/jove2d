@@ -7,8 +7,8 @@ import { resolve } from "path";
 import sdl from "../sdl/ffi.ts";
 import { loadTTF } from "../sdl/ffi_ttf.ts";
 import { loadImage } from "../sdl/ffi_image.ts";
-import { _createFont } from "./font.ts";
-import type { Font } from "./font.ts";
+import { _createFont, _createBitmapFont } from "./font.ts";
+import type { Font, GlyphInfo } from "./font.ts";
 import {
   SDL_SURFACE_OFFSET_W,
   SDL_SURFACE_OFFSET_H,
@@ -2916,7 +2916,9 @@ export function print(text: string, x: number, y: number): void {
   if (!_renderer) return;
   _statDrawCalls++;
 
-  if (_ttf && _ttfEngine && _currentFont) {
+  if (_currentFont?._isBitmapFont) {
+    _printBitmapFont(String(text), x, y);
+  } else if (_ttf && _ttfEngine && _currentFont) {
     _printTTF(String(text), x, y);
   } else {
     _printDebug(String(text), x, y);
@@ -2931,7 +2933,9 @@ export function printf(text: string, x: number, y: number, limit: number, align:
   if (!_renderer) return;
   _statDrawCalls++;
 
-  if (_ttf && _ttfEngine && _currentFont) {
+  if (_currentFont?._isBitmapFont) {
+    _printfBitmapFont(String(text), x, y, limit, align);
+  } else if (_ttf && _ttfEngine && _currentFont) {
     _printfTTF(String(text), x, y, limit, align);
   } else {
     // Fallback: just print without wrapping
@@ -3005,6 +3009,107 @@ function _printfTTF(text: string, x: number, y: number, limit: number, align: "l
   }
 }
 
+function _printBitmapFont(text: string, x: number, y: number): void {
+  const font = _currentFont!;
+  const texture = font._texture!;
+  const glyphMap = font._glyphMap!;
+  const glyphH = font._glyphHeight!;
+  const spacing = font._extraSpacing!;
+  const lineSkip = Math.round(glyphH * font.getLineHeight());
+  const lines = text.split("\n");
+
+  // Apply color tint via texture color mod
+  const [dr, dg, db, da] = _drawColor;
+  sdl.SDL_SetTextureColorModFloat(texture, dr / 255, dg / 255, db / 255);
+  sdl.SDL_SetTextureAlphaModFloat(texture, da / 255);
+
+  const srcRect = new Float32Array(4);
+  const dstRect = new Float32Array(4);
+
+  for (let i = 0; i < lines.length; i++) {
+    const lineText = lines[i];
+    if (lineText.length === 0) continue;
+
+    let cx = x;
+    const cy = y + i * lineSkip;
+    const [tStartX, tStartY] = _isIdentity() ? [cx, cy] : _transformPoint(cx, cy);
+
+    // Relative offset from the line start — glyphs are placed without individual transforms
+    let xOff = 0;
+    for (let j = 0; j < lineText.length; j++) {
+      const glyph = glyphMap.get(lineText[j]);
+      if (!glyph) continue;
+
+      srcRect[0] = glyph.x;
+      srcRect[1] = 0;
+      srcRect[2] = glyph.w;
+      srcRect[3] = glyphH;
+
+      dstRect[0] = tStartX + xOff;
+      dstRect[1] = tStartY;
+      dstRect[2] = glyph.w;
+      dstRect[3] = glyphH;
+
+      sdl.SDL_RenderTexture(_renderer!, texture, ptr(srcRect), ptr(dstRect));
+      xOff += glyph.w + spacing;
+    }
+  }
+}
+
+function _printfBitmapFont(text: string, x: number, y: number, limit: number, align: "left" | "center" | "right"): void {
+  const font = _currentFont!;
+  const texture = font._texture!;
+  const glyphMap = font._glyphMap!;
+  const glyphH = font._glyphHeight!;
+  const spacing = font._extraSpacing!;
+  const lineSkip = Math.round(glyphH * font.getLineHeight());
+  const [, wrappedLines] = font.getWrap(text, limit);
+
+  const [dr, dg, db, da] = _drawColor;
+  sdl.SDL_SetTextureColorModFloat(texture, dr / 255, dg / 255, db / 255);
+  sdl.SDL_SetTextureAlphaModFloat(texture, da / 255);
+
+  const srcRect = new Float32Array(4);
+  const dstRect = new Float32Array(4);
+
+  for (let i = 0; i < wrappedLines.length; i++) {
+    const lineText = wrappedLines[i];
+    if (lineText.length === 0) continue;
+
+    let lx = x;
+    if (align === "center" || align === "right") {
+      const lineWidth = font.getWidth(lineText);
+      if (align === "center") {
+        lx = x + (limit - lineWidth) / 2;
+      } else {
+        lx = x + limit - lineWidth;
+      }
+    }
+
+    const cy = y + i * lineSkip;
+    const [tStartX, tStartY] = _isIdentity() ? [lx, cy] : _transformPoint(lx, cy);
+
+    let xOff = 0;
+    for (let j = 0; j < lineText.length; j++) {
+      const glyph = glyphMap.get(lineText[j]);
+      if (!glyph) continue;
+
+      srcRect[0] = glyph.x;
+      srcRect[1] = 0;
+      srcRect[2] = glyph.w;
+      srcRect[3] = glyphH;
+
+      dstRect[0] = tStartX + xOff;
+      dstRect[1] = tStartY;
+      dstRect[2] = glyph.w;
+      dstRect[3] = glyphH;
+
+      sdl.SDL_RenderTexture(_renderer!, texture, ptr(srcRect), ptr(dstRect));
+      xOff += glyph.w + spacing;
+    }
+  }
+}
+
 // ============================================================
 // Font management
 // ============================================================
@@ -3039,6 +3144,100 @@ export function newFont(pathOrSize?: string | number, size?: number): Font | nul
   return _createFont(fontPtr, fontSize, _ttf);
 }
 
+/**
+ * Create a bitmap font from an image and a glyph string.
+ * The image uses a separator color (pixel at 0,0) to delimit glyph cells.
+ * Each character in `glyphs` maps to consecutive cells left-to-right.
+ */
+export function newImageFont(
+  pathOrImageData: string | BaseImageData | RichImageData,
+  glyphs: string,
+  extraSpacing: number = 0,
+): Font | null {
+  if (!_renderer) return null;
+
+  // Load image data
+  let imgData: { data: Uint8Array; width: number; height: number };
+  if (typeof pathOrImageData === "string") {
+    // Load via image module
+    const { newImageData } = require("./image.ts");
+    const loaded = newImageData(pathOrImageData);
+    if (!loaded) return null;
+    imgData = loaded;
+  } else {
+    imgData = pathOrImageData;
+  }
+
+  const { data, width, height } = imgData;
+
+  // Read separator color from pixel (0, 0)
+  const sepR = data[0], sepG = data[1], sepB = data[2], sepA = data[3];
+
+  // Scan top row to find glyph boundaries
+  const glyphStarts: number[] = [];
+  const glyphWidths: number[] = [];
+  let inGlyph = false;
+  let glyphStart = 0;
+
+  for (let x = 0; x < width; x++) {
+    const i = x * 4;
+    const isSep = data[i] === sepR && data[i + 1] === sepG &&
+                  data[i + 2] === sepB && data[i + 3] === sepA;
+    if (isSep) {
+      if (inGlyph) {
+        glyphWidths.push(x - glyphStart);
+        inGlyph = false;
+      }
+    } else {
+      if (!inGlyph) {
+        glyphStart = x;
+        glyphStarts.push(x);
+        inGlyph = true;
+      }
+    }
+  }
+  // Handle glyph extending to right edge
+  if (inGlyph) {
+    glyphWidths.push(width - glyphStart);
+  }
+
+  // Build glyph map
+  const glyphMap = new Map<string, GlyphInfo>();
+  const numGlyphs = Math.min(glyphs.length, glyphStarts.length);
+  for (let i = 0; i < numGlyphs; i++) {
+    glyphMap.set(glyphs[i], { x: glyphStarts[i], w: glyphWidths[i] });
+  }
+
+  // Make separator pixels transparent — copy data so we don't mutate the original
+  const texData = new Uint8Array(data.length);
+  texData.set(data);
+  for (let j = 0; j < texData.length; j += 4) {
+    if (texData[j] === sepR && texData[j + 1] === sepG &&
+        texData[j + 2] === sepB && texData[j + 3] === sepA) {
+      texData[j + 3] = 0; // set alpha to 0
+    }
+  }
+
+  // Create SDL texture from modified pixel data
+  const surface = sdl.SDL_CreateSurfaceFrom(
+    width, height, SDL_PIXELFORMAT_RGBA8888, ptr(texData), width * 4
+  ) as Pointer | null;
+  if (!surface) return null;
+
+  const texture = sdl.SDL_CreateTextureFromSurface(_renderer, surface) as SDLTexture | null;
+  sdl.SDL_DestroySurface(surface);
+  if (!texture) return null;
+
+  sdl.SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
+  // Bitmap fonts should use nearest filtering for crisp pixel art
+  sdl.SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST);
+
+  return _createBitmapFont(
+    texture, width, height, glyphMap, height, extraSpacing,
+    () => sdl.SDL_DestroyTexture(texture),
+  );
+}
+
 /** Set the active font for drawing. */
 export function setFont(font: Font): void {
   _currentFont = font;
@@ -3054,7 +3253,9 @@ export function getFont(): Font | null {
  * subsequent draw() calls are cheap and support full transforms.
  */
 export function newText(font: Font, text?: string): Text | null {
-  if (!_ttf || !_ttfEngine || !_renderer) return null;
+  if (!_renderer) return null;
+  // TTF fonts need the TTF engine; bitmap fonts don't
+  if (!font._isBitmapFont && (!_ttf || !_ttfEngine)) return null;
 
   let _font = font;
   let _segments: TextSegment[] = [];
@@ -3076,7 +3277,9 @@ export function newText(font: Font, text?: string): Text | null {
 
   function _computeBounds(): { width: number; height: number } {
     if (_segments.length === 0) return { width: 0, height: 0 };
-    const lineSkip = _ttf!.TTF_GetFontLineSkip(_font._font);
+    const lineSkip = _font._isBitmapFont
+      ? Math.round(_font._glyphHeight! * _font.getLineHeight())
+      : _ttf!.TTF_GetFontLineSkip(_font._font);
     let maxRight = 0;
     let maxBottom = 0;
 
@@ -3109,7 +3312,9 @@ export function newText(font: Font, text?: string): Text | null {
 
   function _flush(): void {
     if (!_dirty) return;
-    if (!_ttf || !_ttfEngine || !_renderer) return;
+    if (!_renderer) return;
+    // TTF fonts need the TTF engine; bitmap fonts don't
+    if (!_font._isBitmapFont && (!_ttf || !_ttfEngine)) return;
     _dirty = false;
 
     const bounds = _computeBounds();
@@ -3152,9 +3357,17 @@ export function newText(font: Font, text?: string): Text | null {
     for (const seg of _segments) {
       setColor(seg.color[0], seg.color[1], seg.color[2], seg.color[3]);
       if (seg.wrapLimit > 0) {
-        _printfTTF(seg.text, seg.x, seg.y, seg.wrapLimit, seg.align);
+        if (_font._isBitmapFont) {
+          _printfBitmapFont(seg.text, seg.x, seg.y, seg.wrapLimit, seg.align);
+        } else {
+          _printfTTF(seg.text, seg.x, seg.y, seg.wrapLimit, seg.align);
+        }
       } else {
-        _printTTF(seg.text, seg.x, seg.y);
+        if (_font._isBitmapFont) {
+          _printBitmapFont(seg.text, seg.x, seg.y);
+        } else {
+          _printTTF(seg.text, seg.x, seg.y);
+        }
       }
     }
 

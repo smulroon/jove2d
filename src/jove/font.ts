@@ -2,6 +2,7 @@
 
 import { ptr, read } from "bun:ffi";
 import type { Pointer } from "bun:ffi";
+import type { SDLTexture } from "../sdl/types.ts";
 
 // TTF symbols type — imported lazily from graphics.ts
 type TTFSymbols = NonNullable<ReturnType<typeof import("../sdl/ffi_ttf.ts").loadTTF>>;
@@ -12,11 +13,30 @@ const _hBuf = new Int32Array(1);
 const _wPtr = ptr(_wBuf);
 const _hPtr = ptr(_hBuf);
 
+export interface GlyphInfo {
+  x: number;   // x position in atlas (pixels)
+  w: number;   // glyph width (pixels)
+}
+
 export interface Font {
-  /** Internal TTF_Font pointer */
+  /** Internal TTF_Font pointer (null for bitmap fonts) */
   readonly _font: Pointer;
   /** Font point size */
   readonly _size: number;
+  /** True for bitmap fonts */
+  readonly _isBitmapFont?: boolean;
+  /** Bitmap font atlas texture */
+  readonly _texture?: SDLTexture;
+  /** Bitmap font atlas width */
+  readonly _textureWidth?: number;
+  /** Bitmap font atlas height */
+  readonly _textureHeight?: number;
+  /** Bitmap font glyph map (char → atlas position + width) */
+  readonly _glyphMap?: Map<string, GlyphInfo>;
+  /** Bitmap font glyph height (all glyphs same height) */
+  readonly _glyphHeight?: number;
+  /** Bitmap font extra spacing between characters */
+  readonly _extraSpacing?: number;
 
   /** Get the height of a line of text (in pixels). */
   getHeight(): number;
@@ -139,6 +159,117 @@ export function _createFont(
 
     release(): void {
       ttf.TTF_CloseFont(fontPtr);
+    },
+  };
+}
+
+export function _createBitmapFont(
+  texture: SDLTexture,
+  textureWidth: number,
+  textureHeight: number,
+  glyphMap: Map<string, GlyphInfo>,
+  glyphHeight: number,
+  extraSpacing: number,
+  releaseTexture: () => void,
+): Font {
+  let _lineHeightMult = 1.0;
+
+  function _getCharWidth(ch: string): number {
+    const g = glyphMap.get(ch);
+    return g ? g.w : 0;
+  }
+
+  function _measureText(text: string): number {
+    let w = 0;
+    for (let i = 0; i < text.length; i++) {
+      const cw = _getCharWidth(text[i]);
+      if (cw > 0) {
+        if (w > 0) w += extraSpacing;
+        w += cw;
+      }
+    }
+    return w;
+  }
+
+  return {
+    _font: null as unknown as Pointer,
+    _size: glyphHeight,
+    _isBitmapFont: true,
+    _texture: texture,
+    _textureWidth: textureWidth,
+    _textureHeight: textureHeight,
+    _glyphMap: glyphMap,
+    _glyphHeight: glyphHeight,
+    _extraSpacing: extraSpacing,
+
+    getHeight(): number {
+      return glyphHeight;
+    },
+
+    getWidth(text: string): number {
+      return _measureText(text);
+    },
+
+    getAscent(): number {
+      return glyphHeight;
+    },
+
+    getDescent(): number {
+      return 0;
+    },
+
+    getBaseline(): number {
+      return glyphHeight;
+    },
+
+    getLineHeight(): number {
+      return _lineHeightMult;
+    },
+
+    setLineHeight(height: number): void {
+      _lineHeightMult = height;
+    },
+
+    getWrap(text: string, wraplimit: number): [number, string[]] {
+      const sections = text.split("\n");
+      const allLines: string[] = [];
+      let maxWidth = 0;
+
+      for (const section of sections) {
+        if (section.length === 0) {
+          allLines.push("");
+          continue;
+        }
+
+        const words = section.split(" ");
+        let currentLine = "";
+
+        for (const word of words) {
+          const testLine = currentLine.length === 0 ? word : currentLine + " " + word;
+          const testWidth = _measureText(testLine);
+
+          if (testWidth > wraplimit && currentLine.length > 0) {
+            const lineWidth = _measureText(currentLine);
+            if (lineWidth > maxWidth) maxWidth = lineWidth;
+            allLines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+
+        if (currentLine.length > 0) {
+          const lineWidth = _measureText(currentLine);
+          if (lineWidth > maxWidth) maxWidth = lineWidth;
+          allLines.push(currentLine);
+        }
+      }
+
+      return [maxWidth, allLines];
+    },
+
+    release(): void {
+      releaseTexture();
     },
   };
 }
