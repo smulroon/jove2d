@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libfreetype-dev libpng-dev \
+            mingw-w64 \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libwayland-dev libxkbcommon-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev \
+            zip
+
+      # ─── Linux builds ──────────────────────────────────────────────────
+
+      - name: Build SDL3 (Linux)
+        run: bash scripts/build-sdl3.sh
+
+      - name: Build SDL_ttf (Linux)
+        run: bash scripts/build-sdl_ttf.sh
+
+      - name: Build SDL_image (Linux)
+        run: bash scripts/build-sdl_image.sh
+
+      - name: Build Box2D (Linux)
+        run: bash scripts/build-box2d.sh
+
+      - name: Build audio_decode (Linux)
+        run: bash scripts/build-audio-decode.sh
+
+      # ─── Windows cross-compilation ─────────────────────────────────────
+
+      - name: Build all libraries (Windows)
+        run: bash scripts/build-windows.sh
+
+      # ─── Package ───────────────────────────────────────────────────────
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Package Linux x64
+        run: bash scripts/package-release.sh linux-x64 "${{ steps.version.outputs.version }}"
+
+      - name: Package Windows x64
+        run: bash scripts/package-release.sh windows-x64 "${{ steps.version.outputs.version }}"
+
+      # ─── Release ───────────────────────────────────────────────────────
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            jove2d-v${{ steps.version.outputs.version }}-linux-x64.tar.gz
+            jove2d-v${{ steps.version.outputs.version }}-windows-x64.zip
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
