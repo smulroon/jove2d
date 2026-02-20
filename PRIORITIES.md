@@ -129,13 +129,11 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~OGG/MP3/FLAC decoding~~ DONE — via stb_vorbis + dr_mp3 + dr_flac (libaudio_decode.so)
 - `newQueueableSource` — streaming procedural audio
 
-**P3 (positional/effects):**
-- `setPosition` / `getPosition` / `setOrientation` / `getOrientation` — 3D listener
-- `setVelocity` / `getVelocity` / `setDistanceModel` / `setDopplerScale` — spatial audio
-- `setEffect` / `getEffect` / `getActiveEffects` — audio effects (reverb, echo)
+**Not planned:**
+- `setPosition` / `getPosition` / `setOrientation` / `getOrientation` — 3D listener (needs OpenAL or custom mixing)
+- `setVelocity` / `getVelocity` / `setDistanceModel` / `setDopplerScale` — spatial audio (needs OpenAL or custom mixing)
+- `setEffect` / `getEffect` / `getActiveEffects` — audio effects (needs DSP or OpenAL)
 - `getMaxSceneEffects` / `getMaxSourceEffects` / `isEffectsSupported` — effect caps
-
-**Skip:**
 - `getRecordingDevices` — microphone input (niche)
 - `setMixWithSystem` — iOS-only
 
@@ -222,40 +220,39 @@ Grouped by priority based on impact for typical 2D game development.
 - **Approach**: Buffer-based implementation
 - **Why P3**: Mostly used for procedural audio generation.
 
-### Priority 4 — Niche / Advanced
+### Not Planned
 
 #### love.thread
-- **Current**: Not implemented
-- **Needed**: Worker threads, channels for message passing
-- **Approach**: Bun workers / Web Workers API
-- **Why P4**: Rarely needed in 2D games. Bun's async is usually sufficient.
+- Bun's async I/O covers most use cases (asset loading, network). For CPU-bound work, Bun Workers provide real OS threads + SharedArrayBuffer — superior to love.thread's serialized Lua channels.
 
 #### love.touch
-- **Current**: Not implemented
-- **Needed**: Multi-touch support (finger tracking, gestures)
-- **Approach**: SDL3 touch events
-- **Why P4**: Only relevant for touch-screen targets.
+- Mobile-only. SDL3 has touch events if needed in the future.
 
 #### love.video
-- **Current**: Not implemented
-- **Needed**: Theora video playback as drawable
-- **Approach**: Would need a video decoder library
-- **Why P4**: Rarely used. Most games use sprite animations.
+- **Queued as #35** — video playback as drawable (intro videos, cutscenes, visual novels, FMV games). FFmpeg or platform codec via C wrapper; render frames as textures.
 
 #### love.font (standalone module)
-- **Current**: Font functionality is in graphics module; bitmap fonts supported via `newImageFont`
-- **Needed**: Separate module for GlyphData, Rasterizer access
-- **Approach**: Low priority — current Font API covers 99% of use cases
-- **Why P4**: Only needed for advanced text rendering (SDF fonts, custom rasterizers).
+- Font functionality is integrated into graphics module; bitmap fonts supported via `newImageFont`. Current Font API covers 99% of use cases.
+
+#### Positional/3D audio
+- SDL3 has no spatial audio API. Would need OpenAL integration or custom mixing layer. High effort, low demand for 2D games.
+
+#### Audio effects
+- Reverb, echo, filters. Would need DSP implementation or OpenAL. High effort.
 
 ---
 
-## Not Planned
+## Not Planned (table)
 
 | Feature | Reason |
 |---|---|
 | love.graphics.newShader (compute/vertex) | Only fragment shaders supported via SDL_GPURenderState; compute/vertex require full GPU pipeline |
+| love.thread | Bun async/Workers cover this — real OS threads + SharedArrayBuffer |
+| love.touch | Mobile-only |
 | love.sensor | Mobile-only (accelerometer, gyroscope) |
+| Positional/3D audio | SDL3 has no spatial audio API; needs OpenAL or custom mixer |
+| Audio effects (reverb, echo, filters) | Needs DSP implementation or OpenAL |
+| love.font (standalone) | Integrated into graphics module; current API covers 99% of use cases |
 | love.system.vibrate | Mobile-only |
 | love.system.hasBackgroundMusic | iOS-only |
 | love.keyboard.hasScreenKeyboard | Mobile-only |
@@ -301,4 +298,11 @@ Grouped by priority based on impact for typical 2D game development.
 
 **Real game value:**
 27. **newQueueableSource** — streaming/procedural audio via SDL audio streams
-28. **love.sound (SoundData)** — sample-level get/set, pairs with queueable source for procedural audio
+28. **Physics joint getters** — RevoluteJoint/PrismaticJoint/WheelJoint/MotorJoint: isMotorEnabled, isLimitEnabled, getLowerLimit/getUpperLimit, getMotorSpeed, getJointSpeed, getJointTranslation; WeldJoint: getFrequency/setFrequency, getDampingRatio/setDampingRatio; DistanceJoint: getMinLength/setMinLength, getMaxLength/setMaxLength
+29. **Body:applyAngularImpulse + vector transforms** — applyAngularImpulse (knockback/spin), getWorldVector/getLocalVector (velocity-relative calculations)
+30. **Fixture:testPoint** — point-in-shape test for custom picking
+31. **World:getJoints/getJointCount** — expose internal _joints Map as public API
+32. **textedited event** — IME composition (SDL_EVENT_TEXT_EDITING), needed for CJK input
+33. **Graphics capability queries** — getSupported, getSystemLimits, getCanvasFormats, isGammaCorrect (mostly static returns)
+34. **love.sound (SoundData/Decoder)** — sample-level get/set for procedural audio, pairs with newQueueableSource
+35. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)
