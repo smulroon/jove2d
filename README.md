@@ -31,7 +31,23 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
 
 ## Quick Start
 
-### Prerequisites
+### Option A: Download a release (recommended)
+
+Prebuilt binaries for Linux x64 and Windows x64 are available on the [Releases page](https://github.com/smulroon/jove2d/releases). No build tools required — just [Bun](https://bun.sh/).
+
+```bash
+# Download and extract
+curl -LO https://github.com/smulroon/jove2d/releases/latest/download/jove2d-v0.1.0-linux-x64.tar.gz
+tar xzf jove2d-v0.1.0-linux-x64.tar.gz
+cd jove2d-v0.1.0-linux-x64
+
+# Run an example
+bun examples/hello/main.ts
+```
+
+### Option B: Build from source
+
+#### Prerequisites
 
 - [Bun](https://bun.sh/) (v1.0+)
 - Linux (tested on Ubuntu/WSL2)
@@ -44,7 +60,7 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
     libwayland-dev libxkbcommon-dev
   ```
 
-### Setup
+#### Setup
 
 ```bash
 git clone https://github.com/smulroon/jove2d.git
@@ -55,7 +71,7 @@ bun install
 bun run build-sdl3
 ```
 
-### Run an example
+#### Run an example
 
 ```bash
 bun examples/hello/main.ts
