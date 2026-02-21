@@ -82,9 +82,9 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`setLineStyle` / `getLineStyle`~~ — rough/smooth line style
 - ~~`getDPIScale` / `getPixelDimensions` / `getPixelHeight` / `getPixelWidth`~~ — HiDPI pixel queries DONE
 - ~~`getRendererInfo` / `getStats`~~ — renderer info and per-frame draw stats DONE
-- `getSupported` / `getSystemLimits` — capability queries
-- `getCanvasFormats` / `getImageFormats` / `getTextureTypes` — format queries
-- `isActive` / `isGammaCorrect` — state queries
+- ~~`getSupported` / `getSystemLimits`~~ DONE — capability queries (static returns for SDL3 renderer)
+- ~~`getCanvasFormats` / `getImageFormats` / `getTextureTypes`~~ DONE — format queries (rgba8 only)
+- ~~`isActive` / `isGammaCorrect`~~ DONE — state queries
 - `drawInstanced` / `drawLayer` — advanced drawing
 - `setWireframe` / `isWireframe` — wireframe mode
 - `setDepthMode` / `getDepthMode` — depth testing
@@ -299,5 +299,5 @@ Grouped by priority based on impact for typical 2D game development.
 28. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
 29. ~~**Physics Phase 3**~~ DONE — joint getters (revolute/prismatic/wheel/motor/distance/weld/mouse), Body applyAngularImpulse + getWorldVector/getLocalVector, Fixture testPoint, World getJoints/getJointCount
 30. ~~**textedited event**~~ DONE — IME composition (SDL_EVENT_TEXT_EDITING) for CJK input, dispatches to textedited(text, start, length) callback
-31. **Graphics capability queries** — getSupported, getSystemLimits, getCanvasFormats, isGammaCorrect (mostly static returns)
+31. ~~**Graphics capability queries**~~ DONE — getSupported, getSystemLimits, getCanvasFormats, getImageFormats, getTextureTypes, isGammaCorrect, isActive
 32. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)

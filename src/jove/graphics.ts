@@ -3600,6 +3600,97 @@ export function getStats(): { drawcalls: number; canvasswitches: number; texture
   };
 }
 
+/** Check if the graphics module is active (renderer initialized). */
+export function isActive(): boolean {
+  return _renderer !== null;
+}
+
+/** Whether gamma-correct rendering is enabled. Always false — not implemented. */
+export function isGammaCorrect(): boolean {
+  return false;
+}
+
+/** Get supported graphics features. */
+export function getSupported(): Record<string, boolean> {
+  return {
+    glsl3: false,
+    instancing: false,
+    lighten: false,
+    multicanvasformats: false,
+    clampzero: false,
+    pixelshaderhighp: false,
+    shaderderivatives: false,
+    fullnpot: true,
+  };
+}
+
+/** Get system-specific graphics limits. */
+export function getSystemLimits(): Record<string, number> {
+  return {
+    pointsize: 1024,
+    texturesize: 4096,
+    multicanvas: 1,
+    canvasmsaa: 1,
+    texturelayers: 0,
+    volumetexturesize: 0,
+    cubetexturesize: 0,
+    anisotropy: 1,
+  };
+}
+
+/** Get supported canvas pixel formats. */
+export function getCanvasFormats(): Record<string, boolean> {
+  return {
+    rgba8: true,
+    srgba8: false,
+    rgba16f: false,
+    rgba32f: false,
+    rg11b10f: false,
+    r8: false,
+    rg8: false,
+    r16f: false,
+    rg16f: false,
+    r32f: false,
+    rg32f: false,
+    rgb565: false,
+    rgb5a1: false,
+    rgba4: false,
+    depth16: false,
+    depth24: false,
+    depth24stencil8: false,
+  };
+}
+
+/** Get supported image pixel formats. */
+export function getImageFormats(): Record<string, boolean> {
+  return {
+    rgba8: true,
+    srgba8: false,
+    rgba16f: false,
+    rgba32f: false,
+    rg11b10f: false,
+    r8: false,
+    rg8: false,
+    r16f: false,
+    rg16f: false,
+    r32f: false,
+    rg32f: false,
+    rgb565: false,
+    rgb5a1: false,
+    rgba4: false,
+  };
+}
+
+/** Get supported texture types. */
+export function getTextureTypes(): Record<string, boolean> {
+  return {
+    "2d": true,
+    array: false,
+    cube: false,
+    volume: false,
+  };
+}
+
 // ============================================================
 // Internal helpers for transformed drawing
 // ============================================================
