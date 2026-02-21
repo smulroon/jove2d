@@ -617,6 +617,11 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     args: [FFIType.u32],
     returns: FFIType.void,
   },
+  // bool SDL_GetAudioDeviceFormat(SDL_AudioDeviceID devid, SDL_AudioSpec* spec, int* sample_frames)
+  SDL_GetAudioDeviceFormat: {
+    args: [FFIType.u32, FFIType.pointer, FFIType.pointer],
+    returns: FFIType.bool,
+  },
   // bool SDL_LoadWAV(const char* path, SDL_AudioSpec* spec, Uint8** audio_buf, Uint32* audio_len)
   SDL_LoadWAV: {
     args: [FFIType.cstring, FFIType.pointer, FFIType.pointer, FFIType.pointer],

@@ -41,7 +41,13 @@ export function _init(): boolean {
 function _ensureDevice(): boolean {
   if (_deviceId) return true;
   if (!_initialized) return false;
-  _deviceId = sdl.SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, null);
+  // Try zero-filled spec first — bun:ffi on Windows mishandles null pointer args,
+  // causing audio clicking artifacts when SDL resamples to device format.
+  // Fall back to null for dummy driver (which rejects zero-filled spec).
+  _deviceId = sdl.SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, _deviceSpecPtr);
+  if (!_deviceId) {
+    _deviceId = sdl.SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, null);
+  }
   return _deviceId !== 0;
 }
 
