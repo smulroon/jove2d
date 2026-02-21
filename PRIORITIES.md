@@ -14,12 +14,12 @@ Grouped by priority based on impact for typical 2D game development.
 | love.math | **16/16 Complete** | All functions implemented |
 | love.data | **5/5 Complete** | compress/decompress, encode/decode, hash, ByteData |
 | love.joystick | **~16/17 Complete** | Full gamepad support, vibration, hot-plug; needs real device testing |
-| love.event | **4/6 Complete** | Missing `pump` (internal), `wait` (rarely used) |
+| love.event | **5/6 Complete** | textedited added; missing `pump` (internal), `wait` (rarely used) |
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
 | love.physics | **~90/93 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve/all getters; gear/pulley N/A in v3 |
-| love.graphics | **~81/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats/bitmap fonts done |
+| love.graphics | **~88/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats/bitmap fonts/capability queries done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **17/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone, newQueueableSource; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
@@ -30,7 +30,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.font | **Inline** | Integrated into graphics module; bitmap fonts via newImageFont |
 | love.sensor | **Not planned** | Mobile-only |
 
-**Summary: 15/20 modules implemented, 9 at 100%, 12 at 75%+**
+**Summary: 15/20 modules implemented, 9 at 100%, 13 at 75%+**
 
 ---
 
@@ -284,20 +284,17 @@ Grouped by priority based on impact for typical 2D game development.
 20. ~~**Physics Phase 2**~~ DONE — wheel/motor joints, joint anchors/reactions, Body.setMassData, contact point/speed
 21. ~~**window.setIcon/getIcon**~~ DONE — window icon from ImageData
 
-### Next Up
-
-**Quick wins:**
 22. ~~**Graphics DPI/info queries**~~ DONE — getDPIScale, getPixelDimensions, getPixelWidth, getPixelHeight, getRendererInfo, getStats
 23. ~~**setLineJoin / getLineJoin**~~ DONE — miter/bevel/none line join styles
 24. ~~**preSolve callback**~~ DONE — 1-frame-delay enable-list pattern, Contact.setEnabled, one-way platforms
 25. ~~**Bitmap font support**~~ DONE — newImageFont with separator-color glyph detection, pixel-art font rendering
-
 26. ~~**Error recovery**~~ DONE — blue error screen for load/update/draw/event failures, setErrorHandler override, clipboard copy
-
-**Real game value:**
 27. ~~**newQueueableSource**~~ DONE — streaming/procedural audio via SDL audio streams
 28. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
 29. ~~**Physics Phase 3**~~ DONE — joint getters (revolute/prismatic/wheel/motor/distance/weld/mouse), Body applyAngularImpulse + getWorldVector/getLocalVector, Fixture testPoint, World getJoints/getJointCount
 30. ~~**textedited event**~~ DONE — IME composition (SDL_EVENT_TEXT_EDITING) for CJK input, dispatches to textedited(text, start, length) callback
 31. ~~**Graphics capability queries**~~ DONE — getSupported, getSystemLimits, getCanvasFormats, getImageFormats, getTextureTypes, isGammaCorrect, isActive
+
+### Next Up
+
 32. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)
