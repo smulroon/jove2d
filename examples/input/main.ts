@@ -8,6 +8,9 @@ const speed = 200;
 let lastKey = "(none)";
 let mouseLabel = "";
 let typedText = "";
+let compositionText = "";
+let compositionStart = 0;
+let compositionLength = 0;
 let cursorVisible = true;
 let mouseGrabbed = false;
 const cursorTypes = ["arrow", "ibeam", "hand", "crosshair", "wait", "no"] as const;
@@ -63,9 +66,36 @@ await jove.run({
 
     // Text input display
     jove.graphics.setColor(200, 200, 200);
-    jove.graphics.print("Type something (textinput):", 10, 80);
+    jove.graphics.print("Type something (textinput + IME):", 10, 80);
     jove.graphics.setColor(100, 255, 100);
-    jove.graphics.print(typedText + "_", 10, 100);
+    // Show typed text with composition inline
+    if (compositionText.length > 0) {
+      // Draw committed text, then composition with underline
+      jove.graphics.print(typedText, 10, 100);
+      const committedWidth = jove.graphics.getFont().getWidth(typedText);
+      // Draw composition text in yellow with underline
+      jove.graphics.setColor(255, 255, 100);
+      jove.graphics.print(compositionText, 10 + committedWidth, 100);
+      const compWidth = jove.graphics.getFont().getWidth(compositionText);
+      jove.graphics.line(10 + committedWidth, 114, 10 + committedWidth + compWidth, 114);
+      // Draw cursor within composition
+      const cursorOffset = jove.graphics.getFont().getWidth(compositionText.substring(0, compositionStart));
+      jove.graphics.setColor(255, 255, 255);
+      jove.graphics.line(10 + committedWidth + cursorOffset, 100, 10 + committedWidth + cursorOffset, 114);
+      // Draw trailing cursor after composition
+      jove.graphics.setColor(100, 255, 100);
+      jove.graphics.print("_", 10 + committedWidth + compWidth, 100);
+    } else {
+      jove.graphics.print(typedText + "_", 10, 100);
+    }
+
+    // IME status
+    jove.graphics.setColor(150, 150, 150);
+    if (compositionText.length > 0) {
+      jove.graphics.print(`IME composing: "${compositionText}" cursor=${compositionStart} sel=${compositionLength}`, 10, 120);
+    } else {
+      jove.graphics.print("IME: idle (use an IME to see composition events)", 10, 120);
+    }
 
     // Mouse state info
     jove.graphics.setColor(180, 180, 180);
@@ -96,6 +126,16 @@ await jove.run({
 
   textinput(text) {
     typedText += text;
+    // Clear composition when text is committed
+    compositionText = "";
+    compositionStart = 0;
+    compositionLength = 0;
+  },
+
+  textedited(text, start, length) {
+    compositionText = text;
+    compositionStart = start;
+    compositionLength = length;
   },
 
   mousepressed(x, y, button) {

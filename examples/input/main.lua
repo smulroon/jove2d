@@ -7,6 +7,9 @@ local speed = 200
 local lastKey = "(none)"
 local mouseLabel = ""
 local typedText = ""
+local compositionText = ""
+local compositionStart = 0
+local compositionLength = 0
 local cursorVisible = true
 local mouseGrabbed = false
 local cursorTypes = {"arrow", "ibeam", "hand", "crosshair", "wait", "no"}
@@ -61,9 +64,36 @@ function love.draw()
 
   -- Text input display
   love.graphics.setColor(200/255, 200/255, 200/255)
-  love.graphics.print("Type something (textinput):", 10, 80)
+  love.graphics.print("Type something (textinput + IME):", 10, 80)
   love.graphics.setColor(100/255, 1, 100/255)
-  love.graphics.print(typedText .. "_", 10, 100)
+  -- Show typed text with composition inline
+  if #compositionText > 0 then
+    -- Draw committed text, then composition with underline
+    love.graphics.print(typedText, 10, 100)
+    local committedWidth = love.graphics.getFont():getWidth(typedText)
+    -- Draw composition text in yellow with underline
+    love.graphics.setColor(1, 1, 100/255)
+    love.graphics.print(compositionText, 10 + committedWidth, 100)
+    local compWidth = love.graphics.getFont():getWidth(compositionText)
+    love.graphics.line(10 + committedWidth, 114, 10 + committedWidth + compWidth, 114)
+    -- Draw cursor within composition
+    local cursorOffset = love.graphics.getFont():getWidth(compositionText:sub(1, compositionStart))
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.line(10 + committedWidth + cursorOffset, 100, 10 + committedWidth + cursorOffset, 114)
+    -- Draw trailing cursor after composition
+    love.graphics.setColor(100/255, 1, 100/255)
+    love.graphics.print("_", 10 + committedWidth + compWidth, 100)
+  else
+    love.graphics.print(typedText .. "_", 10, 100)
+  end
+
+  -- IME status
+  love.graphics.setColor(150/255, 150/255, 150/255)
+  if #compositionText > 0 then
+    love.graphics.print(string.format('IME composing: "%s" cursor=%d sel=%d', compositionText, compositionStart, compositionLength), 10, 120)
+  else
+    love.graphics.print("IME: idle (use an IME to see composition events)", 10, 120)
+  end
 
   -- Mouse state info
   love.graphics.setColor(180/255, 180/255, 180/255)
@@ -94,6 +124,16 @@ end
 
 function love.textinput(text)
   typedText = typedText .. text
+  -- Clear composition when text is committed
+  compositionText = ""
+  compositionStart = 0
+  compositionLength = 0
+end
+
+function love.textedited(text, start, length)
+  compositionText = text
+  compositionStart = start
+  compositionLength = length
 end
 
 function love.mousepressed(x, y, button)
