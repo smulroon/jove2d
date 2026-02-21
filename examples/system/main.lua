@@ -9,7 +9,7 @@ local messages = {}
 
 local function log(msg)
   table.insert(messages, msg)
-  if #messages > 24 then table.remove(messages, 1) end
+  if #messages > 30 then table.remove(messages, 1) end
 end
 
 function love.load()
@@ -45,6 +45,32 @@ function love.load()
   log("  100 units to pixels: " .. love.window.toPixels(100))
   log("")
 
+  -- Graphics capabilities
+  local rName, rVersion, rVendor, rDevice = love.graphics.getRendererInfo()
+  log("Renderer: " .. rName .. " (" .. rVendor .. ")")
+  log("  Active: " .. tostring(love.graphics.isActive()) .. ", Gamma: " .. tostring(love.graphics.isGammaCorrect()))
+  local limits = love.graphics.getSystemLimits()
+  log("  Max texture: " .. limits.texturesize .. ", Point: " .. limits.pointsize .. ", MSAA: " .. limits.canvasmsaa)
+  local supported = love.graphics.getSupported()
+  local features = {}
+  for k, v in pairs(supported) do
+    if v then table.insert(features, k) end
+  end
+  log("  Features: " .. (#features > 0 and table.concat(features, ", ") or "(none)"))
+  local texTypes = love.graphics.getTextureTypes()
+  local types = {}
+  for k, v in pairs(texTypes) do
+    if v then table.insert(types, k) end
+  end
+  log("  Texture types: " .. table.concat(types, ", "))
+  local canvasFmt = love.graphics.getCanvasFormats()
+  local fmts = {}
+  for k, v in pairs(canvasFmt) do
+    if v then table.insert(fmts, k) end
+  end
+  log("  Canvas formats: " .. table.concat(fmts, ", "))
+  log("")
+
   -- Power info
   local state, percent, seconds = love.system.getPowerInfo()
   log("Power state: " .. tostring(state))
@@ -75,11 +101,11 @@ function love.draw()
   -- Display system info
   love.graphics.setColor(200/255, 220/255, 200/255)
   for i, msg in ipairs(messages) do
-    love.graphics.print(msg, 10, 40 + (i - 1) * 18)
+    love.graphics.print(msg, 10, 40 + (i - 1) * 16)
   end
 
   -- Gamma/linear color ramp visualization
-  local rampY = 480
+  local rampY = 530
   love.graphics.setColor(200/255, 200/255, 200/255)
   love.graphics.print("Gamma ramp (top) vs Linear ramp (bottom)", 10, rampY)
 

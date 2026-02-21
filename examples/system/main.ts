@@ -12,7 +12,7 @@ let messages: string[] = [];
 
 function log(msg: string) {
   messages.push(msg);
-  if (messages.length > 24) messages.shift();
+  if (messages.length > 30) messages.shift();
 }
 
 await jove.run({
@@ -41,6 +41,23 @@ await jove.run({
     log(`  DPI scale: ${jove.window.getDPIScale()}`);
     log(`  100px from pixels: ${jove.window.fromPixels(100)}`);
     log(`  100 units to pixels: ${jove.window.toPixels(100)}`);
+    log("");
+
+    // Graphics capabilities
+    const ri = jove.graphics.getRendererInfo();
+    log(`Renderer: ${ri.name} (${ri.vendor})`);
+    log(`  Active: ${jove.graphics.isActive()}, Gamma: ${jove.graphics.isGammaCorrect()}`);
+    const limits = jove.graphics.getSystemLimits();
+    log(`  Max texture: ${limits.texturesize}, Point: ${limits.pointsize}, MSAA: ${limits.canvasmsaa}`);
+    const supported = jove.graphics.getSupported();
+    const features = Object.entries(supported).filter(([, v]) => v).map(([k]) => k);
+    log(`  Features: ${features.length > 0 ? features.join(", ") : "fullnpot"}`);
+    const texTypes = jove.graphics.getTextureTypes();
+    const types = Object.entries(texTypes).filter(([, v]) => v).map(([k]) => k);
+    log(`  Texture types: ${types.join(", ")}`);
+    const canvasFmt = jove.graphics.getCanvasFormats();
+    const fmts = Object.entries(canvasFmt).filter(([, v]) => v).map(([k]) => k);
+    log(`  Canvas formats: ${fmts.join(", ")}`);
     log("");
 
     // Power info
@@ -73,11 +90,11 @@ await jove.run({
     // Display system info
     jove.graphics.setColor(200, 220, 200);
     for (let i = 0; i < messages.length; i++) {
-      jove.graphics.print(messages[i], 10, 40 + i * 18);
+      jove.graphics.print(messages[i], 10, 40 + i * 16);
     }
 
     // Gamma/linear color ramp visualization
-    const rampY = 480;
+    const rampY = 530;
     jove.graphics.setColor(200, 200, 200);
     jove.graphics.print("Gamma ramp (top) vs Linear ramp (bottom)", 10, rampY);
 
