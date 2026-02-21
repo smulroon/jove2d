@@ -218,6 +218,18 @@ function _load() {
       args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.f32, FFIType.f32],
       returns: FFIType.void,
     },
+    jove_Body_ApplyAngularImpulse: {
+      args: [FFIType.i32, FFIType.f32, FFIType.i32],
+      returns: FFIType.void,
+    },
+    jove_Body_GetWorldVector: {
+      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.pointer, FFIType.pointer],
+      returns: FFIType.void,
+    },
+    jove_Body_GetLocalVector: {
+      args: [FFIType.i32, FFIType.f32, FFIType.f32, FFIType.pointer, FFIType.pointer],
+      returns: FFIType.void,
+    },
 
     /* ── Shapes ─────────────────────────────────────────────────── */
     jove_CreateCircleShape: {
@@ -309,6 +321,10 @@ function _load() {
       args: [FFIType.i32],
       returns: FFIType.i32,
     },
+    jove_Shape_TestPoint: {
+      args: [FFIType.i32, FFIType.f32, FFIType.f32],
+      returns: FFIType.i32,
+    },
 
     /* ── Joints (still u64) ────────────────────────────────────── */
     jove_CreateDistanceJoint: {
@@ -368,6 +384,22 @@ function _load() {
       args: [FFIType.u64],
       returns: FFIType.f32,
     },
+    jove_DistanceJoint_GetSpringHertz: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_DistanceJoint_SetSpringHertz: {
+      args: [FFIType.u64, FFIType.f32],
+      returns: FFIType.void,
+    },
+    jove_DistanceJoint_GetSpringDampingRatio: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_DistanceJoint_SetSpringDampingRatio: {
+      args: [FFIType.u64, FFIType.f32],
+      returns: FFIType.void,
+    },
     jove_RevoluteJoint_GetAngle: {
       args: [FFIType.u64],
       returns: FFIType.f32,
@@ -392,6 +424,26 @@ function _load() {
       args: [FFIType.u64, FFIType.f32],
       returns: FFIType.void,
     },
+    jove_RevoluteJoint_IsLimitEnabled: {
+      args: [FFIType.u64],
+      returns: FFIType.i32,
+    },
+    jove_RevoluteJoint_GetLowerLimit: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_RevoluteJoint_GetUpperLimit: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_RevoluteJoint_IsMotorEnabled: {
+      args: [FFIType.u64],
+      returns: FFIType.i32,
+    },
+    jove_RevoluteJoint_GetMotorSpeed: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
     jove_PrismaticJoint_EnableLimit: {
       args: [FFIType.u64, FFIType.i32],
       returns: FFIType.void,
@@ -412,12 +464,62 @@ function _load() {
       args: [FFIType.u64, FFIType.f32],
       returns: FFIType.void,
     },
+    jove_PrismaticJoint_IsLimitEnabled: {
+      args: [FFIType.u64],
+      returns: FFIType.i32,
+    },
+    jove_PrismaticJoint_GetLowerLimit: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_PrismaticJoint_GetUpperLimit: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_PrismaticJoint_IsMotorEnabled: {
+      args: [FFIType.u64],
+      returns: FFIType.i32,
+    },
+    jove_PrismaticJoint_GetMotorSpeed: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_PrismaticJoint_GetTranslation: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
     jove_MouseJoint_SetTarget: {
       args: [FFIType.u64, FFIType.f32, FFIType.f32],
       returns: FFIType.void,
     },
     jove_MouseJoint_GetTarget: {
       args: [FFIType.u64, FFIType.pointer, FFIType.pointer],
+      returns: FFIType.void,
+    },
+    jove_MouseJoint_GetMaxForce: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_MouseJoint_SetMaxForce: {
+      args: [FFIType.u64, FFIType.f32],
+      returns: FFIType.void,
+    },
+
+    /* Weld joint spring */
+    jove_WeldJoint_GetLinearHertz: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_WeldJoint_SetLinearHertz: {
+      args: [FFIType.u64, FFIType.f32],
+      returns: FFIType.void,
+    },
+    jove_WeldJoint_GetLinearDampingRatio: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_WeldJoint_SetLinearDampingRatio: {
+      args: [FFIType.u64, FFIType.f32],
       returns: FFIType.void,
     },
 
@@ -472,6 +574,26 @@ function _load() {
       args: [FFIType.u64],
       returns: FFIType.f32,
     },
+    jove_WheelJoint_IsLimitEnabled: {
+      args: [FFIType.u64],
+      returns: FFIType.i32,
+    },
+    jove_WheelJoint_GetLowerLimit: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_WheelJoint_GetUpperLimit: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_WheelJoint_IsMotorEnabled: {
+      args: [FFIType.u64],
+      returns: FFIType.i32,
+    },
+    jove_WheelJoint_GetMotorSpeed: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
 
     /* Motor joint */
     jove_CreateMotorJoint: {
@@ -505,6 +627,18 @@ function _load() {
     jove_MotorJoint_SetCorrectionFactor: {
       args: [FFIType.u64, FFIType.f32],
       returns: FFIType.void,
+    },
+    jove_MotorJoint_GetMaxForce: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_MotorJoint_GetMaxTorque: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
+    },
+    jove_MotorJoint_GetCorrectionFactor: {
+      args: [FFIType.u64],
+      returns: FFIType.f32,
     },
 
     /* Joint anchors & reactions */

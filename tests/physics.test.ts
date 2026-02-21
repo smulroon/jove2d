@@ -264,6 +264,22 @@ describe("jove.physics", () => {
       expect(() => body.applyTorque(10)).not.toThrow();
     });
 
+    test("applyAngularImpulse doesn't throw", () => {
+      const body = physics.newBody(world, 0, 0, "dynamic");
+      const shape = physics.newCircleShape(15);
+      physics.newFixture(body, shape);
+      expect(() => body.applyAngularImpulse(10)).not.toThrow();
+    });
+
+    test("getWorldVector/getLocalVector round-trip", () => {
+      const body = physics.newBody(world, 100, 200, "dynamic");
+      body.setAngle(Math.PI / 4);
+      const [wx, wy] = body.getWorldVector(1, 0);
+      const [lx, ly] = body.getLocalVector(wx, wy);
+      expect(lx).toBeCloseTo(1, 2);
+      expect(ly).toBeCloseTo(0, 2);
+    });
+
     test("world/local point conversion", () => {
       const body = physics.newBody(world, 100, 200, "static");
       const [wx, wy] = body.getWorldPoint(0, 0);
@@ -410,6 +426,15 @@ describe("jove.physics", () => {
       const fixture = physics.newFixture(body, shape);
       fixture.setUserData("hello");
       expect(fixture.getUserData()).toBe("hello");
+    });
+
+    test("testPoint on circle", () => {
+      const body = physics.newBody(world, 100, 100, "static");
+      const shape = physics.newCircleShape(30);
+      const fixture = physics.newFixture(body, shape);
+      expect(fixture.testPoint(100, 100)).toBe(true); // center
+      expect(fixture.testPoint(100, 120)).toBe(true); // inside
+      expect(fixture.testPoint(200, 200)).toBe(false); // outside
     });
 
     test("destroy fixture", () => {
@@ -579,6 +604,148 @@ describe("jove.physics", () => {
       expect(typeof fy).toBe("number");
       const torque = joint.getReactionTorque(1/60);
       expect(typeof torque).toBe("number");
+    });
+
+    test("distance joint frequency/damping", () => {
+      const b1 = physics.newBody(world, 100, 100, "dynamic");
+      const s1 = physics.newCircleShape(10);
+      physics.newFixture(b1, s1);
+      const b2 = physics.newBody(world, 200, 100, "dynamic");
+      const s2 = physics.newCircleShape(10);
+      physics.newFixture(b2, s2);
+
+      const joint = physics.newDistanceJoint(b1, b2, 100, 100, 200, 100);
+      joint.setFrequency(4.0);
+      expect(joint.getFrequency()).toBeCloseTo(4.0);
+      joint.setDampingRatio(0.5);
+      expect(joint.getDampingRatio()).toBeCloseTo(0.5);
+    });
+
+    test("revolute joint getters", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 100, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newRevoluteJoint(b1, b2, 100, 100);
+      expect(joint.isLimitEnabled()).toBe(false);
+      joint.setLimitsEnabled(true);
+      expect(joint.isLimitEnabled()).toBe(true);
+      joint.setLimits(-1, 1);
+      expect(joint.getLowerLimit()).toBeCloseTo(-1, 2);
+      expect(joint.getUpperLimit()).toBeCloseTo(1, 2);
+      const [lo, hi] = joint.getLimits();
+      expect(lo).toBeCloseTo(-1, 2);
+      expect(hi).toBeCloseTo(1, 2);
+
+      expect(joint.isMotorEnabled()).toBe(false);
+      joint.setMotorEnabled(true);
+      expect(joint.isMotorEnabled()).toBe(true);
+      joint.setMotorSpeed(2.0);
+      expect(joint.getMotorSpeed()).toBeCloseTo(2.0);
+    });
+
+    test("prismatic joint getters", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 150, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newPrismaticJoint(b1, b2, 100, 100, 0, 1);
+      expect(joint.isLimitEnabled()).toBe(false);
+      joint.setLimitsEnabled(true);
+      expect(joint.isLimitEnabled()).toBe(true);
+      joint.setLimits(-60, 60);
+      expect(joint.getLowerLimit()).toBeCloseTo(-60, 0);
+      expect(joint.getUpperLimit()).toBeCloseTo(60, 0);
+
+      expect(joint.isMotorEnabled()).toBe(false);
+      joint.setMotorEnabled(true);
+      expect(joint.isMotorEnabled()).toBe(true);
+      joint.setMotorSpeed(30);
+      expect(joint.getMotorSpeed()).toBeCloseTo(30, 0);
+
+      expect(typeof joint.getJointTranslation()).toBe("number");
+    });
+
+    test("wheel joint getters", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newWheelJoint(b1, b2, 100, 100, 0, 1);
+      expect(joint.isLimitEnabled()).toBe(false);
+      joint.setLimitsEnabled(true);
+      expect(joint.isLimitEnabled()).toBe(true);
+      joint.setLimits(-30, 30);
+      expect(joint.getLowerLimit()).toBeCloseTo(-30, 0);
+      expect(joint.getUpperLimit()).toBeCloseTo(30, 0);
+
+      expect(joint.isMotorEnabled()).toBe(false);
+      joint.setMotorEnabled(true);
+      expect(joint.isMotorEnabled()).toBe(true);
+      joint.setMotorSpeed(2.0);
+      expect(joint.getMotorSpeed()).toBeCloseTo(2.0);
+    });
+
+    test("weld joint frequency/damping", () => {
+      const b1 = physics.newBody(world, 100, 100, "dynamic");
+      const s1 = physics.newCircleShape(10);
+      physics.newFixture(b1, s1);
+      const b2 = physics.newBody(world, 120, 100, "dynamic");
+      const s2 = physics.newCircleShape(10);
+      physics.newFixture(b2, s2);
+
+      const joint = physics.newWeldJoint(b1, b2, 110, 100);
+      joint.setFrequency(3.0);
+      expect(joint.getFrequency()).toBeCloseTo(3.0);
+      joint.setDampingRatio(0.4);
+      expect(joint.getDampingRatio()).toBeCloseTo(0.4);
+    });
+
+    test("motor joint getters", () => {
+      const b1 = physics.newBody(world, 100, 100, "static");
+      const b2 = physics.newBody(world, 100, 130, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(b2, s);
+
+      const joint = physics.newMotorJoint(b1, b2, 0.5);
+      expect(joint.getCorrectionFactor()).toBeCloseTo(0.5);
+      joint.setMaxForce(500);
+      expect(joint.getMaxForce()).toBeCloseTo(500, 0);
+      joint.setMaxTorque(200);
+      expect(joint.getMaxTorque()).toBeCloseTo(200, 0);
+    });
+
+    test("mouse joint maxForce", () => {
+      const body = physics.newBody(world, 100, 100, "dynamic");
+      const s = physics.newCircleShape(10);
+      physics.newFixture(body, s);
+
+      const joint = physics.newMouseJoint(body, 100, 100);
+      joint.setMaxForce(300);
+      expect(joint.getMaxForce()).toBeCloseTo(300, 0);
+    });
+
+    test("world getJoints/getJointCount", () => {
+      const b1 = physics.newBody(world, 100, 100, "dynamic");
+      const s1 = physics.newCircleShape(10);
+      physics.newFixture(b1, s1);
+      const b2 = physics.newBody(world, 200, 100, "dynamic");
+      const s2 = physics.newCircleShape(10);
+      physics.newFixture(b2, s2);
+
+      expect(world.getJointCount()).toBe(0);
+      expect(world.getJoints()).toHaveLength(0);
+
+      const j1 = physics.newDistanceJoint(b1, b2, 100, 100, 200, 100);
+      expect(world.getJointCount()).toBe(1);
+      expect(world.getJoints()).toHaveLength(1);
+      expect(world.getJoints()[0]).toBe(j1);
+
+      j1.destroy();
+      expect(world.getJointCount()).toBe(0);
     });
 
     test("destroy joint", () => {

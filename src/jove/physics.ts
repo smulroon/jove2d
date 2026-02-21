@@ -365,6 +365,11 @@ export class Fixture {
     ];
   }
 
+  testPoint(x: number, y: number): boolean {
+    if (this._shapeId < 0 || this._isChain) return false;
+    return lib().jove_Shape_TestPoint(this._shapeId, toMeters(x), toMeters(y)) !== 0;
+  }
+
   setUserData(data: any): void { this._userData = data; }
   getUserData(): any { return this._userData; }
 
@@ -479,6 +484,10 @@ export class Body {
     }
   }
 
+  applyAngularImpulse(impulse: number): void {
+    lib().jove_Body_ApplyAngularImpulse(this._id, toTorque(impulse), 1);
+  }
+
   getMass(): number {
     return lib().jove_Body_GetMass(this._id);
   }
@@ -583,6 +592,16 @@ export class Body {
   getLocalPoint(wx: number, wy: number): [number, number] {
     lib().jove_Body_GetLocalPoint(this._id, toMeters(wx), toMeters(wy), _outAPtr, _outBPtr);
     return [read.f32(_outAPtr, 0) * _meter, read.f32(_outBPtr, 0) * _meter];
+  }
+
+  getWorldVector(lx: number, ly: number): [number, number] {
+    lib().jove_Body_GetWorldVector(this._id, lx, ly, _outAPtr, _outBPtr);
+    return [read.f32(_outAPtr, 0), read.f32(_outBPtr, 0)];
+  }
+
+  getLocalVector(wx: number, wy: number): [number, number] {
+    lib().jove_Body_GetLocalVector(this._id, wx, wy, _outAPtr, _outBPtr);
+    return [read.f32(_outAPtr, 0), read.f32(_outBPtr, 0)];
   }
 
   getFixtures(): Fixture[] { return [...this._fixtures]; }
@@ -700,6 +719,26 @@ export class DistanceJoint extends Joint {
     if (this._id === 0n) return 0;
     return toPixels(lib().jove_DistanceJoint_GetLength(this._id));
   }
+
+  getFrequency(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_DistanceJoint_GetSpringHertz(this._id);
+  }
+
+  setFrequency(hz: number): void {
+    if (this._id === 0n) return;
+    lib().jove_DistanceJoint_SetSpringHertz(this._id, hz);
+  }
+
+  getDampingRatio(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_DistanceJoint_GetSpringDampingRatio(this._id);
+  }
+
+  setDampingRatio(ratio: number): void {
+    if (this._id === 0n) return;
+    lib().jove_DistanceJoint_SetSpringDampingRatio(this._id, ratio);
+  }
 }
 
 export class RevoluteJoint extends Joint {
@@ -735,6 +774,35 @@ export class RevoluteJoint extends Joint {
     lib().jove_RevoluteJoint_SetMaxMotorTorque(this._id, toTorque(torque));
     this._wake();
   }
+
+  isLimitEnabled(): boolean {
+    if (this._id === 0n) return false;
+    return lib().jove_RevoluteJoint_IsLimitEnabled(this._id) !== 0;
+  }
+
+  getLowerLimit(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_RevoluteJoint_GetLowerLimit(this._id);
+  }
+
+  getUpperLimit(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_RevoluteJoint_GetUpperLimit(this._id);
+  }
+
+  getLimits(): [number, number] {
+    return [this.getLowerLimit(), this.getUpperLimit()];
+  }
+
+  isMotorEnabled(): boolean {
+    if (this._id === 0n) return false;
+    return lib().jove_RevoluteJoint_IsMotorEnabled(this._id) !== 0;
+  }
+
+  getMotorSpeed(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_RevoluteJoint_GetMotorSpeed(this._id);
+  }
 }
 
 export class PrismaticJoint extends Joint {
@@ -765,9 +833,63 @@ export class PrismaticJoint extends Joint {
     lib().jove_PrismaticJoint_SetMaxMotorForce(this._id, toForce(force));
     this._wake();
   }
+
+  isLimitEnabled(): boolean {
+    if (this._id === 0n) return false;
+    return lib().jove_PrismaticJoint_IsLimitEnabled(this._id) !== 0;
+  }
+
+  getLowerLimit(): number {
+    if (this._id === 0n) return 0;
+    return toPixels(lib().jove_PrismaticJoint_GetLowerLimit(this._id));
+  }
+
+  getUpperLimit(): number {
+    if (this._id === 0n) return 0;
+    return toPixels(lib().jove_PrismaticJoint_GetUpperLimit(this._id));
+  }
+
+  getLimits(): [number, number] {
+    return [this.getLowerLimit(), this.getUpperLimit()];
+  }
+
+  isMotorEnabled(): boolean {
+    if (this._id === 0n) return false;
+    return lib().jove_PrismaticJoint_IsMotorEnabled(this._id) !== 0;
+  }
+
+  getMotorSpeed(): number {
+    if (this._id === 0n) return 0;
+    return toPixels(lib().jove_PrismaticJoint_GetMotorSpeed(this._id));
+  }
+
+  getJointTranslation(): number {
+    if (this._id === 0n) return 0;
+    return toPixels(lib().jove_PrismaticJoint_GetTranslation(this._id));
+  }
 }
 
-export class WeldJoint extends Joint {}
+export class WeldJoint extends Joint {
+  getFrequency(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_WeldJoint_GetLinearHertz(this._id);
+  }
+
+  setFrequency(hz: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WeldJoint_SetLinearHertz(this._id, hz);
+  }
+
+  getDampingRatio(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_WeldJoint_GetLinearDampingRatio(this._id);
+  }
+
+  setDampingRatio(ratio: number): void {
+    if (this._id === 0n) return;
+    lib().jove_WeldJoint_SetLinearDampingRatio(this._id, ratio);
+  }
+}
 
 export class MouseJoint extends Joint {
   setTarget(x: number, y: number): void {
@@ -779,6 +901,16 @@ export class MouseJoint extends Joint {
     if (this._id === 0n) return [0, 0];
     lib().jove_MouseJoint_GetTarget(this._id, _outAPtr, _outBPtr);
     return [read.f32(_outAPtr, 0) * _meter, read.f32(_outBPtr, 0) * _meter];
+  }
+
+  getMaxForce(): number {
+    if (this._id === 0n) return 0;
+    return fromForce(lib().jove_MouseJoint_GetMaxForce(this._id));
+  }
+
+  setMaxForce(force: number): void {
+    if (this._id === 0n) return;
+    lib().jove_MouseJoint_SetMaxForce(this._id, toForce(force));
   }
 }
 
@@ -840,6 +972,35 @@ export class WheelJoint extends Joint {
     if (this._id === 0n) return 0;
     return fromTorque(lib().jove_WheelJoint_GetMotorTorque(this._id));
   }
+
+  isLimitEnabled(): boolean {
+    if (this._id === 0n) return false;
+    return lib().jove_WheelJoint_IsLimitEnabled(this._id) !== 0;
+  }
+
+  getLowerLimit(): number {
+    if (this._id === 0n) return 0;
+    return toPixels(lib().jove_WheelJoint_GetLowerLimit(this._id));
+  }
+
+  getUpperLimit(): number {
+    if (this._id === 0n) return 0;
+    return toPixels(lib().jove_WheelJoint_GetUpperLimit(this._id));
+  }
+
+  getLimits(): [number, number] {
+    return [this.getLowerLimit(), this.getUpperLimit()];
+  }
+
+  isMotorEnabled(): boolean {
+    if (this._id === 0n) return false;
+    return lib().jove_WheelJoint_IsMotorEnabled(this._id) !== 0;
+  }
+
+  getMotorSpeed(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_WheelJoint_GetMotorSpeed(this._id);
+  }
 }
 
 export class MotorJoint extends Joint {
@@ -881,6 +1042,21 @@ export class MotorJoint extends Joint {
   setCorrectionFactor(factor: number): void {
     if (this._id === 0n) return;
     lib().jove_MotorJoint_SetCorrectionFactor(this._id, factor);
+  }
+
+  getMaxForce(): number {
+    if (this._id === 0n) return 0;
+    return fromForce(lib().jove_MotorJoint_GetMaxForce(this._id));
+  }
+
+  getMaxTorque(): number {
+    if (this._id === 0n) return 0;
+    return fromTorque(lib().jove_MotorJoint_GetMaxTorque(this._id));
+  }
+
+  getCorrectionFactor(): number {
+    if (this._id === 0n) return 0;
+    return lib().jove_MotorJoint_GetCorrectionFactor(this._id);
   }
 }
 
@@ -1092,6 +1268,14 @@ export class World {
 
   getBodyList(): Body[] {
     return this.getBodies();
+  }
+
+  getJoints(): Joint[] {
+    return Array.from(this._joints.values());
+  }
+
+  getJointCount(): number {
+    return this._joints.size;
   }
 
   queryBoundingBox(x1: number, y1: number, x2: number, y2: number,

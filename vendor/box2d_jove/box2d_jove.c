@@ -477,6 +477,22 @@ void jove_Body_GetLocalPoint(int bodyIdx, float wx, float wy, float* outX, float
     *outY = lp.y;
 }
 
+void jove_Body_ApplyAngularImpulse(int bodyIdx, float impulse, int wake) {
+    b2Body_ApplyAngularImpulse(g_bodies[bodyIdx], impulse, wake ? true : false);
+}
+
+void jove_Body_GetWorldVector(int bodyIdx, float lx, float ly, float* outX, float* outY) {
+    b2Vec2 wv = b2Body_GetWorldVector(g_bodies[bodyIdx], (b2Vec2){lx, ly});
+    *outX = wv.x;
+    *outY = wv.y;
+}
+
+void jove_Body_GetLocalVector(int bodyIdx, float wx, float wy, float* outX, float* outY) {
+    b2Vec2 lv = b2Body_GetLocalVector(g_bodies[bodyIdx], (b2Vec2){wx, wy});
+    *outX = lv.x;
+    *outY = lv.y;
+}
+
 void jove_Body_SetMassData(int bodyIdx, float mass, float cx, float cy, float inertia) {
     b2MassData md;
     md.mass = mass;
@@ -664,6 +680,10 @@ int jove_Shape_GetType(int shapeIdx) {
     return (int)b2Shape_GetType(g_shapes[shapeIdx]);
 }
 
+int jove_Shape_TestPoint(int shapeIdx, float px, float py) {
+    return b2Shape_TestPoint(g_shapes[shapeIdx], (b2Vec2){px, py}) ? 1 : 0;
+}
+
 /* ── Joints ─────────────────────────────────────────────────────────── */
 
 uint64_t jove_CreateDistanceJoint(uint32_t worldId, int bodyIdxA, int bodyIdxB,
@@ -761,6 +781,22 @@ float jove_DistanceJoint_GetLength(uint64_t jointId) {
     return b2DistanceJoint_GetLength(unpack_joint(jointId));
 }
 
+float jove_DistanceJoint_GetSpringHertz(uint64_t jointId) {
+    return b2DistanceJoint_GetSpringHertz(unpack_joint(jointId));
+}
+
+void jove_DistanceJoint_SetSpringHertz(uint64_t jointId, float hertz) {
+    b2DistanceJoint_SetSpringHertz(unpack_joint(jointId), hertz);
+}
+
+float jove_DistanceJoint_GetSpringDampingRatio(uint64_t jointId) {
+    return b2DistanceJoint_GetSpringDampingRatio(unpack_joint(jointId));
+}
+
+void jove_DistanceJoint_SetSpringDampingRatio(uint64_t jointId, float ratio) {
+    b2DistanceJoint_SetSpringDampingRatio(unpack_joint(jointId), ratio);
+}
+
 /* Revolute joint specifics */
 float jove_RevoluteJoint_GetAngle(uint64_t jointId) {
     return b2RevoluteJoint_GetAngle(unpack_joint(jointId));
@@ -786,6 +822,26 @@ void jove_RevoluteJoint_SetMaxMotorTorque(uint64_t jointId, float torque) {
     b2RevoluteJoint_SetMaxMotorTorque(unpack_joint(jointId), torque);
 }
 
+int jove_RevoluteJoint_IsLimitEnabled(uint64_t jointId) {
+    return b2RevoluteJoint_IsLimitEnabled(unpack_joint(jointId)) ? 1 : 0;
+}
+
+float jove_RevoluteJoint_GetLowerLimit(uint64_t jointId) {
+    return b2RevoluteJoint_GetLowerLimit(unpack_joint(jointId));
+}
+
+float jove_RevoluteJoint_GetUpperLimit(uint64_t jointId) {
+    return b2RevoluteJoint_GetUpperLimit(unpack_joint(jointId));
+}
+
+int jove_RevoluteJoint_IsMotorEnabled(uint64_t jointId) {
+    return b2RevoluteJoint_IsMotorEnabled(unpack_joint(jointId)) ? 1 : 0;
+}
+
+float jove_RevoluteJoint_GetMotorSpeed(uint64_t jointId) {
+    return b2RevoluteJoint_GetMotorSpeed(unpack_joint(jointId));
+}
+
 /* Prismatic joint specifics */
 void jove_PrismaticJoint_EnableLimit(uint64_t jointId, int flag) {
     b2PrismaticJoint_EnableLimit(unpack_joint(jointId), flag ? true : false);
@@ -807,6 +863,30 @@ void jove_PrismaticJoint_SetMaxMotorForce(uint64_t jointId, float force) {
     b2PrismaticJoint_SetMaxMotorForce(unpack_joint(jointId), force);
 }
 
+int jove_PrismaticJoint_IsLimitEnabled(uint64_t jointId) {
+    return b2PrismaticJoint_IsLimitEnabled(unpack_joint(jointId)) ? 1 : 0;
+}
+
+float jove_PrismaticJoint_GetLowerLimit(uint64_t jointId) {
+    return b2PrismaticJoint_GetLowerLimit(unpack_joint(jointId));
+}
+
+float jove_PrismaticJoint_GetUpperLimit(uint64_t jointId) {
+    return b2PrismaticJoint_GetUpperLimit(unpack_joint(jointId));
+}
+
+int jove_PrismaticJoint_IsMotorEnabled(uint64_t jointId) {
+    return b2PrismaticJoint_IsMotorEnabled(unpack_joint(jointId)) ? 1 : 0;
+}
+
+float jove_PrismaticJoint_GetMotorSpeed(uint64_t jointId) {
+    return b2PrismaticJoint_GetMotorSpeed(unpack_joint(jointId));
+}
+
+float jove_PrismaticJoint_GetTranslation(uint64_t jointId) {
+    return b2PrismaticJoint_GetTranslation(unpack_joint(jointId));
+}
+
 /* Mouse joint specifics */
 void jove_MouseJoint_SetTarget(uint64_t jointId, float x, float y) {
     b2MouseJoint_SetTarget(unpack_joint(jointId), (b2Vec2){x, y});
@@ -816,6 +896,31 @@ void jove_MouseJoint_GetTarget(uint64_t jointId, float* outX, float* outY) {
     b2Vec2 t = b2MouseJoint_GetTarget(unpack_joint(jointId));
     *outX = t.x;
     *outY = t.y;
+}
+
+float jove_MouseJoint_GetMaxForce(uint64_t jointId) {
+    return b2MouseJoint_GetMaxForce(unpack_joint(jointId));
+}
+
+void jove_MouseJoint_SetMaxForce(uint64_t jointId, float force) {
+    b2MouseJoint_SetMaxForce(unpack_joint(jointId), force);
+}
+
+/* Weld joint spring */
+float jove_WeldJoint_GetLinearHertz(uint64_t jointId) {
+    return b2WeldJoint_GetLinearHertz(unpack_joint(jointId));
+}
+
+void jove_WeldJoint_SetLinearHertz(uint64_t jointId, float hertz) {
+    b2WeldJoint_SetLinearHertz(unpack_joint(jointId), hertz);
+}
+
+float jove_WeldJoint_GetLinearDampingRatio(uint64_t jointId) {
+    return b2WeldJoint_GetLinearDampingRatio(unpack_joint(jointId));
+}
+
+void jove_WeldJoint_SetLinearDampingRatio(uint64_t jointId, float ratio) {
+    b2WeldJoint_SetLinearDampingRatio(unpack_joint(jointId), ratio);
 }
 
 /* Wheel joint */
@@ -876,6 +981,26 @@ float jove_WheelJoint_GetMotorTorque(uint64_t jointId) {
     return b2WheelJoint_GetMotorTorque(unpack_joint(jointId));
 }
 
+int jove_WheelJoint_IsLimitEnabled(uint64_t jointId) {
+    return b2WheelJoint_IsLimitEnabled(unpack_joint(jointId)) ? 1 : 0;
+}
+
+float jove_WheelJoint_GetLowerLimit(uint64_t jointId) {
+    return b2WheelJoint_GetLowerLimit(unpack_joint(jointId));
+}
+
+float jove_WheelJoint_GetUpperLimit(uint64_t jointId) {
+    return b2WheelJoint_GetUpperLimit(unpack_joint(jointId));
+}
+
+int jove_WheelJoint_IsMotorEnabled(uint64_t jointId) {
+    return b2WheelJoint_IsMotorEnabled(unpack_joint(jointId)) ? 1 : 0;
+}
+
+float jove_WheelJoint_GetMotorSpeed(uint64_t jointId) {
+    return b2WheelJoint_GetMotorSpeed(unpack_joint(jointId));
+}
+
 /* Motor joint */
 uint64_t jove_CreateMotorJoint(uint32_t worldId, int bodyIdxA, int bodyIdxB,
                                 float correctionFactor, int collide) {
@@ -915,6 +1040,18 @@ void jove_MotorJoint_SetMaxTorque(uint64_t jointId, float torque) {
 
 void jove_MotorJoint_SetCorrectionFactor(uint64_t jointId, float factor) {
     b2MotorJoint_SetCorrectionFactor(unpack_joint(jointId), factor);
+}
+
+float jove_MotorJoint_GetMaxForce(uint64_t jointId) {
+    return b2MotorJoint_GetMaxForce(unpack_joint(jointId));
+}
+
+float jove_MotorJoint_GetMaxTorque(uint64_t jointId) {
+    return b2MotorJoint_GetMaxTorque(unpack_joint(jointId));
+}
+
+float jove_MotorJoint_GetCorrectionFactor(uint64_t jointId) {
+    return b2MotorJoint_GetCorrectionFactor(unpack_joint(jointId));
 }
 
 /* Joint anchor queries (world-space) */

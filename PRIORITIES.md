@@ -18,7 +18,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
-| love.physics | **~56/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve; gear/pulley N/A in v3 |
+| love.physics | **~90/93 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve/all getters; gear/pulley N/A in v3 |
 | love.graphics | **~81/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats/bitmap fonts done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
 | love.audio | **17/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone, newQueueableSource; no effects or positional audio |
@@ -297,11 +297,7 @@ Grouped by priority based on impact for typical 2D game development.
 **Real game value:**
 27. ~~**newQueueableSource**~~ DONE — streaming/procedural audio via SDL audio streams
 28. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
-29. **Physics Phase 3** — remaining API gap-fills:
-    - Joint getters: RevoluteJoint/PrismaticJoint/WheelJoint/MotorJoint (isMotorEnabled, isLimitEnabled, getLowerLimit/getUpperLimit, getMotorSpeed, getJointSpeed, getJointTranslation); WeldJoint (getFrequency/setFrequency, getDampingRatio/setDampingRatio); DistanceJoint (getMinLength/setMinLength, getMaxLength/setMaxLength)
-    - Body: applyAngularImpulse (knockback/spin), getWorldVector/getLocalVector (velocity-relative calculations)
-    - Fixture: testPoint — point-in-shape test for custom picking
-    - World: getJoints/getJointCount — expose internal _joints Map as public API
+29. ~~**Physics Phase 3**~~ DONE — joint getters (revolute/prismatic/wheel/motor/distance/weld/mouse), Body applyAngularImpulse + getWorldVector/getLocalVector, Fixture testPoint, World getJoints/getJointCount
 30. **textedited event** — IME composition (SDL_EVENT_TEXT_EDITING), needed for CJK input
 31. **Graphics capability queries** — getSupported, getSystemLimits, getCanvasFormats, isGammaCorrect (mostly static returns)
 32. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)
