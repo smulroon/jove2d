@@ -17,17 +17,18 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
 | love.math | 16/16 Complete | RNG, simplex noise, Transform, triangulate |
 | love.data | 5/5 Complete | compress/decompress, encode/decode, hash, ByteData |
 | love.joystick | ~16/17 Complete | Gamepad support, vibration, hot-plug |
-| love.event | 4/6 Complete | Core event loop |
+| love.event | 5/6 Complete | Core event loop, IME composition |
 | love.keyboard | 7/9 Complete | Key state, scancodes, text input |
 | love.window | 33/36 Mostly done | Fullscreen, vsync, multi-monitor, icon |
 | love.system | 6/8 Complete | OS info, clipboard, power |
-| love.physics | ~56/60 Mostly done | Box2D v3.1.1 — bodies, fixtures, 7 joint types, queries, preSolve |
-| love.graphics | ~81/97 Core done | Primitives, transforms, shaders, SpriteBatch, Mesh, particles, stencil, bitmap fonts |
+| love.physics | ~90/93 Mostly done | Box2D v3.1.1 — bodies, fixtures, 7 joint types, queries, preSolve, all joint getters |
+| love.graphics | ~88/97 Core done | Primitives, transforms, shaders, SpriteBatch, Mesh, particles, stencil, bitmap fonts, capability queries |
 | love.filesystem | 19/31 Mostly done | Read/write/mount, File handles, FileData |
-| love.audio | 15/26 Core done | WAV/OGG/MP3/FLAC playback, pitch, looping, seek, clone |
+| love.audio | 17/26 Core done | WAV/OGG/MP3/FLAC playback, pitch, looping, seek, clone, newQueueableSource |
 | love.image | 7/7 Complete | newImageData, getPixel/setPixel, mapPixel, paste, encode |
+| love.sound | 2/2 Complete | SoundData (getSample/setSample, from file) |
 
-**14/20 love2d modules implemented, 8 at 100%**
+**15/20 love2d modules implemented, 9 at 100%**
 
 ## Quick Start
 
@@ -36,10 +37,10 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
 Prebuilt binaries for Linux x64 and Windows x64 are available on the [Releases page](https://github.com/smulroon/jove2d/releases). No build tools required — just [Bun](https://bun.sh/).
 
 ```bash
-# Download and extract
-curl -LO https://github.com/smulroon/jove2d/releases/latest/download/jove2d-v0.1.0-linux-x64.tar.gz
-tar xzf jove2d-v0.1.0-linux-x64.tar.gz
-cd jove2d-v0.1.0-linux-x64
+# Download and extract (check Releases page for latest version)
+curl -LO https://github.com/smulroon/jove2d/releases/latest/download/jove2d-linux-x64.tar.gz
+tar xzf jove2d-linux-x64.tar.gz
+cd jove2d
 
 # Run an example
 bun examples/hello/main.ts
@@ -115,20 +116,20 @@ sudo apt install glslang-tools
 
 ## Examples
 
-All 24 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
+All 26 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
 
 | Example | Description |
 |---------|-------------|
 | `hello` | Timer, system info, frame counter |
 | `drawing` | All primitives, ellipse, arc, polygon, transforms, scissor, blend modes |
-| `input` | Keyboard, mouse, text input, cursor visibility |
+| `input` | Keyboard, mouse, text input, IME composition, cursor visibility |
 | `screenshot` | Screenshot capture |
 | `canvas` | Off-screen render targets |
 | `noise` | Simplex noise, RNG, triangulation |
 | `filesystem` | File I/O, directory ops, File handles |
 | `transforms` | Nested push/pop solar system, shear, scale |
 | `event` | Event push/clear/quit, text input, file drop |
-| `system` | OS info, clipboard, power state |
+| `system` | OS info, clipboard, power state, graphics capabilities |
 | `font` | Default font, custom sizes, alignment, font metrics, newText |
 | `spritebatch` | Tilemap demo with SpriteBatch and quads |
 | `shader` | Color cycling, wave distortion, vignette fragment shaders |
@@ -142,6 +143,8 @@ All 24 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
 | `imagedata` | Procedural textures, pixel manipulation, paste, readback |
 | `presolve` | One-way platforms via preSolve callback |
 | `bitmapfont` | Bitmap font (newImageFont), color tinting, printf alignment, word wrap |
+| `synth` | Procedural audio synth, keyboard piano, waveform display, 4 waveforms |
+| `physics3` | Joint inspector — 6 panels: revolute, prismatic, springs, vectors, motor/wheel, testPoint |
 | `benchmark` | "Chaos Box" stress test — 300 physics bodies, particles, SpriteBatch |
 
 Run any example:
@@ -165,7 +168,7 @@ love examples/<name>
 SDL_VIDEODRIVER=dummy bun test
 ```
 
-618 tests across 27 test files. Font/image tests skip gracefully if SDL_ttf/SDL_image aren't built. Physics/joystick/audio-codec tests skip if their libraries aren't built.
+665 tests across 28 test files. Font/image tests skip gracefully if SDL_ttf/SDL_image aren't built. Physics/joystick/audio-codec tests skip if their libraries aren't built.
 
 ## WSL2 Notes
 
@@ -173,7 +176,7 @@ jove2d auto-detects WSL2 and sets `SDL_VIDEODRIVER=x11` to avoid Wayland hangs. 
 
 ## Project Status
 
-**Alpha** — the API is functional but not yet stable. 14 of 20 love2d modules are implemented with good coverage. See [PRIORITIES.md](PRIORITIES.md) for the full roadmap and module gap analysis.
+**Alpha** — the API is functional but not yet stable. 15 of 20 love2d modules are implemented with good coverage. See [PRIORITIES.md](PRIORITIES.md) for the full roadmap and module gap analysis.
 
 Key differences from love2d:
 - Colors use 0-255 range (SDL convention) instead of love2d's 0-1 range
