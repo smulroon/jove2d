@@ -205,7 +205,7 @@ await jove.run({
     let y = margin;
 
     jove.graphics.setColor(255, 255, 255);
-    jove.graphics.print("=== Procedural Audio Synth ===", margin, y);
+    jove.graphics.print(`=== Procedural Audio Synth ===   FPS: ${jove.timer.getFPS()}`, margin, y);
     y += 28;
 
     // Waveform display

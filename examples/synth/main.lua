@@ -193,7 +193,7 @@ function love.draw()
 
   -- Title
   love.graphics.setColor(1, 1, 1)
-  love.graphics.print("=== Procedural Audio Synth ===", margin, y)
+  love.graphics.print("=== Procedural Audio Synth ===   FPS: " .. love.timer.getFPS(), margin, y)
   y = y + 28
 
   -- Waveform display

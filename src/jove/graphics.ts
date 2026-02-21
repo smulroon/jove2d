@@ -1609,6 +1609,9 @@ export function _createRenderer(): void {
   }
   sdl.SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
 
+  // Enable vsync by default (matches love2d's default t.window.vsync = 1)
+  sdl.SDL_SetRenderVSync(_renderer, 1);
+
   // Set logical presentation to match the window's logical size.
   // This ensures consistent rendering coordinates on high-DPI displays (Windows scaling).
   const { width: logW, height: logH } = getMode();
