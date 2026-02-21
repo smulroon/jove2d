@@ -127,7 +127,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 **P2 (format support):**
 - ~~OGG/MP3/FLAC decoding~~ DONE — via stb_vorbis + dr_mp3 + dr_flac (libaudio_decode.so)
-- `newQueueableSource` — streaming procedural audio
+- ~~`newQueueableSource`~~ DONE — streaming procedural audio via SDL audio streams + SoundData
 
 **Not planned:**
 - `setPosition` / `getPosition` / `setOrientation` / `getOrientation` — 3D listener (needs OpenAL or custom mixing)
@@ -296,11 +296,12 @@ Grouped by priority based on impact for typical 2D game development.
 
 **Real game value:**
 27. ~~**newQueueableSource**~~ DONE — streaming/procedural audio via SDL audio streams
-28. **Physics joint getters** — RevoluteJoint/PrismaticJoint/WheelJoint/MotorJoint: isMotorEnabled, isLimitEnabled, getLowerLimit/getUpperLimit, getMotorSpeed, getJointSpeed, getJointTranslation; WeldJoint: getFrequency/setFrequency, getDampingRatio/setDampingRatio; DistanceJoint: getMinLength/setMinLength, getMaxLength/setMaxLength
-29. **Body:applyAngularImpulse + vector transforms** — applyAngularImpulse (knockback/spin), getWorldVector/getLocalVector (velocity-relative calculations)
-30. **Fixture:testPoint** — point-in-shape test for custom picking
-31. **World:getJoints/getJointCount** — expose internal _joints Map as public API
-32. **textedited event** — IME composition (SDL_EVENT_TEXT_EDITING), needed for CJK input
-33. **Graphics capability queries** — getSupported, getSystemLimits, getCanvasFormats, isGammaCorrect (mostly static returns)
-34. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
-35. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)
+28. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
+29. **Physics Phase 3** — remaining API gap-fills:
+    - Joint getters: RevoluteJoint/PrismaticJoint/WheelJoint/MotorJoint (isMotorEnabled, isLimitEnabled, getLowerLimit/getUpperLimit, getMotorSpeed, getJointSpeed, getJointTranslation); WeldJoint (getFrequency/setFrequency, getDampingRatio/setDampingRatio); DistanceJoint (getMinLength/setMinLength, getMaxLength/setMaxLength)
+    - Body: applyAngularImpulse (knockback/spin), getWorldVector/getLocalVector (velocity-relative calculations)
+    - Fixture: testPoint — point-in-shape test for custom picking
+    - World: getJoints/getJointCount — expose internal _joints Map as public API
+30. **textedited event** — IME composition (SDL_EVENT_TEXT_EDITING), needed for CJK input
+31. **Graphics capability queries** — getSupported, getSystemLimits, getCanvasFormats, isGammaCorrect (mostly static returns)
+32. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)
