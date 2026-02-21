@@ -21,16 +21,16 @@ Grouped by priority based on impact for typical 2D game development.
 | love.physics | **~56/60 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve; gear/pulley N/A in v3 |
 | love.graphics | **~81/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats/bitmap fonts done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
-| love.audio | **15/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone; no effects or positional audio |
+| love.audio | **17/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone, newQueueableSource; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
 | love.thread | **Not implemented** | Bun async usually sufficient (P4) |
 | love.video | **Not implemented** | Needs video decoder (P4) |
-| love.sound | **Not implemented** | Data-level audio APIs (P3) |
+| love.sound | **2/2 Complete** | SoundData (newSoundData, getSample/setSample, from file) |
 | love.image | **7/7 Complete** | newImageData, getPixel/setPixel, mapPixel, paste, encode, getString |
 | love.font | **Inline** | Integrated into graphics module; bitmap fonts via newImageFont |
 | love.sensor | **Not planned** | Mobile-only |
 
-**Summary: 14/20 modules implemented, 8 at 100%, 11 at 75%+**
+**Summary: 15/20 modules implemented, 9 at 100%, 12 at 75%+**
 
 ---
 
@@ -214,11 +214,9 @@ Grouped by priority based on impact for typical 2D game development.
 - `newImage(imageData)` creates GPU texture from ImageData
 - Buffer-based RGBA8888 implementation, no external dependencies
 
-#### love.sound (data-level audio APIs)
-- **Current**: Not implemented
-- **Needed**: SoundData manipulation (sample get/set)
-- **Approach**: Buffer-based implementation
-- **Why P3**: Mostly used for procedural audio generation.
+#### love.sound (data-level audio APIs) — DONE
+- **Implemented**: SoundData with getSample/setSample (normalized -1..1), newSoundData from empty buffer or file
+- **Pairs with**: newQueueableSource for procedural audio generation
 
 ### Not Planned
 
@@ -297,12 +295,12 @@ Grouped by priority based on impact for typical 2D game development.
 26. ~~**Error recovery**~~ DONE — blue error screen for load/update/draw/event failures, setErrorHandler override, clipboard copy
 
 **Real game value:**
-27. **newQueueableSource** — streaming/procedural audio via SDL audio streams
+27. ~~**newQueueableSource**~~ DONE — streaming/procedural audio via SDL audio streams
 28. **Physics joint getters** — RevoluteJoint/PrismaticJoint/WheelJoint/MotorJoint: isMotorEnabled, isLimitEnabled, getLowerLimit/getUpperLimit, getMotorSpeed, getJointSpeed, getJointTranslation; WeldJoint: getFrequency/setFrequency, getDampingRatio/setDampingRatio; DistanceJoint: getMinLength/setMinLength, getMaxLength/setMaxLength
 29. **Body:applyAngularImpulse + vector transforms** — applyAngularImpulse (knockback/spin), getWorldVector/getLocalVector (velocity-relative calculations)
 30. **Fixture:testPoint** — point-in-shape test for custom picking
 31. **World:getJoints/getJointCount** — expose internal _joints Map as public API
 32. **textedited event** — IME composition (SDL_EVENT_TEXT_EDITING), needed for CJK input
 33. **Graphics capability queries** — getSupported, getSystemLimits, getCanvasFormats, isGammaCorrect (mostly static returns)
-34. **love.sound (SoundData/Decoder)** — sample-level get/set for procedural audio, pairs with newQueueableSource
+34. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
 35. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)

@@ -3,7 +3,7 @@
 export {
   init, quit, getVersion, run, setErrorHandler,
   window, graphics, keyboard, mouse,
-  timer, filesystem, math, system, audio, data, event, joystick, physics, image,
+  timer, filesystem, math, system, audio, data, event, joystick, physics, image, sound,
 } from "./jove/index.ts";
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./jove/types.ts";
 export type { ImageData } from "./jove/image.ts";
@@ -11,7 +11,8 @@ export type { Font } from "./jove/font.ts";
 export type { SpriteBatch, Mesh } from "./jove/graphics.ts";
 export type { ParticleSystem } from "./jove/particles.ts";
 export type { Shader } from "./jove/shader.ts";
-export type { Source } from "./jove/audio.ts";
+export type { Source, QueueableSource } from "./jove/audio.ts";
+export type { SoundData } from "./jove/sound.ts";
 export type { ByteData } from "./jove/data.ts";
 export type { File, FileData } from "./jove/filesystem.ts";
 export type { Joystick } from "./jove/joystick.ts";

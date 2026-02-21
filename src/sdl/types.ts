@@ -155,6 +155,7 @@ export const SDL_DROP_EVENT_DATA = 40;
 
 /** SDL audio constants */
 export const SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK = 0xFFFFFFFF;
+export const SDL_AUDIO_U8 = 0x0008;
 export const SDL_AUDIO_S16 = 0x8010;
 export const SDL_AUDIO_F32 = 0x8120;
 

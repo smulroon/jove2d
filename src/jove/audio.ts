@@ -7,6 +7,7 @@ import sdl from "../sdl/ffi.ts";
 import { loadAudioDecode } from "../sdl/ffi_audio_decode.ts";
 import {
   SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,
+  SDL_AUDIO_U8,
   SDL_AUDIO_S16,
   SDL_AUDIO_F32,
   SDL_INIT_AUDIO,
@@ -78,7 +79,7 @@ export function _updateSources(): void {
 // Source type
 // ============================================================
 
-export type SourceType = "static" | "stream";
+export type SourceType = "static" | "stream" | "queue";
 type SourceState = "stopped" | "playing" | "paused";
 
 export interface Source {
@@ -152,14 +153,14 @@ function _tryDecode(path: string): { data: Uint8Array; channels: number; freq: n
   return { data, channels, freq };
 }
 
-/** Load an audio file and create a source. Supports WAV, OGG, MP3, FLAC. */
-export function newSource(path: string, type: SourceType = "static"): Source | null {
-  if (!_initialized && !_init()) return null;
-  if (!_ensureDevice()) return null;
-
+/**
+ * Decode an audio file to raw PCM data. Supports WAV, OGG, MP3, FLAC.
+ * Exported for use by sound.ts (SoundData from file).
+ */
+export function _decodeFile(path: string): { data: Uint8Array; format: number; channels: number; freq: number } | null {
   // Try codec library first (OGG/MP3/FLAC)
   const decoded = _tryDecode(path);
-  if (decoded) return _createSource(decoded.data, SDL_AUDIO_S16, decoded.channels, decoded.freq, type);
+  if (decoded) return { data: decoded.data, format: SDL_AUDIO_S16, channels: decoded.channels, freq: decoded.freq };
 
   // Fall through to WAV path
   const specBuf = new Int32Array(3); // format, channels, freq
@@ -191,7 +192,17 @@ export function newSource(path: string, type: SourceType = "static"): Source | n
   const audioData = new Uint8Array(toArrayBuffer(audioBufPtrVal, 0, audioLen).slice(0));
   sdl.SDL_free(audioBufPtrVal);
 
-  return _createSource(audioData, format, channels, freq, type);
+  return { data: audioData, format, channels, freq };
+}
+
+/** Load an audio file and create a source. Supports WAV, OGG, MP3, FLAC. */
+export function newSource(path: string, type: SourceType = "static"): Source | null {
+  if (!_initialized && !_init()) return null;
+  if (!_ensureDevice()) return null;
+
+  const decoded = _decodeFile(path);
+  if (!decoded) return null;
+  return _createSource(decoded.data, decoded.format, decoded.channels, decoded.freq, type);
 }
 
 function _createSource(
@@ -418,6 +429,188 @@ function _createSource(
 
     _applyMasterVolume() {
       _applyGain();
+    },
+  };
+
+  _sources.add(source);
+  return source;
+}
+
+// ============================================================
+// Queueable source (procedural/streaming audio)
+// ============================================================
+
+export interface QueueableSource extends Source {
+  /** Queue SoundData for playback. Returns false if buffer slots full or format mismatch. */
+  queue(soundData: { _data: Uint8Array; _format: number; _channels: number; _sampleRate: number; _bitDepth: number }): boolean;
+  /** Get the number of free buffer slots. */
+  getFreeBufferCount(): number;
+}
+
+/**
+ * Create a queueable audio source for procedural/streaming audio.
+ * Data is pushed via queue(soundData) rather than loaded from a file.
+ */
+export function newQueueableSource(
+  sampleRate: number = 44100,
+  bitDepth: number = 16,
+  channels: number = 1,
+  bufferCount: number = 8,
+): QueueableSource | null {
+  if (!_initialized && !_init()) return null;
+  if (!_ensureDevice()) return null;
+
+  const format = bitDepth === 16 ? SDL_AUDIO_S16 : SDL_AUDIO_U8;
+
+  const srcSpec = new Int32Array([format, channels, sampleRate]);
+  const dstSpec = new Int32Array([format, channels, sampleRate]);
+  let _stream = sdl.SDL_CreateAudioStream(ptr(srcSpec), ptr(dstSpec)) as Pointer | null;
+  if (!_stream) return null;
+
+  let _state: SourceState = "stopped";
+  let _volume = 1.0;
+  let _looping = false;
+  let _pitch = 1.0;
+
+  // Track last queued chunk size for getFreeBufferCount estimation
+  let _lastChunkSize = 0;
+
+  function _bind(): void {
+    if (_stream && _deviceId) sdl.SDL_BindAudioStream(_deviceId, _stream);
+  }
+
+  function _unbind(): void {
+    if (_stream) sdl.SDL_UnbindAudioStream(_stream);
+  }
+
+  function _applyGain(): void {
+    if (_stream) sdl.SDL_SetAudioStreamGain(_stream, _volume * _masterVolume);
+  }
+
+  function _applyPitch(): void {
+    if (_stream) sdl.SDL_SetAudioStreamFrequencyRatio(_stream, _pitch);
+  }
+
+  const source: QueueableSource = {
+    _type: "queue" as SourceType,
+
+    play() {
+      if (!_deviceId) return;
+      if (!_stream) {
+        // Recreate stream if released
+        const newSrcSpec = new Int32Array([format, channels, sampleRate]);
+        const newDstSpec = new Int32Array([format, channels, sampleRate]);
+        _stream = sdl.SDL_CreateAudioStream(ptr(newSrcSpec), ptr(newDstSpec)) as Pointer | null;
+        if (!_stream) return;
+        _sources.add(source);
+      }
+      if (_state === "paused") {
+        sdl.SDL_ResumeAudioStreamDevice(_stream);
+        _state = "playing";
+        return;
+      }
+      if (_state === "playing") return; // No rewind for queueable
+      // stopped → playing
+      _bind();
+      _applyGain();
+      _applyPitch();
+      sdl.SDL_ResumeAudioStreamDevice(_stream);
+      _state = "playing";
+    },
+
+    pause() {
+      if (!_stream || _state !== "playing") return;
+      sdl.SDL_PauseAudioStreamDevice(_stream);
+      _state = "paused";
+    },
+
+    stop() {
+      if (!_stream) return;
+      if (_state !== "stopped") {
+        _unbind();
+        _state = "stopped";
+      }
+      // Always clear queued data, even if already stopped
+      sdl.SDL_ClearAudioStream(_stream);
+      _lastChunkSize = 0;
+    },
+
+    isPlaying() { return _state === "playing"; },
+    isStopped() { return _state === "stopped"; },
+    isPaused() { return _state === "paused"; },
+
+    setVolume(volume: number) {
+      _volume = Math.max(0, Math.min(1, volume));
+      _applyGain();
+    },
+    getVolume() { return _volume; },
+
+    setLooping(looping: boolean) { _looping = looping; },
+    isLooping() { return _looping; },
+
+    setPitch(pitch: number) {
+      _pitch = Math.max(0.01, pitch);
+      _applyPitch();
+    },
+    getPitch() { return _pitch; },
+
+    seek() { /* no-op for queueable */ },
+    tell() { return 0; },
+    getDuration() { return 0; },
+
+    clone() { throw new Error("Cannot clone a queueable Source"); },
+
+    type(): SourceType { return "queue"; },
+
+    release() {
+      if (_stream) {
+        _unbind();
+        sdl.SDL_DestroyAudioStream(_stream);
+        _stream = null;
+      }
+      _state = "stopped";
+      _lastChunkSize = 0;
+      _sources.delete(source);
+    },
+
+    _poll(): boolean {
+      // Queueable sources do NOT auto-stop when stream empties
+      return false;
+    },
+
+    _applyMasterVolume() { _applyGain(); },
+
+    // --- QueueableSource-specific ---
+
+    queue(soundData): boolean {
+      if (!_stream) return false;
+      // Check available bytes to enforce buffer limit
+      if (_lastChunkSize > 0) {
+        const available = Math.max(0, sdl.SDL_GetAudioStreamAvailable(_stream) as number);
+        if (available >= _lastChunkSize * bufferCount) return false;
+      }
+      // Verify format compatibility
+      if (soundData._sampleRate !== sampleRate ||
+          soundData._bitDepth !== bitDepth ||
+          soundData._channels !== channels) {
+        return false;
+      }
+      // slice() to force fresh ptr() — bun:ffi caches ptr() per TypedArray object,
+      // so reused buffers would send stale data without this copy.
+      // SDL_PutAudioStreamData copies internally, so the slice is short-lived.
+      const data = soundData._data.slice();
+      sdl.SDL_PutAudioStreamData(_stream, ptr(data), data.length);
+      sdl.SDL_FlushAudioStream(_stream);
+      _lastChunkSize = data.length;
+      return true;
+    },
+
+    getFreeBufferCount(): number {
+      if (!_stream) return 0;
+      if (_lastChunkSize === 0) return bufferCount;
+      const available = Math.max(0, sdl.SDL_GetAudioStreamAvailable(_stream) as number);
+      const pendingBuffers = Math.ceil(available / _lastChunkSize);
+      return Math.max(0, bufferCount - pendingBuffers);
     },
   };
 
