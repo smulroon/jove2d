@@ -217,6 +217,9 @@ function _gameLoop(callbacks: GameCallbacks): void {
           case "textinput":
             callbacks.textinput?.(ev.text);
             break;
+          case "textedited":
+            callbacks.textedited?.(ev.text, ev.start, ev.length);
+            break;
           case "filedropped":
             callbacks.filedropped?.(ev.path);
             break;

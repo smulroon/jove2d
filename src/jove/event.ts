@@ -18,6 +18,7 @@ import {
   SDL_EVENT_WINDOW_CLOSE_REQUESTED,
   SDL_EVENT_KEY_DOWN,
   SDL_EVENT_KEY_UP,
+  SDL_EVENT_TEXT_EDITING,
   SDL_EVENT_TEXT_INPUT,
   SDL_EVENT_MOUSE_MOTION,
   SDL_EVENT_MOUSE_BUTTON_DOWN,
@@ -47,6 +48,9 @@ import {
   SDL_MOUSE_BUTTON_Y,
   SDL_MOUSE_WHEEL_X,
   SDL_MOUSE_WHEEL_Y,
+  SDL_TEXT_EDITING_TEXT,
+  SDL_TEXT_EDITING_START,
+  SDL_TEXT_EDITING_LENGTH,
   SDL_TEXT_INPUT_TEXT,
   SDL_DROP_EVENT_DATA,
   SDL_JOY_EVENT_WHICH,
@@ -178,6 +182,18 @@ function mapEvent(eventType: number, p: Pointer): JoveEvent | null {
     }
 
     // --- Text input event ---
+
+    case SDL_EVENT_TEXT_EDITING: {
+      const textPtr = read.ptr(p, SDL_TEXT_EDITING_TEXT);
+      if (!textPtr) return null;
+      const text = new CString(textPtr);
+      return {
+        type: "textedited",
+        text: text.toString(),
+        start: read.i32(p, SDL_TEXT_EDITING_START),
+        length: read.i32(p, SDL_TEXT_EDITING_LENGTH),
+      };
+    }
 
     case SDL_EVENT_TEXT_INPUT: {
       // Text pointer at offset 24 (after windowID + padding on 64-bit)

@@ -71,6 +71,7 @@ export const SDL_EVENT_WINDOW_CLOSE_REQUESTED = 0x210;
 /** Keyboard event constants */
 export const SDL_EVENT_KEY_DOWN = 0x300;
 export const SDL_EVENT_KEY_UP = 0x301;
+export const SDL_EVENT_TEXT_EDITING = 0x302;
 export const SDL_EVENT_TEXT_INPUT = 0x303;
 
 /** Mouse event constants */
@@ -144,6 +145,11 @@ export const SDL_PIXELFORMAT_ABGR8888 = 0x16462004;
 
 /** SDL_TextInputEvent offsets (x86-64) — text pointer at offset 24 */
 export const SDL_TEXT_INPUT_TEXT = 24;
+
+/** SDL_TextEditingEvent offsets (x86-64) */
+export const SDL_TEXT_EDITING_TEXT = 24;
+export const SDL_TEXT_EDITING_START = 32;
+export const SDL_TEXT_EDITING_LENGTH = 36;
 
 /** SDL_DropEvent offsets (x86-64) */
 export const SDL_EVENT_DROP_FILE = 0x1000;

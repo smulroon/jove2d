@@ -35,6 +35,7 @@ export interface GameCallbacks {
   mousemoved?(x: number, y: number, dx: number, dy: number): void;
   wheelmoved?(x: number, y: number): void;
   textinput?(text: string): void;
+  textedited?(text: string, start: number, length: number): void;
   filedropped?(path: string): void;
   visible?(visible: boolean): void;
   joystickadded?(joystick: import("./joystick.ts").Joystick): void;
@@ -75,6 +76,7 @@ export type JoveEvent =
   | { type: "mousemoved"; x: number; y: number; dx: number; dy: number }
   | { type: "wheelmoved"; x: number; y: number }
   | { type: "textinput"; text: string }
+  | { type: "textedited"; text: string; start: number; length: number }
   | { type: "filedropped"; path: string }
   | { type: "joystickadded"; instanceId: number }
   | { type: "joystickremoved"; instanceId: number }
