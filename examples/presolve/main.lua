@@ -15,6 +15,9 @@ local PLAT_YS = {450, 320, 190}
 local PLAT_WIDTHS = {240, 200, 160}
 local PLAT_XS = {250, 500, 350}
 
+local FIXED_DT = 1 / 60
+local accumulator = 0
+
 function love.load()
     love.window.setTitle("love2d — PreSolve (One-Way Platforms)")
 
@@ -85,7 +88,11 @@ function love.load()
 end
 
 function love.update(dt)
-    world:update(dt)
+    accumulator = accumulator + dt
+    while accumulator >= FIXED_DT do
+        world:update(FIXED_DT)
+        accumulator = accumulator - FIXED_DT
+    end
 
     -- Remove balls off screen
     for i = #balls, 1, -1 do

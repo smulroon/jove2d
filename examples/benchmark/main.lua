@@ -11,6 +11,8 @@ local GRID_H = math.ceil(H / TILE_SIZE) -- 19
 local PARTICLE_POOL = 8
 local MAX_SOUNDS = 5
 local FRAME_HISTORY = 120
+local FIXED_DT = 1 / 60
+local physicsAccum = 0
 
 local world
 local bodies = {}
@@ -233,8 +235,12 @@ function love.update(dt)
   frameTimes[((frameIdx - 1) % FRAME_HISTORY) + 1] = dt
   frameIdx = frameIdx + 1
 
-  -- Physics
-  world:update(dt)
+  -- Physics (fixed timestep)
+  physicsAccum = physicsAccum + dt
+  while physicsAccum >= FIXED_DT do
+    world:update(FIXED_DT)
+    physicsAccum = physicsAccum - FIXED_DT
+  end
 
   -- Auto-spawn
   if spawning then

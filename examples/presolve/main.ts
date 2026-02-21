@@ -26,6 +26,9 @@ const PLAT_YS = [450, 320, 190];
 const PLAT_WIDTHS = [240, 200, 160];
 const PLAT_XS = [250, 500, 350];
 
+const FIXED_DT = 1 / 60;
+let accumulator = 0;
+
 jove.run({
   load() {
     jove.window.setTitle("jove2d — PreSolve (One-Way Platforms)");
@@ -100,7 +103,11 @@ jove.run({
   },
 
   update(dt) {
-    world.update(dt);
+    accumulator += dt;
+    while (accumulator >= FIXED_DT) {
+      world.update(FIXED_DT);
+      accumulator -= FIXED_DT;
+    }
 
     // Remove balls that fall off screen
     for (let i = balls.length - 1; i >= 0; i--) {

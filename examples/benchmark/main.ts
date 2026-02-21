@@ -20,6 +20,8 @@ const GRID_H = Math.ceil(H / TILE_SIZE); // 19
 const PARTICLE_POOL = 8;
 const MAX_SOUNDS = 5;
 const FRAME_HISTORY = 120;
+const FIXED_DT = 1 / 60;
+let physicsAccum = 0;
 
 // --- Generate short bump WAV (0.05s 440Hz sine with exponential decay) ---
 function generateBumpWav(): Uint8Array {
@@ -209,8 +211,12 @@ await jove.run({
     frameTimes[frameIdx % FRAME_HISTORY] = dt;
     frameIdx++;
 
-    // Physics step
-    world.update(dt);
+    // Physics step (fixed timestep)
+    physicsAccum += dt;
+    while (physicsAccum >= FIXED_DT) {
+      world.update(FIXED_DT);
+      physicsAccum -= FIXED_DT;
+    }
 
     // Auto-spawn
     if (spawning) {

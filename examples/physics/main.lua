@@ -7,6 +7,9 @@ local GROUND_Y = 550
 local WALL_THICKNESS = 20
 local contactFlashes = {}
 
+local FIXED_DT = 1 / 60
+local accumulator = 0
+
 function love.load()
     love.window.setTitle("love2d — Physics (Box2D)")
 
@@ -39,7 +42,11 @@ function love.load()
 end
 
 function love.update(dt)
-    world:update(dt)
+    accumulator = accumulator + dt
+    while accumulator >= FIXED_DT do
+        world:update(FIXED_DT)
+        accumulator = accumulator - FIXED_DT
+    end
 
     for i = #contactFlashes, 1, -1 do
         contactFlashes[i].timer = contactFlashes[i].timer - dt

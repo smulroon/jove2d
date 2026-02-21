@@ -34,11 +34,15 @@ let driving = 0;
 // Elapsed timer
 let elapsed = 0;
 
+const FIXED_DT = 1 / 60;
+let accumulator = 0;
+
 await jove.run({
   load() {
     jove.window.setTitle("Physics Phase 2 — jove2d");
     jove.graphics.setBackgroundColor(20, 20, 30);
 
+    jove.physics.setMeter(30);
     world = jove.physics.newWorld(0, 9.81 * 30);
 
     // Contact callback with point + speed
@@ -127,11 +131,11 @@ await jove.run({
     wheelJointL.setMotorSpeed(driving * 15);
     wheelJointR.setMotorSpeed(driving * 15);
 
-    // Motor joint offset is fixed — no mouse tracking
-
-    // Use 2 sub-steps to match love2d's Box2D v2 single-step behavior
-    // (default 4 sub-steps over-converges for motor joints)
-    world.update(dt, 2);
+    accumulator += dt;
+    while (accumulator >= FIXED_DT) {
+      world.update(FIXED_DT);
+      accumulator -= FIXED_DT;
+    }
 
     // Fade flashes
     for (let i = flashes.length - 1; i >= 0; i--) {

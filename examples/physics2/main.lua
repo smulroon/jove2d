@@ -26,6 +26,9 @@ local driving = 0
 -- Elapsed timer
 local elapsed = 0
 
+local FIXED_DT = 1 / 60
+local accumulator = 0
+
 function love.load()
   love.window.setTitle("Physics Phase 2 — love2d")
   love.window.setMode(800, 600)
@@ -120,7 +123,11 @@ function love.update(dt)
 
   -- Motor joint offset is fixed — no mouse tracking
 
-  world:update(dt)
+  accumulator = accumulator + dt
+  while accumulator >= FIXED_DT do
+    world:update(FIXED_DT)
+    accumulator = accumulator - FIXED_DT
+  end
 
   -- Fade flashes
   for i = #flashes, 1, -1 do

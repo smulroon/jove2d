@@ -15,6 +15,9 @@ const GROUND_Y = 550;
 const WALL_THICKNESS = 20;
 let contactFlashes: { x: number; y: number; timer: number }[] = [];
 
+const FIXED_DT = 1 / 60;
+let accumulator = 0;
+
 jove.run({
   load() {
     jove.window.setTitle("jove2d — Physics (Box2D v3)");
@@ -57,7 +60,11 @@ jove.run({
   },
 
   update(dt) {
-    world.update(dt);
+    accumulator += dt;
+    while (accumulator >= FIXED_DT) {
+      world.update(FIXED_DT);
+      accumulator -= FIXED_DT;
+    }
 
     // Fade contact flashes
     for (let i = contactFlashes.length - 1; i >= 0; i--) {
