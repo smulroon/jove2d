@@ -25,7 +25,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.touch | **Not implemented** | Mobile-only (P4) |
 | love.thread | **Not implemented** | Bun async usually sufficient (P4) |
 | love.video | **Core done** | MPEG-1 video+audio playback via pl_mpeg, drawable, seek/loop |
-| love.sound | **2/2 Complete** | SoundData (newSoundData, getSample/setSample, from file) |
+| love.sound | **2/3 Mostly done** | SoundData done; missing newDecoder (streaming audio decode) |
 | love.image | **7/7 Complete** | newImageData, getPixel/setPixel, mapPixel, paste, encode, getString |
 | love.font | **Inline** | Integrated into graphics module; bitmap fonts via newImageFont |
 | love.sensor | **Not planned** | Mobile-only |
@@ -190,6 +190,7 @@ Grouped by priority based on impact for typical 2D game development.
 #### ~~love.data~~ DONE
 - **Implemented**: `compress`/`decompress` (zlib, gzip, deflate), `encode`/`decode` (base64, hex), `hash` (md5, sha1, sha224, sha256, sha384, sha512), `ByteData`
 - Uses Bun's built-in zlib, Buffer, and CryptoHasher APIs — no external dependencies
+- **Not Planned**: `pack`/`unpack` — Lua 5.3 `string.pack` wrapper, barely used; TypeScript has `DataView`
 
 ### Priority 3 — Useful for Specific Game Types
 
@@ -213,9 +214,10 @@ Grouped by priority based on impact for typical 2D game development.
 - `newImage(imageData)` creates GPU texture from ImageData
 - Buffer-based RGBA8888 implementation, no external dependencies
 
-#### love.sound (data-level audio APIs) — DONE
+#### love.sound (data-level audio APIs) — Mostly done
 - **Implemented**: SoundData with getSample/setSample (normalized -1..1), newSoundData from empty buffer or file
 - **Pairs with**: newQueueableSource for procedural audio generation
+- **Missing**: `newDecoder` — streaming audio decode for memory-efficient music playback (→ Next Up #37)
 
 #### love.video — DONE
 - **Implemented**: MPEG-1 video + MP2 audio playback via pl_mpeg (single-header decoder)
@@ -223,6 +225,7 @@ Grouped by priority based on impact for typical 2D game development.
 - Audio synced via SDL audio streams
 - Format: .mpg (love2d uses .ogv Theora)
 - `bun run build-pl_mpeg` to build from source
+- **Not Planned**: `newVideoStream` / `Video:setSource` — love2d's separation reflects libtheora's Ogg architecture; jove2d's combined Video object is correct for pl_mpeg
 
 ### Not Planned
 
@@ -263,6 +266,9 @@ Grouped by priority based on impact for typical 2D game development.
 | love.graphics.setFrontFaceWinding / getFrontFaceWinding | Barely used in 2D games |
 | love.graphics.present / discard | Manual frame control, not needed for desktop game loop |
 | Box2D WASM fallback | Native lib works on all targets; high effort for edge case |
+| love.data.pack / unpack | Lua 5.3 `string.pack` wrapper; barely used in love2d games; TypeScript has DataView |
+| love.video.newVideoStream | Reflects libtheora's Ogg architecture; jove2d's combined Video object is correct for pl_mpeg |
+| love.graphics.setDepthMode / getDepthMode | SDL3 2D renderer has no depth buffer; love2d only uses with custom shaders |
 
 ---
 
@@ -298,7 +304,7 @@ Grouped by priority based on impact for typical 2D game development.
 25. ~~**Bitmap font support**~~ DONE — newImageFont with separator-color glyph detection, pixel-art font rendering
 26. ~~**Error recovery**~~ DONE — blue error screen for load/update/draw/event failures, setErrorHandler override, clipboard copy
 27. ~~**newQueueableSource**~~ DONE — streaming/procedural audio via SDL audio streams
-28. ~~**love.sound (SoundData/Decoder)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource
+28. ~~**love.sound (SoundData)**~~ DONE — sample-level get/set for procedural audio, pairs with newQueueableSource (Decoder → #37)
 29. ~~**Physics Phase 3**~~ DONE — joint getters (revolute/prismatic/wheel/motor/distance/weld/mouse), Body applyAngularImpulse + getWorldVector/getLocalVector, Fixture testPoint, World getJoints/getJointCount
 30. ~~**textedited event**~~ DONE — IME composition (SDL_EVENT_TEXT_EDITING) for CJK input, dispatches to textedited(text, start, length) callback
 31. ~~**Graphics capability queries**~~ DONE — getSupported, getSystemLimits, getCanvasFormats, getImageFormats, getTextureTypes, isGammaCorrect, isActive
@@ -311,3 +317,15 @@ Grouped by priority based on impact for typical 2D game development.
 34. ~~**event.wait**~~ DONE — blocks until event via SDL_WaitEvent (pump removed as not useful); example: `wait/`
 35. ~~**colorMask GPU enforcement**~~ DONE — GPU-enforced via `SDL_ComposeCustomBlendMode` (custom blend factors override masked channels to ZERO/ONE; works on all renderers; limitation: individual R/G/B masking not possible, RGB grouped)
 36. ~~**Wireframe mode**~~ DONE — `setWireframe` / `isWireframe`, tessellation wireframe for fills + smooth lines, W toggle in drawing example
+
+### Streaming audio decode
+
+37. **newDecoder** — streaming audio decode for memory-efficient music playback (~250 lines: C wrapper handle table + JS Decoder class + FFI). Underlying libs (stb_vorbis/dr_mp3/dr_flac) already support incremental decode; just not wired up. Eliminates ~40 MB RAM per 4-min stereo track.
+
+### API Completeness (trivial convenience wrappers)
+
+38. **Physics convenience setters** — `Body:setX/setY`, `Body:getTransform/setTransform`, `Fixture:setCategory/setMask/setGroupIndex` individual setters
+39. **Canvas:renderTo(fn)** — sugar for `setCanvas(c); fn(); setCanvas(null)`, extremely common love2d pattern
+40. **Image wrap mode** — `Image:setWrap/getWrap` for tiling textures (SDL3 has `SDL_SetTextureScaleMode`)
+41. **Image:replacePixels** — update GPU texture from ImageData without recreating
+42. **ImageData:getFormat()** — always returns `"rgba8"`, trivial
