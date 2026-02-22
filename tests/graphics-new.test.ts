@@ -133,6 +133,46 @@ describe("jove.graphics — new primitives & features", () => {
     canvas!.release();
   });
 
+  test("canvas renderTo sets and restores canvas", () => {
+    const canvas = graphics.newCanvas(64, 64);
+    expect(canvas).not.toBeNull();
+
+    // No active canvas initially
+    expect(graphics.getCanvas()).toBeNull();
+
+    let insideCalled = false;
+    canvas!.renderTo(() => {
+      // Inside renderTo, this canvas should be active
+      expect(graphics.getCanvas()).toBe(canvas);
+      insideCalled = true;
+    });
+
+    // After renderTo, canvas should be restored to null
+    expect(insideCalled).toBe(true);
+    expect(graphics.getCanvas()).toBeNull();
+
+    canvas!.release();
+  });
+
+  test("canvas renderTo restores previous canvas", () => {
+    const canvas1 = graphics.newCanvas(64, 64)!;
+    const canvas2 = graphics.newCanvas(32, 32)!;
+
+    graphics.setCanvas(canvas1);
+    expect(graphics.getCanvas()).toBe(canvas1);
+
+    canvas2.renderTo(() => {
+      expect(graphics.getCanvas()).toBe(canvas2);
+    });
+
+    // Should restore canvas1, not null
+    expect(graphics.getCanvas()).toBe(canvas1);
+
+    graphics.setCanvas(null);
+    canvas1.release();
+    canvas2.release();
+  });
+
   // --- Quad ---
 
   test("newQuad creates a quad", () => {

@@ -360,6 +360,8 @@ export function newQuad(x: number, y: number, w: number, h: number, sw: number, 
 
 export interface Canvas extends Image {
   _isCanvas: true;
+  /** Render to this canvas, then restore the previous render target. */
+  renderTo(fn: () => void): void;
 }
 
 // ============================================================
@@ -475,6 +477,12 @@ export function newCanvas(w: number, h: number): Canvas | null {
   return {
     ...base,
     _isCanvas: true as const,
+    renderTo(fn: () => void): void {
+      const prev = _activeCanvas;
+      setCanvas(this);
+      fn();
+      setCanvas(prev);
+    },
   };
 }
 

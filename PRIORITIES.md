@@ -323,7 +323,7 @@ Grouped by priority based on impact for typical 2D game development.
 ### API Completeness (trivial convenience wrappers)
 
 38. ~~**Physics convenience setters**~~ DONE — `Body:setX/setY`, `Body:getTransform/setTransform`, `Fixture:setCategory/setMask/setGroupIndex/getCategory/getMask/getGroupIndex`
-39. **Canvas:renderTo(fn)** — sugar for `setCanvas(c); fn(); setCanvas(null)`, extremely common love2d pattern
+39. ~~**Canvas:renderTo(fn)**~~ DONE — sugar for `setCanvas(c); fn(); setCanvas(prev)`, restores previous canvas
 40. **Image wrap mode** — `Image:setWrap/getWrap` for tiling textures (SDL3 has `SDL_SetTextureScaleMode`)
 41. **Image:replacePixels** — update GPU texture from ImageData without recreating
 42. **ImageData:getFormat()** — always returns `"rgba8"`, trivial
