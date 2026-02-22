@@ -43,6 +43,8 @@ export interface ImageData {
   paste(source: ImageData, dx: number, dy: number, sx?: number, sy?: number, sw?: number, sh?: number): void;
   /** Encode to PNG or BMP format. Returns the encoded bytes, or saves to file if path given. */
   encode(format: "png" | "bmp", filepath?: string): Uint8Array | null;
+  /** Get the pixel format string (always "rgba8"). */
+  getFormat(): string;
   /** Get a copy of the raw pixel data as a string (for hashing, etc.). */
   getString(): string;
 }
@@ -231,6 +233,10 @@ function _createImageData(data: Uint8Array, width: number, height: number): Imag
       } catch {
         return null;
       }
+    },
+
+    getFormat(): string {
+      return "rgba8";
     },
 
     getString(): string {

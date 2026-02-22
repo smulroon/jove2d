@@ -25,6 +25,7 @@ describe("jove.image.newImageData", () => {
     expect(d!.getHeight()).toBe(8);
     expect(d!.getDimensions()).toEqual([16, 8]);
     expect(d!.format).toBe("rgba8888");
+    expect(d!.getFormat()).toBe("rgba8");
     expect(d!.data.length).toBe(16 * 8 * 4);
   });
 
