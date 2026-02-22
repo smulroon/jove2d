@@ -12,6 +12,7 @@ import {
   SDL_AUDIO_F32,
   SDL_INIT_AUDIO,
 } from "../sdl/types.ts";
+import type { Decoder } from "./sound.ts";
 
 // SDL_AudioSpec: { format: i32, channels: i32, freq: i32 } = 12 bytes
 const AUDIOSPEC_SIZE = 12;
@@ -71,10 +72,14 @@ export function _quit(): void {
   _initialized = false;
 }
 
-/** Poll all playing sources for end-of-stream / looping. Call once per frame. */
+/** Poll all playing sources for end-of-stream / looping / streaming feed. Call once per frame. */
 export function _updateSources(): void {
   let toRelease: Source[] | null = null;
   for (const source of _sources) {
+    // Feed streaming sources before polling
+    if ((source as any)._feedStream) {
+      (source as any)._feedStream();
+    }
     if (source._poll()) {
       (toRelease ??= []).push(source);
     }
@@ -210,6 +215,11 @@ export function _decodeFile(path: string): { data: Uint8Array; format: number; c
 export function newSource(path: string, type: SourceType = "static"): Source | null {
   if (!_initialized && !_init()) return null;
   if (!_ensureDevice()) return null;
+
+  // Streaming type: use Decoder to feed chunks incrementally
+  if (type === "stream") {
+    return _createStreamSource(path);
+  }
 
   const decoded = _decodeFile(path);
   if (!decoded) return null;
@@ -441,6 +451,248 @@ function _createSource(
     _applyMasterVolume() {
       _applyGain();
     },
+  };
+
+  _sources.add(source);
+  return source;
+}
+
+// ============================================================
+// Streaming source (Decoder-backed)
+// ============================================================
+
+/**
+ * Create a streaming source that feeds audio from a Decoder.
+ * Uses a QueueableSource internally, feeding chunks each frame.
+ */
+function _createStreamSource(path: string): Source | null {
+  // Lazy import to avoid circular dependency at module load time
+  const { newDecoder } = require("./sound.ts") as typeof import("./sound.ts");
+
+  let decoder: Decoder;
+  try {
+    decoder = newDecoder(path);
+  } catch {
+    // Decoder not available (lib missing) or file not supported — fall back to full decode
+    const decoded = _decodeFile(path);
+    if (!decoded) return null;
+    return _createSource(decoded.data, decoded.format, decoded.channels, decoded.freq, "stream");
+  }
+
+  const channels = decoder.getChannelCount();
+  const sampleRate = decoder.getSampleRate();
+  const totalFrames = decoder.getSampleCount();
+  const format = SDL_AUDIO_S16;
+  const bytesPerSample = 2;
+  const _bytesPerSecond = sampleRate * channels * bytesPerSample;
+  const totalDuration = totalFrames / sampleRate;
+  const bufferSize = decoder._bufferSize;
+  // Keep ~4 chunks in the stream at all times
+  const LOW_WATER = 2;
+  const HIGH_WATER = 4;
+
+  // Create audio stream
+  const srcSpec = new Int32Array([format, channels, sampleRate]);
+  const dstSpec = new Int32Array([format, channels, sampleRate]);
+  let _stream = sdl.SDL_CreateAudioStream(ptr(srcSpec), ptr(dstSpec)) as Pointer | null;
+  if (!_stream) {
+    decoder.close();
+    return null;
+  }
+
+  let _state: SourceState = "stopped";
+  let _volume = 1.0;
+  let _looping = false;
+  let _pitch = 1.0;
+  let _seekPending = false;
+
+  function _bind(): void {
+    if (_stream && _deviceId) sdl.SDL_BindAudioStream(_deviceId, _stream);
+  }
+
+  function _unbind(): void {
+    if (_stream) sdl.SDL_UnbindAudioStream(_stream);
+  }
+
+  function _applyGain(): void {
+    if (_stream) sdl.SDL_SetAudioStreamGain(_stream, _volume * _masterVolume);
+  }
+
+  function _applyPitch(): void {
+    if (_stream) sdl.SDL_SetAudioStreamFrequencyRatio(_stream, _pitch);
+  }
+
+  /** Feed decoded chunks into the audio stream to keep it topped up. */
+  function _feedStream(): void {
+    if (_state !== "playing" || !_stream) return;
+
+    const available = Math.max(0, sdl.SDL_GetAudioStreamAvailable(_stream) as number);
+    const chunkBytes = bufferSize * channels * bytesPerSample;
+    const pendingChunks = Math.ceil(available / chunkBytes);
+
+    // Fill up to HIGH_WATER chunks
+    let chunksToFeed = HIGH_WATER - pendingChunks;
+    while (chunksToFeed > 0) {
+      const chunk = decoder.decode();
+      if (!chunk) {
+        // EOF
+        if (_looping) {
+          decoder.seek(0);
+          continue; // try reading from start
+        }
+        // Mark EOF — let _poll handle auto-stop when stream drains
+        break;
+      }
+      sdl.SDL_PutAudioStreamData(_stream, ptr(chunk._data), chunk._data.length);
+      sdl.SDL_FlushAudioStream(_stream);
+      chunksToFeed--;
+    }
+  }
+
+  /** Pre-fill stream buffer before starting playback. */
+  function _prefill(): void {
+    for (let i = 0; i < HIGH_WATER; i++) {
+      const chunk = decoder.decode();
+      if (!chunk) break;
+      sdl.SDL_PutAudioStreamData(_stream!, ptr(chunk._data), chunk._data.length);
+    }
+    sdl.SDL_FlushAudioStream(_stream!);
+  }
+
+  const source: Source & { _feedStream: () => void } = {
+    _type: "stream" as SourceType,
+    _feedStream: _feedStream,
+
+    play() {
+      if (!_deviceId) return;
+      if (!_stream) {
+        // Recreate stream if released
+        const newSrcSpec = new Int32Array([format, channels, sampleRate]);
+        const newDstSpec = new Int32Array([format, channels, sampleRate]);
+        _stream = sdl.SDL_CreateAudioStream(ptr(newSrcSpec), ptr(newDstSpec)) as Pointer | null;
+        if (!_stream) return;
+        _sources.add(source);
+      }
+      if (_state === "playing") {
+        // Rewind
+        _unbind();
+        sdl.SDL_ClearAudioStream(_stream);
+        decoder.seek(0);
+        _prefill();
+        _bind();
+        _applyGain();
+        _applyPitch();
+        sdl.SDL_ResumeAudioStreamDevice(_stream);
+        return;
+      }
+      if (_state === "paused") {
+        sdl.SDL_ResumeAudioStreamDevice(_stream);
+        _state = "playing";
+        return;
+      }
+      // stopped → playing
+      decoder.seek(0);
+      sdl.SDL_ClearAudioStream(_stream);
+      _prefill();
+      _bind();
+      _applyGain();
+      _applyPitch();
+      sdl.SDL_ResumeAudioStreamDevice(_stream);
+      _state = "playing";
+    },
+
+    pause() {
+      if (!_stream || _state !== "playing") return;
+      sdl.SDL_PauseAudioStreamDevice(_stream);
+      _state = "paused";
+    },
+
+    stop() {
+      if (!_stream || _state === "stopped") return;
+      _unbind();
+      sdl.SDL_ClearAudioStream(_stream);
+      _state = "stopped";
+    },
+
+    isPlaying() { return _state === "playing"; },
+    isStopped() { return _state === "stopped"; },
+    isPaused() { return _state === "paused"; },
+
+    setVolume(volume: number) {
+      _volume = Math.max(0, Math.min(1, volume));
+      _applyGain();
+    },
+    getVolume() { return _volume; },
+
+    setLooping(looping: boolean) { _looping = looping; },
+    isLooping() { return _looping; },
+
+    setPitch(pitch: number) {
+      _pitch = Math.max(0.01, pitch);
+      _applyPitch();
+    },
+    getPitch() { return _pitch; },
+
+    seek(position: number) {
+      if (!_stream) return;
+      const frame = Math.max(0, Math.floor(position * sampleRate));
+      decoder.seek(frame);
+      sdl.SDL_ClearAudioStream(_stream);
+      if (_state === "playing") {
+        _prefill();
+        sdl.SDL_FlushAudioStream(_stream);
+      }
+    },
+
+    tell(): number {
+      if (!_stream || _state === "stopped") return 0;
+      // Decoder position minus what's still in the stream buffer
+      const available = Math.max(0, sdl.SDL_GetAudioStreamAvailable(_stream) as number);
+      const decoderPos = decoder.tell() / sampleRate;
+      const buffered = available / _bytesPerSecond;
+      return Math.max(0, decoderPos - buffered);
+    },
+
+    getDuration(): number {
+      return totalDuration;
+    },
+
+    clone(): Source {
+      // Clone creates a new stream source with its own decoder
+      return _createStreamSource(path)!;
+    },
+
+    type(): SourceType { return "stream"; },
+
+    release() {
+      if (_stream) {
+        _unbind();
+        sdl.SDL_DestroyAudioStream(_stream);
+        _stream = null;
+      }
+      decoder.close();
+      _state = "stopped";
+      _sources.delete(source);
+    },
+
+    _poll(): boolean {
+      if (_state !== "playing" || !_stream) return false;
+      const available = sdl.SDL_GetAudioStreamAvailable(_stream);
+      if (available <= 0 && decoder.isFinished()) {
+        if (_looping) {
+          decoder.seek(0);
+          _prefill();
+        } else {
+          _unbind();
+          sdl.SDL_ClearAudioStream(_stream);
+          _state = "stopped";
+          return true;
+        }
+      }
+      return false;
+    },
+
+    _applyMasterVolume() { _applyGain(); },
   };
 
   _sources.add(source);

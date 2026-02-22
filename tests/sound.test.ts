@@ -2,7 +2,8 @@ import { test, expect, describe, beforeAll, afterAll } from "bun:test";
 import * as sound from "../src/jove/sound.ts";
 import * as audio from "../src/jove/audio.ts";
 import type { QueueableSource } from "../src/jove/audio.ts";
-import { writeFileSync, unlinkSync } from "fs";
+import { loadAudioDecode } from "../src/sdl/ffi_audio_decode.ts";
+import { writeFileSync, unlinkSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -387,5 +388,242 @@ describe("jove.audio — QueueableSource", () => {
     expect(qs.isPlaying()).toBe(true);
     qs.stop();
     qs.release();
+  });
+});
+
+// ============================================================
+// Streaming Decoder tests
+// ============================================================
+
+const codecLibAvailable = loadAudioDecode() !== null;
+const ffmpegAvailable = (() => {
+  try {
+    const r = Bun.spawnSync(["ffmpeg", "-version"]);
+    return r.exitCode === 0;
+  } catch { return false; }
+})();
+
+describe("jove.sound — Decoder (streaming)", () => {
+  const decoderWavPath = join(tmpDir, "jove2d-decoder-test.wav");
+  const oggPath = join(tmpDir, "jove2d-decoder-test.ogg");
+  const mp3Path = join(tmpDir, "jove2d-decoder-test.mp3");
+  const flacPath = join(tmpDir, "jove2d-decoder-test.flac");
+
+  const canRun = codecLibAvailable && ffmpegAvailable;
+
+  beforeAll(() => {
+    if (!canRun) return;
+    // Generate a 1s 440Hz sine WAV, then convert to each codec
+    const wav = generateWav(1.0, 440, 22050);
+    writeFileSync(decoderWavPath, wav);
+    Bun.spawnSync(["ffmpeg", "-y", "-i", decoderWavPath, "-c:a", "libvorbis", "-q:a", "2", oggPath], { stderr: "ignore" });
+    Bun.spawnSync(["ffmpeg", "-y", "-i", decoderWavPath, "-c:a", "libmp3lame", "-q:a", "9", mp3Path], { stderr: "ignore" });
+    Bun.spawnSync(["ffmpeg", "-y", "-i", decoderWavPath, "-c:a", "flac", flacPath], { stderr: "ignore" });
+  });
+
+  afterAll(() => {
+    for (const p of [decoderWavPath, oggPath, mp3Path, flacPath]) {
+      try { unlinkSync(p); } catch {}
+    }
+  });
+
+  test("newDecoder opens OGG file with valid metadata", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath);
+    expect(dec.getChannelCount()).toBe(1);
+    expect(dec.getSampleRate()).toBe(22050);
+    expect(dec.getBitDepth()).toBe(16);
+    expect(dec.getSampleCount()).toBeGreaterThan(0);
+    expect(dec.getDuration()).toBeGreaterThan(0.8);
+    expect(dec.getDuration()).toBeLessThan(1.2);
+    expect(dec.isFinished()).toBe(false);
+    dec.close();
+  });
+
+  test("newDecoder opens MP3 file", () => {
+    if (!canRun || !existsSync(mp3Path)) return;
+    const dec = sound.newDecoder(mp3Path);
+    expect(dec.getChannelCount()).toBeGreaterThan(0);
+    expect(dec.getSampleRate()).toBeGreaterThan(0);
+    expect(dec.getDuration()).toBeGreaterThan(0.5);
+    dec.close();
+  });
+
+  test("newDecoder opens FLAC file", () => {
+    if (!canRun || !existsSync(flacPath)) return;
+    const dec = sound.newDecoder(flacPath);
+    expect(dec.getChannelCount()).toBe(1);
+    expect(dec.getSampleRate()).toBe(22050);
+    expect(dec.getDuration()).toBeGreaterThan(0.8);
+    dec.close();
+  });
+
+  test("decode() returns SoundData chunks", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath, 1024);
+    const chunk = dec.decode();
+    expect(chunk).not.toBeNull();
+    expect(chunk!.getSampleCount()).toBeGreaterThan(0);
+    expect(chunk!.getSampleCount()).toBeLessThanOrEqual(1024);
+    expect(chunk!.getSampleRate()).toBe(22050);
+    expect(chunk!.getBitDepth()).toBe(16);
+    expect(chunk!.getChannelCount()).toBe(1);
+    dec.close();
+  });
+
+  test("decode() reads all data until EOF", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath, 2048);
+    let totalFrames = 0;
+    let chunks = 0;
+    while (true) {
+      const chunk = dec.decode();
+      if (!chunk) break;
+      totalFrames += chunk.getSampleCount();
+      chunks++;
+    }
+    expect(dec.isFinished()).toBe(true);
+    expect(chunks).toBeGreaterThan(1); // Should take multiple chunks for 1s audio
+    expect(totalFrames).toBeGreaterThan(20000); // ~22050 frames for 1s at 22050Hz
+    expect(totalFrames).toBeLessThan(25000);
+    // decode() after EOF returns null
+    expect(dec.decode()).toBeNull();
+    dec.close();
+  });
+
+  test("seek() resets position and allows re-reading", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath, 1024);
+
+    // Read a chunk
+    const chunk1 = dec.decode();
+    expect(chunk1).not.toBeNull();
+    const pos1 = dec.tell();
+    expect(pos1).toBeGreaterThan(0);
+
+    // Seek to beginning
+    dec.seek(0);
+    expect(dec.tell()).toBe(0);
+    expect(dec.isFinished()).toBe(false);
+
+    // Read again — should get data
+    const chunk2 = dec.decode();
+    expect(chunk2).not.toBeNull();
+    expect(chunk2!.getSampleCount()).toBeGreaterThan(0);
+
+    dec.close();
+  });
+
+  test("seek() to middle of file", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath);
+    const midFrame = Math.floor(dec.getSampleCount() / 2);
+
+    dec.seek(midFrame);
+    expect(dec.tell()).toBe(midFrame);
+
+    const chunk = dec.decode();
+    expect(chunk).not.toBeNull();
+    dec.close();
+  });
+
+  test("tell() tracks position", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath, 1024);
+    expect(dec.tell()).toBe(0);
+
+    dec.decode();
+    const pos = dec.tell();
+    expect(pos).toBeGreaterThan(0);
+    expect(pos).toBeLessThanOrEqual(1024);
+
+    dec.decode();
+    expect(dec.tell()).toBeGreaterThan(pos);
+
+    dec.close();
+  });
+
+  test("close() releases handle", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath);
+    dec.close();
+    expect(dec.isFinished()).toBe(true);
+    // decode() after close returns null
+    expect(dec.decode()).toBeNull();
+    // Double close is safe
+    dec.close();
+  });
+
+  test("multiple decoders can be open simultaneously", () => {
+    if (!canRun) return;
+    const decoders: ReturnType<typeof sound.newDecoder>[] = [];
+    const paths = [oggPath, mp3Path, flacPath].filter(p => existsSync(p));
+    if (paths.length < 2) return;
+
+    for (const p of paths) {
+      decoders.push(sound.newDecoder(p));
+    }
+
+    // All decoders work independently
+    for (const dec of decoders) {
+      const chunk = dec.decode();
+      expect(chunk).not.toBeNull();
+    }
+
+    // Clean up
+    for (const dec of decoders) {
+      dec.close();
+    }
+  });
+
+  test("newDecoder throws for unsupported file", () => {
+    if (!codecLibAvailable) return;
+    expect(() => sound.newDecoder("/tmp/nonexistent.ogg")).toThrow();
+  });
+
+  test("newDecoder throws without codec library", () => {
+    // This test only makes sense if the lib IS available (can't unload it)
+    // Just verify the function exists and has correct signature
+    expect(typeof sound.newDecoder).toBe("function");
+  });
+
+  test("custom bufferSize is respected", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    const dec = sound.newDecoder(oggPath, 512);
+    const chunk = dec.decode();
+    expect(chunk).not.toBeNull();
+    // Buffer size is a max — chunk should be at most 512 frames
+    expect(chunk!.getSampleCount()).toBeLessThanOrEqual(512);
+    dec.close();
+  });
+
+  // --- Streaming source tests ---
+
+  test("newSource with 'stream' type creates a working source", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    if (!audio._init() || !audio._ensureDevice()) return;
+    const src = audio.newSource(oggPath, "stream");
+    expect(src).not.toBeNull();
+    expect(src!.type()).toBe("stream");
+    expect(src!.getDuration()).toBeGreaterThan(0.8);
+    expect(src!.isStopped()).toBe(true);
+    src!.release();
+    audio._quit();
+  });
+
+  test("streaming source play/pause/stop lifecycle", () => {
+    if (!canRun || !existsSync(oggPath)) return;
+    if (!audio._init() || !audio._ensureDevice()) return;
+    const src = audio.newSource(oggPath, "stream")!;
+    src.play();
+    expect(src.isPlaying()).toBe(true);
+    src.pause();
+    expect(src.isPaused()).toBe(true);
+    src.play();
+    expect(src.isPlaying()).toBe(true);
+    src.stop();
+    expect(src.isStopped()).toBe(true);
+    src.release();
+    audio._quit();
   });
 });

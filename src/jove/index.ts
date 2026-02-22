@@ -31,7 +31,7 @@ export type { SpriteBatch, Mesh, Text } from "./graphics.ts";
 export type { ParticleSystem } from "./particles.ts";
 export type { Shader } from "./shader.ts";
 export type { Source, QueueableSource } from "./audio.ts";
-export type { SoundData } from "./sound.ts";
+export type { SoundData, Decoder } from "./sound.ts";
 export type { ByteData } from "./data.ts";
 export type { File, FileData } from "./filesystem.ts";
 export type { Joystick } from "./joystick.ts";

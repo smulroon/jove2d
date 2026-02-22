@@ -1,5 +1,6 @@
 // jove2d audio example — demonstrates play/pause/stop, pitch, volume, looping, seek
 // Also demonstrates OGG/MP3/FLAC codec support (F1-F4 to switch formats)
+// and static vs stream source types (T to toggle)
 // Generates a sine wave WAV at load time, converts to other formats via ffmpeg
 
 import jove from "../../src/index.ts";
@@ -54,6 +55,7 @@ interface FormatInfo {
 let source: Source | null = null;
 let statusMsg = "Press SPACE to play";
 let currentFormat = 0;
+let sourceType: "static" | "stream" = "static";
 const formats: FormatInfo[] = [];
 const tmpBase = join(tmpdir(), "jove2d-example-audio");
 
@@ -67,9 +69,9 @@ function tryConvert(wavPath: string, ext: string, ffmpegArgs: string[]): boolean
   return result.exitCode === 0 && existsSync(outPath);
 }
 
-function switchFormat(index: number) {
+function switchFormat(index: number, force: boolean = false) {
   if (index < 0 || index >= formats.length || !formats[index].available) return;
-  if (index === currentFormat && source) return;
+  if (index === currentFormat && source && !force) return;
 
   // Stop and release current source
   if (source) {
@@ -79,9 +81,9 @@ function switchFormat(index: number) {
 
   currentFormat = index;
   const fmt = formats[currentFormat];
-  source = jove.audio.newSource(fmt.path, "static");
+  source = jove.audio.newSource(fmt.path, sourceType);
   if (source) {
-    statusMsg = `Loaded ${fmt.label} — press SPACE to play`;
+    statusMsg = `Loaded ${fmt.label} (${sourceType}) — press SPACE to play`;
   } else {
     statusMsg = `Failed to load ${fmt.label}!`;
   }
@@ -111,7 +113,7 @@ await jove.run({
     formats.push({ ext: "flac", label: "FLAC", path: `${tmpBase}.flac`, available: flacOk });
 
     // Load initial WAV source
-    source = jove.audio.newSource(wavPath, "static");
+    source = jove.audio.newSource(wavPath, sourceType);
     if (!source) {
       statusMsg = "Failed to create audio source!";
     }
@@ -139,7 +141,7 @@ await jove.run({
     // Format info
     jove.graphics.setColor(255, 220, 100);
     const fmt = formats[currentFormat];
-    jove.graphics.print(`Format: ${fmt ? fmt.label : "none"}`, x, y + 22);
+    jove.graphics.print(`Format: ${fmt ? fmt.label : "none"}  |  Type: ${sourceType}`, x, y + 22);
 
     jove.graphics.setColor(200, 200, 200);
     jove.graphics.print(`Status: ${statusMsg}`, x, y + 44);
@@ -184,7 +186,8 @@ await jove.run({
     jove.graphics.print("[/]    — Master volume +/- 10%", x, y + 456);
     jove.graphics.print("1-9    — Seek to 0-100%", x, y + 476);
     jove.graphics.print("C      — Clone + play", x, y + 496);
-    jove.graphics.print("ESC    — Quit", x, y + 516);
+    jove.graphics.print("T      — Toggle static/stream", x, y + 516);
+    jove.graphics.print("ESC    — Quit", x, y + 536);
   },
 
   keypressed(key) {
@@ -230,6 +233,10 @@ await jove.run({
       const cloned = source.clone();
       cloned.setPitch(1.5); // Higher pitch to hear the difference
       cloned.play();
+    } else if (key === "t") {
+      // Toggle source type and reload
+      sourceType = sourceType === "static" ? "stream" : "static";
+      switchFormat(currentFormat, true);
     } else if (key >= "1" && key <= "9") {
       // Seek to percentage of duration
       const pct = parseInt(key) / 10;

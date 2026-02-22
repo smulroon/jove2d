@@ -1,12 +1,14 @@
 -- love2d equivalent of the audio example
 -- Demonstrates play/pause/stop, pitch, volume, looping, seek
 -- Also demonstrates OGG/MP3/FLAC codec support (F1-F4 to switch formats)
+-- and static vs stream source types (T to toggle)
 -- Generates a sine wave WAV at load time, converts to other formats via ffmpeg
 
 local source = nil
 local paused = false
 local statusMsg = "Press SPACE to play"
 local currentFormat = 1
+local sourceType = "static"
 local formats = {}
 
 -- Get love2d save directory path for ffmpeg conversion
@@ -87,9 +89,9 @@ local function tryConvert(wavAbsPath, ext, ffmpegArgs)
   return false
 end
 
-local function switchFormat(index)
+local function switchFormat(index, force)
   if index < 1 or index > #formats or not formats[index].available then return end
-  if index == currentFormat and source then return end
+  if index == currentFormat and source and not force then return end
 
   -- Stop and release current source
   if source then
@@ -99,10 +101,10 @@ local function switchFormat(index)
 
   currentFormat = index
   local fmt = formats[currentFormat]
-  local ok, src = pcall(love.audio.newSource, fmt.filename, "static")
+  local ok, src = pcall(love.audio.newSource, fmt.filename, sourceType)
   if ok and src then
     source = src
-    statusMsg = "Loaded " .. fmt.label .. " -- press SPACE to play"
+    statusMsg = "Loaded " .. fmt.label .. " (" .. sourceType .. ") -- press SPACE to play"
     paused = false
   else
     source = nil
@@ -134,7 +136,7 @@ function love.load()
   formats[4] = { ext = "flac", label = "FLAC", filename = "example-audio.flac", available = flacOk }
 
   -- Load initial WAV source
-  source = love.audio.newSource("example-audio.wav", "static")
+  source = love.audio.newSource("example-audio.wav", sourceType)
   if not source then
     statusMsg = "Failed to create audio source!"
   end
@@ -163,7 +165,7 @@ function love.draw()
   -- Format info
   love.graphics.setColor(1, 220/255, 100/255)
   local fmt = formats[currentFormat]
-  love.graphics.print("Format: " .. (fmt and fmt.label or "none"), x, y + 22)
+  love.graphics.print("Format: " .. (fmt and fmt.label or "none") .. "  |  Type: " .. sourceType, x, y + 22)
 
   love.graphics.setColor(200/255, 200/255, 200/255)
   love.graphics.print("Status: " .. statusMsg, x, y + 44)
@@ -208,7 +210,8 @@ function love.draw()
   love.graphics.print("[/]    -- Master volume +/- 10%", x, y + 456)
   love.graphics.print("1-9    -- Seek to 0-100%", x, y + 476)
   love.graphics.print("C      -- Clone + play", x, y + 496)
-  love.graphics.print("ESC    -- Quit", x, y + 516)
+  love.graphics.print("T      -- Toggle static/stream", x, y + 516)
+  love.graphics.print("ESC    -- Quit", x, y + 536)
 end
 
 function love.keypressed(key)
@@ -257,6 +260,9 @@ function love.keypressed(key)
     local cloned = source:clone()
     cloned:setPitch(1.5)
     cloned:play()
+  elseif key == "t" then
+    sourceType = sourceType == "static" and "stream" or "static"
+    switchFormat(currentFormat, true)
   elseif key >= "1" and key <= "9" then
     local pct = tonumber(key) / 10
     source:seek(pct * source:getDuration())
