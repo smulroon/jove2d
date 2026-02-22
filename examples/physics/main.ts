@@ -150,7 +150,7 @@ jove.run({
   mousepressed(x, y, button) {
     if (button === 1) {
       spawnBall(x, y, "red");
-    } else if (button === 2) {
+    } else if (button === 3) {
       spawnBall(x, y, "blue");
     }
   },
