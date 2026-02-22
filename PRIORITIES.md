@@ -310,4 +310,4 @@ Grouped by priority based on impact for typical 2D game development.
 33. ~~**Display sleep control**~~ DONE — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API
 34. ~~**event.wait**~~ DONE — blocks until event via SDL_WaitEvent (pump removed as not useful); example: `wait/`
 35. ~~**colorMask GPU enforcement**~~ DONE — GPU-enforced via `SDL_ComposeCustomBlendMode` (custom blend factors override masked channels to ZERO/ONE; works on all renderers; limitation: individual R/G/B masking not possible, RGB grouped)
-36. **Wireframe mode** — `setWireframe` / `isWireframe`, convert filled triangle geometry to line draws
+36. ~~**Wireframe mode**~~ DONE — `setWireframe` / `isWireframe`, tessellation wireframe for fills + smooth lines, W toggle in drawing example
