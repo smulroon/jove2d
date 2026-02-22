@@ -53,7 +53,7 @@ Grouped by priority based on impact for typical 2D game development.
 **Low priority (mobile/niche):**
 - `getDisplayOrientation` — mobile-only
 - `getSafeArea` — mobile-only
-- `isDisplaySleepEnabled` / `setDisplaySleepEnabled` — screen sleep
+- ~~`isDisplaySleepEnabled` / `setDisplaySleepEnabled`~~ — → Next Up #33
 
 ### love.graphics — missing functions
 
@@ -68,7 +68,7 @@ Grouped by priority based on impact for typical 2D game development.
 **P1 — Needed for most games:**
 - ~~`newShader` / `setShader` / `getShader`~~ — custom fragment shaders via SDL_GPURenderState DONE
 - ~~`newSpriteBatch` / `flushBatch`~~ — batch rendering performance DONE
-- `setColorMask` / `getColorMask` (GPU-enforced) — currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`. Needs shader-based workaround or future SDL3 API.
+- ~~`setColorMask` / `getColorMask` (GPU-enforced)~~ — → Next Up #35
 
 **P2 — Important for many games:**
 - ~~`newParticleSystem`~~ DONE — particle effects (in particles.ts)
@@ -85,12 +85,12 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`getSupported` / `getSystemLimits`~~ DONE — capability queries (static returns for SDL3 renderer)
 - ~~`getCanvasFormats` / `getImageFormats` / `getTextureTypes`~~ DONE — format queries (rgba8 only)
 - ~~`isActive` / `isGammaCorrect`~~ DONE — state queries
-- `drawInstanced` / `drawLayer` — advanced drawing
-- `setWireframe` / `isWireframe` — wireframe mode
-- `setDepthMode` / `getDepthMode` — depth testing
-- `setMeshCullMode` / `getMeshCullMode` — face culling
-- `setFrontFaceWinding` / `getFrontFaceWinding` — winding order
-- `present` / `discard` — manual frame control
+- ~~`setWireframe` / `isWireframe`~~ — → Next Up #36
+- ~~`setDepthMode` / `getDepthMode`~~ — → Next Up #37
+- ~~`drawInstanced` / `drawLayer`~~ — → Not Planned (SpriteBatch covers common case)
+- ~~`setMeshCullMode` / `getMeshCullMode`~~ — → Not Planned (barely used in 2D)
+- ~~`setFrontFaceWinding` / `getFrontFaceWinding`~~ — → Not Planned (barely used in 2D)
+- ~~`present` / `discard`~~ — → Not Planned (manual frame control, not needed for desktop)
 
 **Not applicable:**
 - `newArrayImage` / `newCubeImage` — advanced texture types (P4)
@@ -158,12 +158,11 @@ Grouped by priority based on impact for typical 2D game development.
 **Remaining gaps:**
 - ~~preSolve callback~~ DONE — 1-frame-delay enable-list pattern (C records events, JS decides, sends enable list next frame)
 - Gear/pulley/rope/friction joints — do NOT exist in Box2D v3 (only distance/revolute/prismatic/weld/mouse/wheel/motor/filter)
-- WASM fallback backend
+- ~~WASM fallback backend~~ — → Not Planned (native lib works, high effort for edge case)
 
 ### love.event — missing functions
 
-- `pump` — manual event pump (jove uses `pollEvents` internally; not needed)
-- `wait` — block until event (rarely used)
+- ~~`pump` / `wait`~~ — → Next Up #34
 
 ### love.keyboard — missing functions
 
@@ -258,6 +257,11 @@ Grouped by priority based on impact for typical 2D game development.
 | love.system.hasBackgroundMusic | iOS-only |
 | love.keyboard.hasScreenKeyboard | Mobile-only |
 | love.filesystem Lua-specific funcs | load, require paths, isFused — N/A for TypeScript |
+| love.graphics.drawInstanced / drawLayer | SpriteBatch covers the common batched-draw case |
+| love.graphics.setMeshCullMode / getMeshCullMode | Barely used in 2D games |
+| love.graphics.setFrontFaceWinding / getFrontFaceWinding | Barely used in 2D games |
+| love.graphics.present / discard | Manual frame control, not needed for desktop game loop |
+| Box2D WASM fallback | Native lib works on all targets; high effort for edge case |
 
 ---
 
@@ -301,3 +305,9 @@ Grouped by priority based on impact for typical 2D game development.
 32. ~~**love.video**~~ DONE — MPEG-1 video+MP2 audio playback via pl_mpeg, drawable Video object, play/pause/seek/loop
 
 ### Next Up
+
+33. **Display sleep control** — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API (`SDL_EnableScreenSaver` / `SDL_DisableScreenSaver` / `SDL_ScreenSaverEnabled`)
+34. **event.pump / event.wait** — manual event processing (`pump` exposes internal `pollEvents`; `wait` blocks via `SDL_WaitEvent`), completes love.event module
+35. **colorMask GPU enforcement** — shader-based color channel masking (currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`)
+36. **Wireframe mode** — `setWireframe` / `isWireframe`, convert filled triangle geometry to line draws
+37. **Depth mode** — `setDepthMode` / `getDepthMode` (state tracking only; SDL3 2D renderer has no depth buffer)
