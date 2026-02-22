@@ -86,7 +86,7 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`getCanvasFormats` / `getImageFormats` / `getTextureTypes`~~ DONE — format queries (rgba8 only)
 - ~~`isActive` / `isGammaCorrect`~~ DONE — state queries
 - ~~`setWireframe` / `isWireframe`~~ — → Next Up #36
-- ~~`setDepthMode` / `getDepthMode`~~ — → Next Up #37
+- ~~`setDepthMode` / `getDepthMode`~~ — → Not Planned (SDL3 2D renderer has no depth buffer; love2d only uses with custom shaders)
 - ~~`drawInstanced` / `drawLayer`~~ — → Not Planned (SpriteBatch covers common case)
 - ~~`setMeshCullMode` / `getMeshCullMode`~~ — → Not Planned (barely used in 2D)
 - ~~`setFrontFaceWinding` / `getFrontFaceWinding`~~ — → Not Planned (barely used in 2D)
@@ -311,4 +311,3 @@ Grouped by priority based on impact for typical 2D game development.
 34. ~~**event.wait**~~ DONE — blocks until event via SDL_WaitEvent (pump removed as not useful); example: `wait/`
 35. ~~**colorMask GPU enforcement**~~ DONE — GPU-enforced via `SDL_ComposeCustomBlendMode` (custom blend factors override masked channels to ZERO/ONE; works on all renderers; limitation: individual R/G/B masking not possible, RGB grouped)
 36. **Wireframe mode** — `setWireframe` / `isWireframe`, convert filled triangle geometry to line draws
-37. **Depth mode** — `setDepthMode` / `getDepthMode` (state tracking only; SDL3 2D renderer has no depth buffer)
