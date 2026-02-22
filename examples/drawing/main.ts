@@ -3,6 +3,7 @@
 import jove from "../../src/index.ts";
 
 let t = 0;
+let wireframe = false;
 
 await jove.run({
   load() {
@@ -15,6 +16,8 @@ await jove.run({
   },
 
   draw() {
+    jove.graphics.setWireframe(wireframe);
+
     // --- Row 1: Basic shapes ---
 
     // Red filled rectangle
@@ -156,6 +159,7 @@ await jove.run({
     jove.graphics.print("jove2d drawing primitives", 10, 10);
     jove.graphics.print(`FPS: ${jove.timer.getFPS()}`, 700, 10);
     jove.graphics.print(`time: ${t.toFixed(1)}s`, 10, 580);
+    jove.graphics.print(`wireframe: ${wireframe ? "ON" : "OFF"} (W to toggle)`, 10, 560);
 
     // Labels
     jove.graphics.setColor(160, 160, 160);
@@ -167,5 +171,6 @@ await jove.run({
 
   keypressed(key) {
     if (key === "escape") jove.window.close();
+    if (key === "w") wireframe = !wireframe;
   },
 });

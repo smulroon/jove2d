@@ -68,6 +68,8 @@ let _lineStyle: LineStyle = "rough";
 type LineJoin = "miter" | "bevel" | "none";
 let _lineJoin: LineJoin = "miter";
 
+let _wireframe = false;
+
 // Default texture filter mode (applied to new images/canvases)
 let _defaultFilterMin: FilterMode = "nearest";
 let _defaultFilterMag: FilterMode = "nearest";
@@ -1716,6 +1718,7 @@ export function _destroyRenderer(): void {
 
   // Clean up active shader
   _activeShader = null;
+  _wireframe = false;
 
   // Clean up TTF resources before renderer
   if (_defaultFont) {
@@ -2125,6 +2128,16 @@ export function getLineJoin(): LineJoin {
   return _lineJoin;
 }
 
+/** Enable or disable wireframe mode (forces all fill draws to render as outlines). */
+export function setWireframe(enable: boolean): void {
+  _wireframe = enable;
+}
+
+/** Check whether wireframe mode is enabled. */
+export function isWireframe(): boolean {
+  return _wireframe;
+}
+
 // ============================================================
 // Default filter
 // ============================================================
@@ -2239,6 +2252,7 @@ export function reset(): void {
   _pointSize = 1;
   _lineStyle = "rough";
   _lineJoin = "miter";
+  _wireframe = false;
   setScissor();
   if (_stencilActive) setStencilTest(); // disable stencil
   _transform = [1, 0, 0, 1, 0, 0];
@@ -2257,6 +2271,20 @@ export function reset(): void {
  * Draw anti-aliased lines using SDL_RenderGeometry with per-vertex alpha fringe.
  * Points must be in screen-space (pre-transformed). Join style controlled by _lineJoin.
  */
+/** Draw indexed triangles as wireframe edges (one SDL_RenderLines call per triangle). */
+function _wireframeIndexedTriangles(vertBuf: Float32Array, idxBuf: Int32Array, numIndices: number): void {
+  if (!_renderer) return;
+  const triPts = new Float32Array(8); // 4 points to close each triangle
+  for (let t = 0; t < numIndices; t += 3) {
+    const i0 = idxBuf[t], i1 = idxBuf[t + 1], i2 = idxBuf[t + 2];
+    triPts[0] = vertBuf[i0 * 8]; triPts[1] = vertBuf[i0 * 8 + 1];
+    triPts[2] = vertBuf[i1 * 8]; triPts[3] = vertBuf[i1 * 8 + 1];
+    triPts[4] = vertBuf[i2 * 8]; triPts[5] = vertBuf[i2 * 8 + 1];
+    triPts[6] = vertBuf[i0 * 8]; triPts[7] = vertBuf[i0 * 8 + 1];
+    sdl.SDL_RenderLines(_renderer, ptr(triPts), 4);
+  }
+}
+
 function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): void {
   if (!_renderer || numPoints < 2) return;
 
@@ -2383,7 +2411,11 @@ function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): v
     idxBuf[base + 17] = i0 * 4 + 3;
   }
 
-  sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), totalVerts, ptr(idxBuf), totalIndices);
+  if (_wireframe) {
+    _wireframeIndexedTriangles(vertBuf, idxBuf, totalIndices);
+  } else {
+    sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), totalVerts, ptr(idxBuf), totalIndices);
+  }
 }
 
 /**
@@ -2467,7 +2499,11 @@ function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: b
     idxBuf[base + 15] = vi0 + 2; idxBuf[base + 16] = vi1 + 3; idxBuf[base + 17] = vi0 + 3;
   }
 
-  sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), numSegments * 8, ptr(idxBuf), numSegments * 18);
+  if (_wireframe) {
+    _wireframeIndexedTriangles(vertBuf, idxBuf, numSegments * 18);
+  } else {
+    sdl.SDL_RenderGeometry(_renderer, null, ptr(vertBuf), numSegments * 8, ptr(idxBuf), numSegments * 18);
+  }
 
   // Emit bevel fill triangles at interior joints as a separate draw call
   if (!withGaps && numJoins > 0) {
@@ -2513,7 +2549,11 @@ function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: b
     }
 
     if (bi > 0) {
-      sdl.SDL_RenderGeometry(_renderer, null, ptr(bvBuf), bv / 8, ptr(biBuf), bi);
+      if (_wireframe) {
+        _wireframeIndexedTriangles(bvBuf, biBuf, bi);
+      } else {
+        sdl.SDL_RenderGeometry(_renderer, null, ptr(bvBuf), bv / 8, ptr(biBuf), bi);
+      }
     }
   }
 }
@@ -2545,7 +2585,12 @@ export function rectangle(mode: "fill" | "line", x: number, y: number, w: number
   _statDrawCalls++;
   if (_isIdentity()) {
     // Fast path: no transform
-    if (mode === "fill") {
+    if (mode === "fill" && _wireframe) {
+      // Wireframe: outline + diagonal (triangulation: TL-TR-BR, TL-BR-BL)
+      _rectBuf[0] = x; _rectBuf[1] = y; _rectBuf[2] = w; _rectBuf[3] = h;
+      sdl.SDL_RenderRect(_renderer, ptr(_rectBuf));
+      sdl.SDL_RenderLine(_renderer, x, y, x + w, y + h);
+    } else if (mode === "fill") {
       _rectBuf[0] = x;
       _rectBuf[1] = y;
       _rectBuf[2] = w;
@@ -2636,7 +2681,23 @@ export function circle(mode: "fill" | "line", cx: number, cy: number, radius: nu
   const n = segments ?? Math.min(256, Math.max(16, Math.ceil(radius * 2)));
   const angleStep = (Math.PI * 2) / n;
 
-  if (mode === "line") {
+  if (mode === "fill" && _wireframe) {
+    // Wireframe: perimeter + radial spokes from center (triangle fan edges)
+    const wn = segments ?? Math.max(8, Math.ceil(radius * 0.5));
+    const wStep = (Math.PI * 2) / wn;
+    const identity = _isIdentity();
+    const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
+    const pts = new Float32Array(wn * 2);
+    for (let i = 0; i < wn; i++) {
+      const angle = i * wStep;
+      const px = cx + Math.cos(angle) * radius;
+      const py = cy + Math.sin(angle) * radius;
+      const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+      pts[i * 2] = tx;
+      pts[i * 2 + 1] = ty;
+    }
+    _wireframeFan(tcx, tcy, pts, wn);
+  } else if (mode === "line") {
     const identity = _isIdentity();
     if (_lineStyle === "smooth") {
       const buf = new Float32Array(n * 2);
@@ -2727,7 +2788,22 @@ export function ellipse(mode: "fill" | "line", cx: number, cy: number, rx: numbe
   const n = segments ?? Math.min(256, Math.max(16, Math.ceil(Math.max(rx, ry) * 2)));
   const angleStep = (Math.PI * 2) / n;
 
-  if (mode === "line") {
+  if (mode === "fill" && _wireframe) {
+    const wn = segments ?? Math.max(8, Math.ceil(Math.max(rx, ry) * 0.5));
+    const wStep = (Math.PI * 2) / wn;
+    const identity = _isIdentity();
+    const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
+    const pts = new Float32Array(wn * 2);
+    for (let i = 0; i < wn; i++) {
+      const angle = i * wStep;
+      const px = cx + Math.cos(angle) * rx;
+      const py = cy + Math.sin(angle) * ry;
+      const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+      pts[i * 2] = tx;
+      pts[i * 2 + 1] = ty;
+    }
+    _wireframeFan(tcx, tcy, pts, wn);
+  } else if (mode === "line") {
     const identity = _isIdentity();
     if (_lineStyle === "smooth") {
       const buf = new Float32Array(n * 2);
@@ -2798,7 +2874,32 @@ export function arc(mode: "fill" | "line", cx: number, cy: number, radius: numbe
   const identity = _isIdentity();
   const type = arctype ?? (mode === "line" ? "open" : "pie");
 
-  if (mode === "line") {
+  if (mode === "fill" && _wireframe) {
+    // Wireframe: arc perimeter + radial spokes from center (pie fan edges)
+    const wn = segments ?? Math.max(4, Math.ceil(Math.abs(arcLength) * radius * 0.25));
+    const wStep = arcLength / wn;
+    const [tcx, tcy] = identity ? [cx, cy] : _transformPoint(cx, cy);
+    const pts = new Float32Array((wn + 1) * 2);
+    for (let i = 0; i <= wn; i++) {
+      const angle = angle1 + i * wStep;
+      const px = cx + Math.cos(angle) * radius;
+      const py = cy + Math.sin(angle) * radius;
+      const [tx, ty] = identity ? [px, py] : _transformPoint(px, py);
+      pts[i * 2] = tx;
+      pts[i * 2 + 1] = ty;
+    }
+    // Arc perimeter (open, not closed loop)
+    sdl.SDL_RenderLines(_renderer!, ptr(pts), wn + 1);
+    // Radial spokes: zigzag center→P0→center→P1→...
+    const spokeBuf = new Float32Array((wn + 1) * 4);
+    for (let i = 0; i <= wn; i++) {
+      spokeBuf[i * 4] = tcx;
+      spokeBuf[i * 4 + 1] = tcy;
+      spokeBuf[i * 4 + 2] = pts[i * 2];
+      spokeBuf[i * 4 + 3] = pts[i * 2 + 1];
+    }
+    sdl.SDL_RenderLines(_renderer!, ptr(spokeBuf), (wn + 1) * 2);
+  } else if (mode === "line") {
     if (_lineStyle === "smooth") {
       // Build point array based on arc type
       if (type === "pie") {
@@ -2926,7 +3027,35 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
   const numPoints = vertices.length / 2;
   const identity = _isIdentity();
 
-  if (mode === "line") {
+  if (mode === "fill" && _wireframe) {
+    // Wireframe: outline + internal fan edges from v0 to each interior vertex
+    const buf = new Float32Array(numPoints * 2);
+    for (let i = 0; i < numPoints; i++) {
+      const [tx, ty] = identity
+        ? [vertices[i * 2], vertices[i * 2 + 1]]
+        : _transformPoint(vertices[i * 2], vertices[i * 2 + 1]);
+      buf[i * 2] = tx;
+      buf[i * 2 + 1] = ty;
+    }
+    // Outline (closed)
+    const closedBuf = new Float32Array((numPoints + 1) * 2);
+    closedBuf.set(buf);
+    closedBuf[numPoints * 2] = buf[0];
+    closedBuf[numPoints * 2 + 1] = buf[1];
+    sdl.SDL_RenderLines(_renderer, ptr(closedBuf), numPoints + 1);
+    // Internal fan spokes from v0 to v2..v(n-2) (v0→v1 and v0→v(n-1) are outline edges)
+    if (numPoints > 3) {
+      const numSpokes = numPoints - 3;
+      const spokeBuf = new Float32Array(numSpokes * 4);
+      for (let i = 0; i < numSpokes; i++) {
+        spokeBuf[i * 4] = buf[0];
+        spokeBuf[i * 4 + 1] = buf[1];
+        spokeBuf[i * 4 + 2] = buf[(i + 2) * 2];
+        spokeBuf[i * 4 + 3] = buf[(i + 2) * 2 + 1];
+      }
+      sdl.SDL_RenderLines(_renderer, ptr(spokeBuf), numSpokes * 2);
+    }
+  } else if (mode === "line") {
     const buf = new Float32Array(numPoints * 2);
     for (let i = 0; i < numPoints; i++) {
       const [tx, ty] = identity
@@ -3778,8 +3907,34 @@ export function getTextureTypes(): Record<string, boolean> {
 // Internal helpers for transformed drawing
 // ============================================================
 
+/** Draw wireframe triangle fan: perimeter outline + radial spokes from center. */
+function _wireframeFan(tcx: number, tcy: number, points: Float32Array, n: number): void {
+  if (!_renderer) return;
+  // Perimeter edges (closed loop)
+  const perimBuf = new Float32Array((n + 1) * 2);
+  for (let i = 0; i < n * 2; i++) perimBuf[i] = points[i];
+  perimBuf[n * 2] = points[0];
+  perimBuf[n * 2 + 1] = points[1];
+  sdl.SDL_RenderLines(_renderer, ptr(perimBuf), n + 1);
+  // Radial spokes: zigzag center→P0→center→P1→... (one SDL call)
+  const spokeBuf = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    spokeBuf[i * 4] = tcx;
+    spokeBuf[i * 4 + 1] = tcy;
+    spokeBuf[i * 4 + 2] = points[i * 2];
+    spokeBuf[i * 4 + 3] = points[i * 2 + 1];
+  }
+  sdl.SDL_RenderLines(_renderer, ptr(spokeBuf), n * 2);
+}
+
 function _fillQuad(corners: [number, number][]): void {
   if (!_renderer) return;
+  if (_wireframe) {
+    // Outline + diagonal (matches triangulation: 0-1-2, 0-2-3)
+    _strokePolygon(corners);
+    sdl.SDL_RenderLine(_renderer, corners[0][0], corners[0][1], corners[2][0], corners[2][1]);
+    return;
+  }
   const [dr, dg, db, da] = _drawColor;
   const cr = dr / 255, cg = dg / 255, cb = db / 255, ca = da / 255;
 

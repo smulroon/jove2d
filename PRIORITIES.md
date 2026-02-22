@@ -63,12 +63,12 @@ Grouped by priority based on impact for typical 2D game development.
 - ~~`intersectScissor`~~ — scissor intersection
 - ~~`getStackDepth`~~ — transform stack depth
 - ~~`reset`~~ — reset all graphics state to defaults
-- ~~`setColorMask` / `getColorMask`~~ — JS-side state tracking only (see note below)
+- ~~`setColorMask` / `getColorMask`~~ — GPU-enforced via custom blend modes (see #35)
 
 **P1 — Needed for most games:**
 - ~~`newShader` / `setShader` / `getShader`~~ — custom fragment shaders via SDL_GPURenderState DONE
 - ~~`newSpriteBatch` / `flushBatch`~~ — batch rendering performance DONE
-- ~~`setColorMask` / `getColorMask` (GPU-enforced)~~ — → Next Up #35
+- ~~`setColorMask` / `getColorMask` (GPU-enforced)~~ — DONE #35 (custom blend modes)
 
 **P2 — Important for many games:**
 - ~~`newParticleSystem`~~ DONE — particle effects (in particles.ts)
@@ -272,7 +272,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 1. ~~**SDL_image**~~ DONE
 2. ~~**Window gaps**~~ DONE — vsync, display info, pixel density, message box, flash, updateMode
-3. ~~**Graphics quick wins**~~ DONE — defaultFilter, transformPoint, inverseTransformPoint, intersectScissor, getStackDepth, reset (colorMask is JS-side tracking only)
+3. ~~**Graphics quick wins**~~ DONE — defaultFilter, transformPoint, inverseTransformPoint, intersectScissor, getStackDepth, reset
 4. ~~**Mouse cursors**~~ DONE — newCursor, system cursors, setX/setY, isCursorSupported
 5. ~~**Math gaps**~~ DONE — colorFromBytes/colorToBytes, BezierCurve, getRandomState/setRandomState
 6. ~~**SpriteBatch**~~ DONE — performance for tile maps and particle systems
@@ -309,6 +309,6 @@ Grouped by priority based on impact for typical 2D game development.
 
 33. ~~**Display sleep control**~~ DONE — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API
 34. ~~**event.wait**~~ DONE — blocks until event via SDL_WaitEvent (pump removed as not useful); example: `wait/`
-35. **colorMask GPU enforcement** — shader-based color channel masking (currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`)
+35. ~~**colorMask GPU enforcement**~~ DONE — GPU-enforced via `SDL_ComposeCustomBlendMode` (custom blend factors override masked channels to ZERO/ONE; works on all renderers; limitation: individual R/G/B masking not possible, RGB grouped)
 36. **Wireframe mode** — `setWireframe` / `isWireframe`, convert filled triangle geometry to line draws
 37. **Depth mode** — `setDepthMode` / `getDepthMode` (state tracking only; SDL3 2D renderer has no depth buffer)

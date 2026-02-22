@@ -2,6 +2,7 @@
 -- Demonstrates: all primitives, blend modes, scissor, and transform stack
 
 local t = 0
+local wireframe = false
 
 function love.load()
   love.window.setTitle("Drawing Primitives")
@@ -14,6 +15,8 @@ function love.update(dt)
 end
 
 function love.draw()
+  love.graphics.setWireframe(wireframe)
+
   -- --- Row 1: Basic shapes ---
 
   -- Red filled rectangle
@@ -155,6 +158,7 @@ function love.draw()
   love.graphics.print("love2d drawing primitives", 10, 10)
   love.graphics.print("FPS: " .. love.timer.getFPS(), 700, 10)
   love.graphics.print(string.format("time: %.1fs", t), 10, 580)
+  love.graphics.print("wireframe: " .. (wireframe and "ON" or "OFF") .. " (W to toggle)", 10, 560)
 
   -- Labels
   love.graphics.setColor(160/255, 160/255, 160/255)
@@ -167,5 +171,8 @@ end
 function love.keypressed(key)
   if key == "escape" then
     love.event.quit()
+  end
+  if key == "w" then
+    wireframe = not wireframe
   end
 end
