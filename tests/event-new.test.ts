@@ -59,4 +59,5 @@ describe("jove.event — push/clear/quit", () => {
     expect(dropEvents.length).toBe(1);
     expect((dropEvents[0] as any).path).toBe("/tmp/test.txt");
   });
+
 });

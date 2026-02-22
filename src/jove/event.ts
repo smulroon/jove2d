@@ -96,6 +96,44 @@ export function quit(): void {
   _injectedEvents.push({ type: "quit" });
 }
 
+/** Block until an event is available, then return all pending events. Matches love.event.wait(). */
+export function wait(): JoveEvent[] {
+  // Block until at least one event arrives
+  sdl.SDL_WaitEvent(eventPtr);
+
+  const renderer = _getRenderer();
+  const events: JoveEvent[] = [];
+
+  // Return injected events first
+  while (_injectedEvents.length > 0) {
+    events.push(_injectedEvents.shift()!);
+  }
+
+  // Process the event we already got from WaitEvent
+  if (renderer) {
+    sdl.SDL_ConvertEventToRenderCoordinates(renderer, eventPtr);
+  }
+  const firstType = read.u32(eventPtr, 0);
+  const firstEvent = mapEvent(firstType, eventPtr);
+  if (firstEvent) {
+    events.push(firstEvent);
+  }
+
+  // Drain any remaining events
+  while (sdl.SDL_PollEvent(eventPtr)) {
+    if (renderer) {
+      sdl.SDL_ConvertEventToRenderCoordinates(renderer, eventPtr);
+    }
+    const eventType = read.u32(eventPtr, 0);
+    const event = mapEvent(eventType, eventPtr);
+    if (event) {
+      events.push(event);
+    }
+  }
+
+  return events;
+}
+
 /** Poll all pending SDL events, returning typed JoveEvent array */
 export function pollEvents(): JoveEvent[] {
   const events: JoveEvent[] = [];

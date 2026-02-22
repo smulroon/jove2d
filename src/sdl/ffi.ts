@@ -199,6 +199,11 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     args: [FFIType.pointer],
     returns: FFIType.bool,
   },
+  // bool SDL_WaitEvent(SDL_Event* event)
+  SDL_WaitEvent: {
+    args: [FFIType.pointer],
+    returns: FFIType.bool,
+  },
 
   // --- Surface / Screenshot ---
 

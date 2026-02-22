@@ -14,7 +14,7 @@ Grouped by priority based on impact for typical 2D game development.
 | love.math | **16/16 Complete** | All functions implemented |
 | love.data | **5/5 Complete** | compress/decompress, encode/decode, hash, ByteData |
 | love.joystick | **~16/17 Complete** | Full gamepad support, vibration, hot-plug; needs real device testing |
-| love.event | **5/6 Complete** | textedited added; missing `pump` (internal), `wait` (rarely used) |
+| love.event | **6/6 Complete** | All functions implemented (poll, push, clear, quit, wait) |
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
@@ -162,7 +162,8 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### love.event — missing functions
 
-- ~~`pump` / `wait`~~ — → Next Up #34
+- ~~`wait`~~ DONE — blocks until event via SDL_WaitEvent
+- `pump` — removed (internal, not useful for users)
 
 ### love.keyboard — missing functions
 
@@ -307,7 +308,7 @@ Grouped by priority based on impact for typical 2D game development.
 ### Next Up
 
 33. ~~**Display sleep control**~~ DONE — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API
-34. **event.pump / event.wait** — manual event processing (`pump` exposes internal `pollEvents`; `wait` blocks via `SDL_WaitEvent`), completes love.event module
+34. ~~**event.wait**~~ DONE — blocks until event via SDL_WaitEvent (pump removed as not useful); example: `wait/`
 35. **colorMask GPU enforcement** — shader-based color channel masking (currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`)
 36. **Wireframe mode** — `setWireframe` / `isWireframe`, convert filled triangle geometry to line draws
 37. **Depth mode** — `setDepthMode` / `getDepthMode` (state tracking only; SDL3 2D renderer has no depth buffer)
