@@ -93,7 +93,6 @@ Grouped by priority based on impact for typical 2D game development.
 - `present` / `discard` — manual frame control
 
 **Not applicable:**
-- `newVideo` — needs video decoder library (P4)
 - `newArrayImage` / `newCubeImage` — advanced texture types (P4)
 
 ### ~~love.mouse — missing functions~~ DONE
@@ -218,6 +217,13 @@ Grouped by priority based on impact for typical 2D game development.
 - **Implemented**: SoundData with getSample/setSample (normalized -1..1), newSoundData from empty buffer or file
 - **Pairs with**: newQueueableSource for procedural audio generation
 
+#### love.video — DONE
+- **Implemented**: MPEG-1 video + MP2 audio playback via pl_mpeg (single-header decoder)
+- Video object is drawable, supports play/pause/rewind/seek/loop
+- Audio synced via SDL audio streams
+- Format: .mpg (love2d uses .ogv Theora)
+- `bun run build-pl_mpeg` to build from source
+
 ### Not Planned
 
 #### love.thread
@@ -225,9 +231,6 @@ Grouped by priority based on impact for typical 2D game development.
 
 #### love.touch
 - Mobile-only. SDL3 has touch events if needed in the future.
-
-#### love.video
-- **Core done** — MPEG-1 video + MP2 audio playback via pl_mpeg (single-header decoder). Video object is drawable, supports play/pause/rewind/seek/loop. Audio synced via SDL audio streams. Format: .mpg (love2d uses .ogv Theora).
 
 #### love.font (standalone module)
 - Font functionality is integrated into graphics module; bitmap fonts supported via `newImageFont`. Current Font API covers 99% of use cases.

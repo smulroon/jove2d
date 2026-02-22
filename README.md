@@ -182,7 +182,7 @@ jove2d auto-detects WSL2 and sets `SDL_VIDEODRIVER=x11` to avoid Wayland hangs. 
 
 ## Project Status
 
-**Alpha** — the API is functional but not yet stable. 15 of 20 love2d modules are implemented with good coverage. See [PRIORITIES.md](PRIORITIES.md) for the full roadmap and module gap analysis.
+**Alpha** — the API is functional but not yet stable. 16 of 20 love2d modules are implemented with good coverage. See [PRIORITIES.md](PRIORITIES.md) for the full roadmap and module gap analysis.
 
 Key differences from love2d:
 - Colors use 0-255 range (SDL convention) instead of love2d's 0-1 range
