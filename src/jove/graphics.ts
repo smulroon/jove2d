@@ -37,6 +37,8 @@ import type { Shader } from "./shader.ts";
 import { createShader } from "./shader.ts";
 import type { ParticleSystem } from "./particles.ts";
 import { createParticleSystem } from "./particles.ts";
+import type { Video } from "./video.ts";
+import { newVideo as _newVideoImpl } from "./video.ts";
 
 export type FilterMode = "nearest" | "linear";
 
@@ -1332,6 +1334,11 @@ export function newImage(pathOrData: string | BaseImageData | RichImageData): Im
   return img;
 }
 
+/** Create a new drawable Video from an MPEG-1 file. Returns null if pl_mpeg is unavailable. */
+export function newVideo(path: string, options?: { audio?: boolean }): Video | null {
+  return _newVideoImpl(path, options);
+}
+
 // ============================================================
 // Drawing images (the draw() function)
 // ============================================================
@@ -1344,7 +1351,7 @@ export function newImage(pathOrData: string | BaseImageData | RichImageData): Im
  * - draw(drawable, quad, x, y, r, sx, sy, ox, oy)
  */
 export function draw(
-  drawable: Image | SpriteBatch | ParticleSystem | Mesh | Text,
+  drawable: Image | SpriteBatch | ParticleSystem | Mesh | Text | Video,
   quadOrX?: Quad | number,
   xOrY?: number,
   yOrR?: number,

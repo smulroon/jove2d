@@ -138,10 +138,11 @@ export const SDL_LOGICAL_PRESENTATION_LETTERBOX = 2;
 export const SDL_LOGICAL_PRESENTATION_OVERSCAN = 3;
 export const SDL_LOGICAL_PRESENTATION_INTEGER_SCALE = 4;
 
-/** SDL_PixelFormat constants */
-export const SDL_PIXELFORMAT_RGBA8888 = 0x16362004;
-export const SDL_PIXELFORMAT_ARGB8888 = 0x16862004;
-export const SDL_PIXELFORMAT_ABGR8888 = 0x16462004;
+/** SDL_PixelFormat constants (values from SDL3 SDL_pixels.h) */
+export const SDL_PIXELFORMAT_ARGB8888 = 0x16362004;
+export const SDL_PIXELFORMAT_RGBA8888 = 0x16462004;
+export const SDL_PIXELFORMAT_ABGR8888 = 0x16762004;
+export const SDL_PIXELFORMAT_BGRA8888 = 0x16862004;
 
 /** SDL_TextInputEvent offsets (x86-64) — text pointer at offset 24 */
 export const SDL_TEXT_INPUT_TEXT = 24;

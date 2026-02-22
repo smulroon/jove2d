@@ -17,10 +17,11 @@ import * as joystick from "./joystick.ts";
 import * as physics from "./physics.ts";
 import * as image from "./image.ts";
 import * as sound from "./sound.ts";
+import * as video from "./video.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
-export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick, physics, image, sound };
+export { window, graphics, keyboard, mouse, timer, filesystem, math, system, audio, data, event, joystick, physics, image, sound, video };
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./types.ts";
 export type { ImageData } from "./image.ts";
 export type { Font } from "./font.ts";
@@ -34,6 +35,7 @@ export type { SoundData } from "./sound.ts";
 export type { ByteData } from "./data.ts";
 export type { File, FileData } from "./filesystem.ts";
 export type { Joystick } from "./joystick.ts";
+export type { Video } from "./video.ts";
 export type { World, Body, Fixture, Shape, Joint, Contact, DistanceJoint, RevoluteJoint, PrismaticJoint, WeldJoint, MouseJoint, WheelJoint, MotorJoint } from "./physics.ts";
 
 let _initialized = false;
@@ -61,6 +63,7 @@ export function init(flags: number = SDL_INIT_VIDEO): boolean {
 }
 
 export function quit(): void {
+  video._quit();
   joystick._quit();
   mouse._destroyCursors();
   audio._quit();
@@ -290,6 +293,9 @@ function _gameLoop(callbacks: GameCallbacks): void {
 
     // Poll audio sources (looping, auto-stop)
     audio._updateSources();
+
+    // Update video playback (decode frames, upload pixels, feed audio)
+    video._updateVideos(dt);
 
     // Update and draw
     try {

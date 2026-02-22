@@ -24,13 +24,13 @@ Grouped by priority based on impact for typical 2D game development.
 | love.audio | **17/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone, newQueueableSource; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
 | love.thread | **Not implemented** | Bun async usually sufficient (P4) |
-| love.video | **Not implemented** | Needs video decoder (P4) |
+| love.video | **Core done** | MPEG-1 video+audio playback via pl_mpeg, drawable, seek/loop |
 | love.sound | **2/2 Complete** | SoundData (newSoundData, getSample/setSample, from file) |
 | love.image | **7/7 Complete** | newImageData, getPixel/setPixel, mapPixel, paste, encode, getString |
 | love.font | **Inline** | Integrated into graphics module; bitmap fonts via newImageFont |
 | love.sensor | **Not planned** | Mobile-only |
 
-**Summary: 15/20 modules implemented, 9 at 100%, 13 at 75%+**
+**Summary: 16/20 modules implemented, 9 at 100%, 14 at 75%+**
 
 ---
 
@@ -227,7 +227,7 @@ Grouped by priority based on impact for typical 2D game development.
 - Mobile-only. SDL3 has touch events if needed in the future.
 
 #### love.video
-- **Queued as #35** — video playback as drawable (intro videos, cutscenes, visual novels, FMV games). FFmpeg or platform codec via C wrapper; render frames as textures.
+- **Core done** — MPEG-1 video + MP2 audio playback via pl_mpeg (single-header decoder). Video object is drawable, supports play/pause/rewind/seek/loop. Audio synced via SDL audio streams. Format: .mpg (love2d uses .ogv Theora).
 
 #### love.font (standalone module)
 - Font functionality is integrated into graphics module; bitmap fonts supported via `newImageFont`. Current Font API covers 99% of use cases.
@@ -295,6 +295,6 @@ Grouped by priority based on impact for typical 2D game development.
 30. ~~**textedited event**~~ DONE — IME composition (SDL_EVENT_TEXT_EDITING) for CJK input, dispatches to textedited(text, start, length) callback
 31. ~~**Graphics capability queries**~~ DONE — getSupported, getSystemLimits, getCanvasFormats, getImageFormats, getTextureTypes, isGammaCorrect, isActive
 
-### Next Up
+32. ~~**love.video**~~ DONE — MPEG-1 video+MP2 audio playback via pl_mpeg, drawable Video object, play/pause/seek/loop
 
-32. **love.video** — video playback as drawable (intro videos, visual novels, FMV games). Needs video decoder library (FFmpeg or platform codec)
+### Next Up

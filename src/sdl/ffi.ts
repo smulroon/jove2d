@@ -453,6 +453,12 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     returns: FFIType.bool,
   },
 
+  // bool SDL_UpdateTexture(SDL_Texture* texture, const SDL_Rect* rect, const void* pixels, int pitch)
+  SDL_UpdateTexture: {
+    args: [FFIType.pointer, FFIType.pointer, FFIType.pointer, FFIType.i32],
+    returns: FFIType.bool,
+  },
+
   // --- Render targets ---
 
   // SDL_Texture* SDL_CreateTexture(SDL_Renderer* renderer, SDL_PixelFormat format, SDL_TextureAccess access, int w, int h)

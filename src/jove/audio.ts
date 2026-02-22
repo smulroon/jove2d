@@ -38,7 +38,7 @@ export function _init(): boolean {
 }
 
 /** Open the playback device on first use. Returns true if device is ready. */
-function _ensureDevice(): boolean {
+export function _ensureDevice(): boolean {
   if (_deviceId) return true;
   if (!_initialized) return false;
   // Try zero-filled spec first — bun:ffi on Windows mishandles null pointer args,
@@ -49,6 +49,11 @@ function _ensureDevice(): boolean {
     _deviceId = sdl.SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, null);
   }
   return _deviceId !== 0;
+}
+
+/** Get the current audio device ID (0 if not open). */
+export function _getDeviceId(): number {
+  return _deviceId;
 }
 
 /** Shut down the audio system. Called internally. */

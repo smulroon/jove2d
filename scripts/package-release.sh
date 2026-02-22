@@ -62,12 +62,14 @@ if [ "$PLATFORM" = "linux-x64" ]; then
     "vendor/SDL_image/install/lib/libSDL3_image.so.0"
     "vendor/box2d/install/lib/libbox2d_jove.so"
     "vendor/audio_decode/install/lib/libaudio_decode.so"
+    "vendor/pl_mpeg/install/lib/libpl_mpeg_jove.so"
   )
   # Also create unversioned symlinks so dlopen finds them
   SYMLINKS=(
     "libSDL3.so"
     "libSDL3_ttf.so"
     "libSDL3_image.so"
+    ""
     ""
     ""
   )
@@ -94,6 +96,7 @@ elif [ "$PLATFORM" = "windows-x64" ]; then
     "vendor/SDL_image/install/lib/SDL3_image.dll"
     "vendor/box2d/install/lib/box2d_jove.dll"
     "vendor/audio_decode/install/lib/audio_decode.dll"
+    "vendor/pl_mpeg/install/lib/pl_mpeg_jove.dll"
   )
 
   for lib in "${LIBS[@]}"; do

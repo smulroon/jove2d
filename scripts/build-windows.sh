@@ -199,6 +199,38 @@ done
 
 echo "audio_decode done: $(ls "$AUDIO_INSTALL"/lib/audio_decode.dll 2>/dev/null || echo 'not found')"
 
+# ─── 6. pl_mpeg ──────────────────────────────────────────────────────────────
+
+echo ""
+echo "--- Building pl_mpeg (video decoder) ---"
+
+PLMPEG_SOURCE="$PROJECT_DIR/vendor/pl_mpeg"
+PLMPEG_BUILD="$BUILD_ROOT/pl_mpeg"
+PLMPEG_INSTALL="$PLMPEG_SOURCE/install"
+
+# Download pl_mpeg.h if not present
+if [ ! -f "$PLMPEG_SOURCE/pl_mpeg.h" ]; then
+  echo "Downloading pl_mpeg.h..."
+  curl -fsSL -o "$PLMPEG_SOURCE/pl_mpeg.h" \
+    "https://raw.githubusercontent.com/phoboslab/pl_mpeg/master/pl_mpeg.h"
+fi
+
+cmake -S "$PLMPEG_SOURCE" -B "$PLMPEG_BUILD" -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
+  -DCMAKE_BUILD_TYPE=Release
+
+ninja -C "$PLMPEG_BUILD" -j"$(nproc)"
+
+mkdir -p "$PLMPEG_INSTALL/lib"
+for dll in "$PLMPEG_BUILD"/libpl_mpeg_jove.dll "$PLMPEG_BUILD"/pl_mpeg_jove.dll; do
+  if [ -f "$dll" ]; then
+    cp "$dll" "$PLMPEG_INSTALL/lib/pl_mpeg_jove.dll"
+    break
+  fi
+done
+
+echo "pl_mpeg done: $(ls "$PLMPEG_INSTALL"/lib/pl_mpeg_jove.dll 2>/dev/null || echo 'not found')"
+
 # ─── Summary ────────────────────────────────────────────────────────────────
 
 echo ""
@@ -209,7 +241,8 @@ for f in \
   "$SDL_TTF_INSTALL/lib/SDL3_ttf.dll" \
   "$SDL_IMAGE_INSTALL/lib/SDL3_image.dll" \
   "$BOX2D_INSTALL/lib/box2d_jove.dll" \
-  "$AUDIO_INSTALL/lib/audio_decode.dll"; do
+  "$AUDIO_INSTALL/lib/audio_decode.dll" \
+  "$PLMPEG_INSTALL/lib/pl_mpeg_jove.dll"; do
   if [ -f "$f" ]; then
     echo "  ✓ $f"
   else

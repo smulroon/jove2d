@@ -27,8 +27,9 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
 | love.audio | 17/26 Core done | WAV/OGG/MP3/FLAC playback, pitch, looping, seek, clone, newQueueableSource |
 | love.image | 7/7 Complete | newImageData, getPixel/setPixel, mapPixel, paste, encode |
 | love.sound | 2/2 Complete | SoundData (getSample/setSample, from file) |
+| love.video | Core done | MPEG-1 video+audio via pl_mpeg, drawable, seek/loop |
 
-**15/20 love2d modules implemented, 9 at 100%**
+**16/20 love2d modules implemented, 9 at 100%**
 
 ## Quick Start
 
@@ -99,6 +100,9 @@ bun run build-box2d
 
 # Audio codecs — OGG/MP3/FLAC decoding
 bun run build-audio-decode
+
+# pl_mpeg — MPEG-1 video playback
+bun run build-pl_mpeg
 ```
 
 Without optional libraries, the engine gracefully falls back:
@@ -106,6 +110,7 @@ Without optional libraries, the engine gracefully falls back:
 - No SDL_image: loads BMP images only
 - No Box2D: `love.physics` module unavailable
 - No audio_decode: loads WAV files only
+- No pl_mpeg: `newVideo()` unavailable
 - No glslang-tools: `newShader()` unavailable
 
 Shaders require the `glslangValidator` CLI for SPIR-V compilation:
@@ -116,7 +121,7 @@ sudo apt install glslang-tools
 
 ## Examples
 
-All 26 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
+All 27 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
 
 | Example | Description |
 |---------|-------------|
@@ -145,6 +150,7 @@ All 26 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
 | `bitmapfont` | Bitmap font (newImageFont), color tinting, printf alignment, word wrap |
 | `synth` | Procedural audio synth, keyboard piano, waveform display, 4 waveforms |
 | `physics3` | Joint inspector — 6 panels: revolute, prismatic, springs, vectors, motor/wheel, testPoint |
+| `video` | MPEG-1 video player with progress bar, seek, loop controls |
 | `benchmark` | "Chaos Box" stress test — 300 physics bodies, particles, SpriteBatch |
 
 Run any example:
@@ -168,7 +174,7 @@ love examples/<name>
 SDL_VIDEODRIVER=dummy bun test
 ```
 
-665 tests across 28 test files. Font/image tests skip gracefully if SDL_ttf/SDL_image aren't built. Physics/joystick/audio-codec tests skip if their libraries aren't built.
+675 tests across 29 test files. Font/image tests skip gracefully if SDL_ttf/SDL_image aren't built. Physics/joystick/audio-codec/video tests skip if their libraries aren't built.
 
 ## WSL2 Notes
 
@@ -184,6 +190,7 @@ Key differences from love2d:
 - Only fragment shaders are supported (no vertex/compute)
 - Audio supports WAV/OGG/MP3/FLAC (OGG/MP3/FLAC require building `libaudio_decode.so`)
 - Bitmap fonts (`newImageFont`) use the same separator-color convention as love2d
+- Video uses MPEG-1 format (.mpg) instead of love2d's Ogg Theora (.ogv)
 
 ## License
 

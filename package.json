@@ -31,6 +31,7 @@
     "build-sdl_image": "bash scripts/build-sdl_image.sh",
     "build-box2d": "bash scripts/build-box2d.sh",
     "build-audio-decode": "bash scripts/build-audio-decode.sh",
+    "build-pl_mpeg": "bash scripts/build-pl_mpeg.sh",
     "build-windows": "bash scripts/build-windows.sh",
     "package-release": "bash scripts/package-release.sh"
   },
