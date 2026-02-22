@@ -124,6 +124,30 @@ describe("jove.graphics — new primitives & features", () => {
     canvas!.release();
   });
 
+  // --- replacePixels ---
+
+  test("replacePixels updates texture without error", () => {
+    const canvas = graphics.newCanvas(64, 64);
+    expect(canvas).not.toBeNull();
+
+    // Create a simple ImageData-like object
+    const data = new Uint8Array(64 * 64 * 4);
+    data.fill(255); // all white
+    canvas!.replacePixels({ data, width: 64, height: 64 });
+    canvas!.release();
+  });
+
+  test("replacePixels with sub-region", () => {
+    const canvas = graphics.newCanvas(64, 64);
+    expect(canvas).not.toBeNull();
+
+    // Update a 16x16 region at offset (8, 8)
+    const data = new Uint8Array(16 * 16 * 4);
+    data.fill(128);
+    canvas!.replacePixels({ data, width: 16, height: 16 }, 8, 8);
+    canvas!.release();
+  });
+
   // --- Clear with color ---
 
   test("clear with color args doesn't throw", () => {

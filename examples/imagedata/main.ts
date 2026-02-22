@@ -1,7 +1,8 @@
 // jove2d ImageData example — procedural textures, pixel manipulation, paste
 //
 // Demonstrates: jove.image.newImageData, getPixel, setPixel, mapPixel, paste,
-// jove.graphics.newImage(imageData)
+// jove.graphics.newImage(imageData), replacePixels
+// Press R to toggle between replacePixels and recreate-each-frame for plasma
 
 import jove from "../../src/index.ts";
 import type { ImageData } from "../../src/index.ts";
@@ -13,9 +14,10 @@ let gradientImg: ReturnType<typeof jove.graphics.newImage>;
 let checkerImg: ReturnType<typeof jove.graphics.newImage>;
 let compositeImg: ReturnType<typeof jove.graphics.newImage>;
 
-// Dynamic plasma (recreated each frame)
+// Dynamic plasma
 let plasmaData: ImageData;
 let plasmaImg: ReturnType<typeof jove.graphics.newImage>;
+let useReplacePixels = true;
 
 const PLASMA_W = 128;
 const PLASMA_H = 128;
@@ -52,6 +54,7 @@ await jove.run({
 
     // --- 4. Plasma (dynamic — will be updated each frame) ---
     plasmaData = jove.image.newImageData(PLASMA_W, PLASMA_H)!;
+    plasmaImg = jove.graphics.newImage(plasmaData);
   },
 
   update(dt) {
@@ -73,9 +76,15 @@ await jove.run({
       return [r, g, b, 255];
     });
 
-    // Recreate GPU texture from updated pixel data
-    if (plasmaImg) plasmaImg.release();
-    plasmaImg = jove.graphics.newImage(plasmaData);
+    // Update GPU texture
+    if (useReplacePixels) {
+      // replacePixels: update existing texture in-place (no alloc/free)
+      if (plasmaImg) plasmaImg.replacePixels(plasmaData);
+    } else {
+      // Recreate: destroy + create new texture each frame
+      if (plasmaImg) plasmaImg.release();
+      plasmaImg = jove.graphics.newImage(plasmaData);
+    }
   },
 
   draw() {
@@ -102,7 +111,8 @@ await jove.run({
     // --- Row 2: Dynamic plasma (updated every frame) ---
     const y2 = 220;
     jove.graphics.setColor(255, 255, 255);
-    jove.graphics.print("Dynamic plasma (mapPixel each frame)", 10, y2);
+    const method = useReplacePixels ? "replacePixels" : "recreate";
+    jove.graphics.print(`Dynamic plasma — ${method} (R to toggle)`, 10, y2);
     if (plasmaImg) {
       // Draw at 2x scale
       jove.graphics.draw(plasmaImg, 10, y2 + 18, 0, 2, 2);
@@ -147,6 +157,7 @@ await jove.run({
   },
 
   keypressed(key) {
+    if (key === "r") useReplacePixels = !useReplacePixels;
     if (key === "escape") jove.window.close();
   },
 });

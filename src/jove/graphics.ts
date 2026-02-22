@@ -307,6 +307,7 @@ export interface Image {
   getFilter(): [FilterMode, FilterMode];
   setWrap(horiz: WrapMode, vert?: WrapMode): void;
   getWrap(): [WrapMode, WrapMode];
+  replacePixels(imageData: BaseImageData | RichImageData, x?: number, y?: number): void;
   release(): void;
 }
 
@@ -338,6 +339,16 @@ function _createImageObject(texture: SDLTexture, w: number, h: number): Image {
       _wrapV = vert ?? horiz;
     },
     getWrap() { return [_wrapH, _wrapV]; },
+    replacePixels(imageData: BaseImageData | RichImageData, x?: number, y?: number) {
+      const { data, width, height } = imageData;
+      const pitch = width * 4;
+      if (x !== undefined && y !== undefined) {
+        const rect = new Int32Array([x, y, width, height]);
+        sdl.SDL_UpdateTexture(texture, ptr(rect), ptr(data), pitch);
+      } else {
+        sdl.SDL_UpdateTexture(texture, null, ptr(data), pitch);
+      }
+    },
     release() {
       sdl.SDL_DestroyTexture(texture);
     },

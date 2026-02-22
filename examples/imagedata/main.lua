@@ -1,6 +1,7 @@
 -- love2d equivalent of ImageData example
 -- Demonstrates: love.image.newImageData, getPixel, setPixel, mapPixel, paste,
--- love.graphics.newImage(imageData)
+-- love.graphics.newImage(imageData), replacePixels
+-- Press R to toggle between replacePixels and recreate-each-frame for plasma
 
 local t = 0
 
@@ -9,9 +10,10 @@ local gradientImg
 local checkerImg
 local compositeImg
 
--- Dynamic plasma (recreated each frame)
+-- Dynamic plasma
 local plasmaData
 local plasmaImg
+local useReplacePixels = true
 
 local PLASMA_W = 128
 local PLASMA_H = 128
@@ -50,6 +52,7 @@ function love.load()
 
   -- 4. Plasma (dynamic)
   plasmaData = love.image.newImageData(PLASMA_W, PLASMA_H)
+  plasmaImg = love.graphics.newImage(plasmaData)
 end
 
 function love.update(dt)
@@ -71,9 +74,15 @@ function love.update(dt)
     return r, g, b, 1
   end)
 
-  -- Recreate GPU texture from updated pixel data
-  if plasmaImg then plasmaImg:release() end
-  plasmaImg = love.graphics.newImage(plasmaData)
+  -- Update GPU texture
+  if useReplacePixels then
+    -- replacePixels: update existing texture in-place (no alloc/free)
+    plasmaImg:replacePixels(plasmaData)
+  else
+    -- Recreate: destroy + create new texture each frame
+    if plasmaImg then plasmaImg:release() end
+    plasmaImg = love.graphics.newImage(plasmaData)
+  end
 end
 
 function love.draw()
@@ -100,7 +109,8 @@ function love.draw()
   -- Row 2: Dynamic plasma (updated every frame)
   local y2 = 220
   love.graphics.setColor(1, 1, 1)
-  love.graphics.print("Dynamic plasma (mapPixel each frame)", 10, y2)
+  local method = useReplacePixels and "replacePixels" or "recreate"
+  love.graphics.print("Dynamic plasma — " .. method .. " (R to toggle)", 10, y2)
   if plasmaImg then
     -- Draw at 2x scale
     love.graphics.draw(plasmaImg, 10, y2 + 18, 0, 2, 2)
@@ -151,6 +161,7 @@ function love.draw()
 end
 
 function love.keypressed(key)
+  if key == "r" then useReplacePixels = not useReplacePixels end
   if key == "escape" then
     love.event.quit()
   end
