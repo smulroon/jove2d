@@ -11,8 +11,10 @@
 //   ffmpeg -i input.mp4 -c:v mpeg1video -c:a mp2 -b:v 2M -b:a 192k output.mpg
 
 import { join } from "path";
+import { existsSync } from "node:fs";
 import * as jove from "../../src/jove/index.ts";
 import type { Video } from "../../src/jove/video.ts";
+import { loadVideo } from "../../src/sdl/ffi_video.ts";
 
 const DIR = import.meta.dir;
 
@@ -31,12 +33,18 @@ jove.run({
 
     // Try to load a video file (use absolute path so it works from any cwd)
     const path = join(DIR, "sample.mpg");
+    const libAvailable = loadVideo() !== null;
+    const fileExists = existsSync(path);
+    console.log(`[video] lib=${libAvailable}, file=${fileExists}, path=${path}`);
+
     video = jove.graphics.newVideo(path);
     if (video) {
       video.play();
       showStatus("Playing");
     } else {
-      showStatus("No video loaded — place sample.mpg in examples/video/");
+      if (!libAvailable) showStatus("pl_mpeg library not found — run: bun run build-pl_mpeg");
+      else if (!fileExists) showStatus(`sample.mpg not found at: ${path}`);
+      else showStatus("Failed to open video file");
     }
   },
 
