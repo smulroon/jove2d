@@ -248,4 +248,24 @@ describe("jove.window", () => {
     expect(mode.width).toBe(400);
     expect(mode.height).toBe(300);
   });
+
+  test("isDisplaySleepEnabled returns boolean", () => {
+    init();
+    const enabled = window.isDisplaySleepEnabled();
+    expect(typeof enabled).toBe("boolean");
+  });
+
+  test("setDisplaySleepEnabled toggles display sleep", () => {
+    init();
+    const original = window.isDisplaySleepEnabled();
+
+    window.setDisplaySleepEnabled(false);
+    expect(window.isDisplaySleepEnabled()).toBe(false);
+
+    window.setDisplaySleepEnabled(true);
+    expect(window.isDisplaySleepEnabled()).toBe(true);
+
+    // Restore original state
+    window.setDisplaySleepEnabled(original);
+  });
 });

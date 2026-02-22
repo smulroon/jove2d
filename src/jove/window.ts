@@ -454,6 +454,20 @@ export function requestAttention(continuous: boolean = false): void {
   sdl.SDL_FlashWindow(_window, continuous ? SDL_FLASH_UNTIL_FOCUSED : SDL_FLASH_BRIEFLY);
 }
 
+/** Check if display sleep (screensaver) is enabled. love.window.isDisplaySleepEnabled() */
+export function isDisplaySleepEnabled(): boolean {
+  return sdl.SDL_ScreenSaverEnabled();
+}
+
+/** Enable or disable display sleep (screensaver). love.window.setDisplaySleepEnabled() */
+export function setDisplaySleepEnabled(enable: boolean): void {
+  if (enable) {
+    sdl.SDL_EnableScreenSaver();
+  } else {
+    sdl.SDL_DisableScreenSaver();
+  }
+}
+
 /** Update window size and flags without destroying the window. Falls back to setMode if no window exists. */
 export function updateMode(
   width: number,

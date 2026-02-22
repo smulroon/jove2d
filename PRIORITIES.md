@@ -53,7 +53,7 @@ Grouped by priority based on impact for typical 2D game development.
 **Low priority (mobile/niche):**
 - `getDisplayOrientation` — mobile-only
 - `getSafeArea` — mobile-only
-- ~~`isDisplaySleepEnabled` / `setDisplaySleepEnabled`~~ — → Next Up #33
+- ~~`isDisplaySleepEnabled` / `setDisplaySleepEnabled`~~ DONE — via SDL3 screensaver API
 
 ### love.graphics — missing functions
 
@@ -306,7 +306,7 @@ Grouped by priority based on impact for typical 2D game development.
 
 ### Next Up
 
-33. **Display sleep control** — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API (`SDL_EnableScreenSaver` / `SDL_DisableScreenSaver` / `SDL_ScreenSaverEnabled`)
+33. ~~**Display sleep control**~~ DONE — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API
 34. **event.pump / event.wait** — manual event processing (`pump` exposes internal `pollEvents`; `wait` blocks via `SDL_WaitEvent`), completes love.event module
 35. **colorMask GPU enforcement** — shader-based color channel masking (currently JS-side tracking only; SDL3 lacks `SDL_SetRenderColorWriteMask`)
 36. **Wireframe mode** — `setWireframe` / `isWireframe`, convert filled triangle geometry to line draws

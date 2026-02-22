@@ -176,6 +176,21 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     args: [FFIType.u32, FFIType.cstring, FFIType.cstring, FFIType.pointer],
     returns: FFIType.bool,
   },
+  // bool SDL_ScreenSaverEnabled(void)
+  SDL_ScreenSaverEnabled: {
+    args: [],
+    returns: FFIType.bool,
+  },
+  // bool SDL_EnableScreenSaver(void)
+  SDL_EnableScreenSaver: {
+    args: [],
+    returns: FFIType.bool,
+  },
+  // bool SDL_DisableScreenSaver(void)
+  SDL_DisableScreenSaver: {
+    args: [],
+    returns: FFIType.bool,
+  },
 
   // --- Events ---
 
