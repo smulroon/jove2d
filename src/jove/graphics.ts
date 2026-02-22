@@ -27,6 +27,13 @@ import {
   SDL_SCALEMODE_LINEAR,
   SDL_GPU_SHADERFORMAT_SPIRV,
   SDL_LOGICAL_PRESENTATION_LETTERBOX,
+  SDL_BLENDFACTOR_ZERO,
+  SDL_BLENDFACTOR_ONE,
+  SDL_BLENDFACTOR_SRC_ALPHA,
+  SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA,
+  SDL_BLENDFACTOR_DST_COLOR,
+  SDL_BLENDFACTOR_SRC_COLOR,
+  SDL_BLENDOPERATION_ADD,
 } from "../sdl/types.ts";
 import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
@@ -51,6 +58,7 @@ let _gpuDevice: Pointer | null = null;
 let _activeShader: Shader | null = null;
 let _bgColor: [number, number, number, number] = [0, 0, 0, 255];
 let _drawColor: [number, number, number, number] = [255, 255, 255, 255];
+let _logicalDrawColor: [number, number, number, number] = [255, 255, 255, 255];
 let _lineWidth = 1;
 let _pointSize = 1;
 
@@ -64,7 +72,7 @@ let _lineJoin: LineJoin = "miter";
 let _defaultFilterMin: FilterMode = "nearest";
 let _defaultFilterMag: FilterMode = "nearest";
 
-// Color write mask (JS-side only — no SDL3 API available)
+// Color write mask — enforced via custom blend modes
 let _colorMask: [boolean, boolean, boolean, boolean] = [true, true, true, true];
 
 // Blend mode name mapping
@@ -78,6 +86,58 @@ const BLEND_NAME_TO_SDL: Record<BlendModeName, number> = {
   replace: SDL_BLENDMODE_NONE,
   screen: SDL_BLENDMODE_MOD,
 };
+
+// Blend factor table: each named mode → [srcColor, dstColor, colorOp, srcAlpha, dstAlpha, alphaOp]
+type BlendFactors = [number, number, number, number, number, number];
+const BLEND_FACTORS: Record<BlendModeName, BlendFactors> = {
+  alpha:    [SDL_BLENDFACTOR_SRC_ALPHA, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD],
+  add:      [SDL_BLENDFACTOR_SRC_ALPHA, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD],
+  multiply: [SDL_BLENDFACTOR_DST_COLOR, SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD],
+  replace:  [SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ZERO, SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ONE, SDL_BLENDFACTOR_ZERO, SDL_BLENDOPERATION_ADD],
+  screen:   [SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_COLOR, SDL_BLENDOPERATION_ADD, SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_ONE, SDL_BLENDOPERATION_ADD],
+};
+
+// The effective SDL blend mode, recomputed when _blendMode or _colorMask changes.
+// When colorMask is all-true, this equals BLEND_NAME_TO_SDL[_blendMode] (fast path).
+// When colorMask masks RGB or alpha, SDL_ComposeCustomBlendMode overrides factors.
+let _effectiveBlendModeSDL: number = SDL_BLENDMODE_BLEND;
+
+/**
+ * Recompute _effectiveBlendModeSDL from current _blendMode + _colorMask.
+ * Called from setBlendMode() and setColorMask().
+ */
+function _recomputeBlendMode(): void {
+  const [mr, mg, mb, ma] = _colorMask;
+  const allTrue = mr && mg && mb && ma;
+
+  if (allTrue) {
+    // Fast path: no masking, use predefined SDL blend modes
+    _effectiveBlendModeSDL = BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND;
+  } else {
+    // Need custom blend mode to enforce colorMask
+    const [srcC, dstC, opC, srcA, dstA, opA] = BLEND_FACTORS[_blendMode] ?? BLEND_FACTORS.alpha;
+
+    // RGB masked: override to keep destination (src=ZERO, dst=ONE)
+    // Note: RGB channels are grouped — individual R/G/B masking not possible
+    const rgbMasked = !mr && !mg && !mb;
+    const alphaMasked = !ma;
+
+    const effSrcC = rgbMasked ? SDL_BLENDFACTOR_ZERO : srcC;
+    const effDstC = rgbMasked ? SDL_BLENDFACTOR_ONE : dstC;
+    const effSrcA = alphaMasked ? SDL_BLENDFACTOR_ZERO : srcA;
+    const effDstA = alphaMasked ? SDL_BLENDFACTOR_ONE : dstA;
+
+    _effectiveBlendModeSDL = sdl.SDL_ComposeCustomBlendMode(
+      effSrcC, effDstC, opC,
+      effSrcA, effDstA, opA,
+    );
+  }
+
+  // Apply to renderer
+  if (_renderer) {
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, _effectiveBlendModeSDL);
+  }
+}
 
 // SDL_image state
 let _img: ReturnType<typeof loadImage> = null;
@@ -1207,7 +1267,7 @@ function _drawMesh(
       const [cr, cg, cb, ca] = _drawColor;
       sdl.SDL_SetTextureColorModFloat(texture, cr / 255, cg / 255, cb / 255);
       sdl.SDL_SetTextureAlphaModFloat(texture, ca / 255);
-      sdl.SDL_SetTextureBlendMode(texture, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+      sdl.SDL_SetTextureBlendMode(texture, _effectiveBlendModeSDL);
     }
     sdl.SDL_RenderGeometry(
       _renderer, texture,
@@ -1262,7 +1322,7 @@ function _drawMesh(
     const [cr, cg, cb, ca] = _drawColor;
     sdl.SDL_SetTextureColorModFloat(texture, cr / 255, cg / 255, cb / 255);
     sdl.SDL_SetTextureAlphaModFloat(texture, ca / 255);
-    sdl.SDL_SetTextureBlendMode(texture, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+    sdl.SDL_SetTextureBlendMode(texture, _effectiveBlendModeSDL);
   }
 
   sdl.SDL_RenderGeometry(
@@ -1386,7 +1446,7 @@ export function draw(
 
   // Apply current blend mode to the texture (SDL_RenderGeometry / SDL_RenderTexture
   // use the texture's blend mode, not the renderer's draw blend mode)
-  sdl.SDL_SetTextureBlendMode(drawable._texture, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+  sdl.SDL_SetTextureBlendMode(drawable._texture, _effectiveBlendModeSDL);
 
   // ParticleSystem path — no quad overload, just positional args
   if ("_isParticleSystem" in drawable && drawable._isParticleSystem) {
@@ -1685,6 +1745,8 @@ export function _destroyRenderer(): void {
   _defaultFilterMin = "nearest";
   _defaultFilterMag = "nearest";
   _colorMask = [true, true, true, true];
+  _blendMode = "alpha";
+  _effectiveBlendModeSDL = SDL_BLENDMODE_BLEND;
   _spriteBatchScratch = new Float32Array(0);
 }
 
@@ -1728,15 +1790,21 @@ export function getBackgroundColor(): [number, number, number, number] {
 
 /** Set the current drawing color (0–255 range). */
 export function setColor(r: number, g: number, b: number, a: number = 255): void {
-  _drawColor = [r, g, b, a];
+  _logicalDrawColor = [r, g, b, a];
+  _drawColor = [
+    _colorMask[0] ? r : 0,
+    _colorMask[1] ? g : 0,
+    _colorMask[2] ? b : 0,
+    _colorMask[3] ? a : 0,
+  ];
   if (_renderer) {
-    sdl.SDL_SetRenderDrawColor(_renderer, r, g, b, a);
+    sdl.SDL_SetRenderDrawColor(_renderer, _drawColor[0], _drawColor[1], _drawColor[2], _drawColor[3]);
   }
 }
 
-/** Get the current drawing color. */
+/** Get the current drawing color (returns the logical color, before colorMask). */
 export function getColor(): [number, number, number, number] {
-  return [..._drawColor] as [number, number, number, number];
+  return [..._logicalDrawColor] as [number, number, number, number];
 }
 
 // ============================================================
@@ -1746,9 +1814,7 @@ export function getColor(): [number, number, number, number] {
 /** Set the blend mode for drawing. */
 export function setBlendMode(mode: BlendModeName): void {
   _blendMode = mode;
-  if (_renderer) {
-    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[mode] ?? SDL_BLENDMODE_BLEND);
-  }
+  _recomputeBlendMode();
 }
 
 /** Get the current blend mode. */
@@ -1833,7 +1899,7 @@ function _prepareInvertedStencil(): Canvas | null {
 
   // Save state
   const savedCanvas = _activeCanvas;
-  const savedColor: [number, number, number, number] = [..._drawColor] as [number, number, number, number];
+  const savedLogicalColor: [number, number, number, number] = [..._logicalDrawColor] as [number, number, number, number];
   const savedBlend = _blendMode;
 
   // Draw transparent holes on white background
@@ -1848,10 +1914,8 @@ function _prepareInvertedStencil(): Canvas | null {
 
   // Restore state
   setCanvas(savedCanvas);
-  _drawColor = savedColor;
-  _blendMode = savedBlend;
-  sdl.SDL_SetRenderDrawColor(_renderer, savedColor[0], savedColor[1], savedColor[2], savedColor[3]);
-  sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[savedBlend] ?? SDL_BLENDMODE_BLEND);
+  setColor(...savedLogicalColor);
+  setBlendMode(savedBlend);
 
   return _stencilInvCanvas;
 }
@@ -1874,7 +1938,7 @@ export function stencil(
 
   // Save state
   const savedCanvas = _activeCanvas;
-  const savedColor: [number, number, number, number] = [..._drawColor] as [number, number, number, number];
+  const savedLogicalColor: [number, number, number, number] = [..._logicalDrawColor] as [number, number, number, number];
   const savedBlend = _blendMode;
 
   if (_stencilCanvas) {
@@ -1898,12 +1962,8 @@ export function stencil(
 
   // Restore state
   setCanvas(savedCanvas);
-  _drawColor = savedColor;
-  _blendMode = savedBlend;
-  if (_renderer) {
-    sdl.SDL_SetRenderDrawColor(_renderer, savedColor[0], savedColor[1], savedColor[2], savedColor[3]);
-    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[savedBlend] ?? SDL_BLENDMODE_BLEND);
-  }
+  setColor(...savedLogicalColor);
+  setBlendMode(savedBlend);
 }
 
 /**
@@ -1964,7 +2024,7 @@ export function setStencilTest(comparemode?: CompareMode, comparevalue?: number)
     // Restore draw state
     const [dr, dg, db, da] = _drawColor;
     sdl.SDL_SetRenderDrawColor(_renderer, dr, dg, db, da);
-    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, _effectiveBlendModeSDL);
     return;
   }
 
@@ -1985,7 +2045,7 @@ export function setStencilTest(comparemode?: CompareMode, comparevalue?: number)
     // Restore draw color/blend for user drawing
     const [dr, dg, db, da] = _drawColor;
     sdl.SDL_SetRenderDrawColor(_renderer, dr, dg, db, da);
-    sdl.SDL_SetRenderDrawBlendMode(_renderer, BLEND_NAME_TO_SDL[_blendMode] ?? SDL_BLENDMODE_BLEND);
+    sdl.SDL_SetRenderDrawBlendMode(_renderer, _effectiveBlendModeSDL);
   }
 }
 
@@ -2091,6 +2151,18 @@ export function setColorMask(r?: boolean, g?: boolean, b?: boolean, a?: boolean)
   } else {
     _colorMask = [r, g ?? true, b ?? true, a ?? true];
   }
+  _recomputeBlendMode();
+  // Reapply mask to effective draw color
+  const [lr, lg, lb, la] = _logicalDrawColor;
+  _drawColor = [
+    _colorMask[0] ? lr : 0,
+    _colorMask[1] ? lg : 0,
+    _colorMask[2] ? lb : 0,
+    _colorMask[3] ? la : 0,
+  ];
+  if (_renderer) {
+    sdl.SDL_SetRenderDrawColor(_renderer, _drawColor[0], _drawColor[1], _drawColor[2], _drawColor[3]);
+  }
 }
 
 /** Get the color write mask. */
@@ -2150,14 +2222,14 @@ export function intersectScissor(x: number, y: number, w: number, h: number): vo
 /** Reset all graphics state to defaults. */
 export function reset(): void {
   _bgColor = [0, 0, 0, 255];
+  _logicalDrawColor = [255, 255, 255, 255];
   _drawColor = [255, 255, 255, 255];
   if (_renderer) {
     sdl.SDL_SetRenderDrawColor(_renderer, 255, 255, 255, 255);
   }
+  _colorMask = [true, true, true, true];
   _blendMode = "alpha";
-  if (_renderer) {
-    sdl.SDL_SetRenderDrawBlendMode(_renderer, SDL_BLENDMODE_BLEND);
-  }
+  _recomputeBlendMode();
   // Clear active shader
   if (_activeShader && _renderer) {
     sdl.SDL_SetGPURenderState(_renderer, null);
@@ -2175,7 +2247,6 @@ export function reset(): void {
   _currentFont = _defaultFont;
   _defaultFilterMin = "nearest";
   _defaultFilterMag = "nearest";
-  _colorMask = [true, true, true, true];
 }
 
 // ============================================================
@@ -3496,6 +3567,11 @@ export function newText(font: Font, text?: string): Text | null {
 /** Get the GPU device pointer (for shader module). Returns null if GPU renderer unavailable. */
 export function _getGPUDevice(): Pointer | null {
   return _gpuDevice;
+}
+
+/** Get the effective SDL blend mode (for testing). */
+export function _getEffectiveBlendModeSDL(): number {
+  return _effectiveBlendModeSDL;
 }
 
 /**

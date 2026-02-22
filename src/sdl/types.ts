@@ -117,6 +117,21 @@ export const SDL_BLENDMODE_ADD = 0x00000002;
 export const SDL_BLENDMODE_MOD = 0x00000004;
 export const SDL_BLENDMODE_MUL = 0x00000008;
 
+/** SDL_BlendFactor constants (for SDL_ComposeCustomBlendMode) */
+export const SDL_BLENDFACTOR_ZERO = 0x1;
+export const SDL_BLENDFACTOR_ONE = 0x2;
+export const SDL_BLENDFACTOR_SRC_COLOR = 0x3;
+export const SDL_BLENDFACTOR_ONE_MINUS_SRC_COLOR = 0x4;
+export const SDL_BLENDFACTOR_SRC_ALPHA = 0x5;
+export const SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA = 0x6;
+export const SDL_BLENDFACTOR_DST_COLOR = 0x7;
+export const SDL_BLENDFACTOR_ONE_MINUS_DST_COLOR = 0x8;
+export const SDL_BLENDFACTOR_DST_ALPHA = 0x9;
+export const SDL_BLENDFACTOR_ONE_MINUS_DST_ALPHA = 0xA;
+
+/** SDL_BlendOperation constants */
+export const SDL_BLENDOPERATION_ADD = 0x1;
+
 /** SDL_FlipMode constants */
 export const SDL_FLIP_NONE = 0;
 export const SDL_FLIP_HORIZONTAL = 1;

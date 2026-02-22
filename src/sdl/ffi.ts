@@ -822,6 +822,11 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     args: [FFIType.pointer],
     returns: FFIType.void,
   },
+  // SDL_BlendMode SDL_ComposeCustomBlendMode(SDL_BlendFactor srcColorFactor, SDL_BlendFactor dstColorFactor, SDL_BlendOperation colorOperation, SDL_BlendFactor srcAlphaFactor, SDL_BlendFactor dstAlphaFactor, SDL_BlendOperation alphaOperation)
+  SDL_ComposeCustomBlendMode: {
+    args: [FFIType.u32, FFIType.u32, FFIType.u32, FFIType.u32, FFIType.u32, FFIType.u32],
+    returns: FFIType.u32,
+  },
   // void SDL_Delay(Uint32 ms)
   SDL_Delay: {
     args: [FFIType.u32],
