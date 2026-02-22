@@ -18,19 +18,19 @@ Grouped by priority based on impact for typical 2D game development.
 | love.keyboard | **7/9 Complete** | Missing `hasScreenKeyboard` (mobile-only) |
 | love.window | **33/36 Mostly done** | Missing display orientation, safe area, sleep control (all mobile/niche) |
 | love.system | **6/8 Complete** | Missing `hasBackgroundMusic`, `vibrate` (mobile-only) |
-| love.physics | **~90/93 Mostly done** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve/all getters; gear/pulley N/A in v3 |
+| love.physics | **~93/93 Complete** | Box2D v3.1.1; World/Body/Fixture/7 joint types/queries/contacts/preSolve/all getters+setters; gear/pulley N/A in v3 |
 | love.graphics | **~88/97 Core done** | Primitives/transforms/shaders/batching/mesh/stencil/newText/applyTransform/DPI+stats/bitmap fonts/capability queries done |
 | love.filesystem | **19/31 Mostly done** | Core functions done; remaining gaps are Lua-specific |
-| love.audio | **17/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone, newQueueableSource; no effects or positional audio |
+| love.audio | **18/26 Core done** | WAV/OGG/MP3/FLAC playback, global controls, pitch, looping, seek/tell, clone, newQueueableSource, stream type; no effects or positional audio |
 | love.touch | **Not implemented** | Mobile-only (P4) |
 | love.thread | **Not implemented** | Bun async usually sufficient (P4) |
 | love.video | **Core done** | MPEG-1 video+audio playback via pl_mpeg, drawable, seek/loop |
-| love.sound | **2/3 Mostly done** | SoundData done; missing newDecoder (streaming audio decode) |
+| love.sound | **3/3 Complete** | SoundData + newDecoder (streaming audio decode) |
 | love.image | **7/7 Complete** | newImageData, getPixel/setPixel, mapPixel, paste, encode, getString |
 | love.font | **Inline** | Integrated into graphics module; bitmap fonts via newImageFont |
 | love.sensor | **Not planned** | Mobile-only |
 
-**Summary: 16/20 modules implemented, 9 at 100%, 14 at 75%+**
+**Summary: 16/20 modules implemented, 10 at 100%, 14 at 75%+**
 
 ---
 
@@ -214,10 +214,11 @@ Grouped by priority based on impact for typical 2D game development.
 - `newImage(imageData)` creates GPU texture from ImageData
 - Buffer-based RGBA8888 implementation, no external dependencies
 
-#### love.sound (data-level audio APIs) — Mostly done
+#### ~~love.sound (data-level audio APIs)~~ DONE
 - **Implemented**: SoundData with getSample/setSample (normalized -1..1), newSoundData from empty buffer or file
 - **Pairs with**: newQueueableSource for procedural audio generation
-- **Missing**: `newDecoder` — streaming audio decode for memory-efficient music playback (→ Next Up #37)
+- **newDecoder**: streaming audio decode for memory-efficient music playback (C handle table + JS Decoder class)
+- **newSource(path, "stream")**: uses Decoder internally for incremental chunk feeding
 
 #### love.video — DONE
 - **Implemented**: MPEG-1 video + MP2 audio playback via pl_mpeg (single-header decoder)
@@ -311,20 +312,17 @@ Grouped by priority based on impact for typical 2D game development.
 
 32. ~~**love.video**~~ DONE — MPEG-1 video+MP2 audio playback via pl_mpeg, drawable Video object, play/pause/seek/loop
 
-### Next Up
-
 33. ~~**Display sleep control**~~ DONE — `isDisplaySleepEnabled` / `setDisplaySleepEnabled` via SDL3 screensaver API
 34. ~~**event.wait**~~ DONE — blocks until event via SDL_WaitEvent (pump removed as not useful); example: `wait/`
 35. ~~**colorMask GPU enforcement**~~ DONE — GPU-enforced via `SDL_ComposeCustomBlendMode` (custom blend factors override masked channels to ZERO/ONE; works on all renderers; limitation: individual R/G/B masking not possible, RGB grouped)
 36. ~~**Wireframe mode**~~ DONE — `setWireframe` / `isWireframe`, tessellation wireframe for fills + smooth lines, W toggle in drawing example
+37. ~~**newDecoder**~~ DONE — streaming audio decode for memory-efficient music playback (C wrapper handle table + JS Decoder class + FFI + stream source type). Audio example updated with T key toggle.
 
-### Streaming audio decode
-
-37. **newDecoder** — streaming audio decode for memory-efficient music playback (~250 lines: C wrapper handle table + JS Decoder class + FFI). Underlying libs (stb_vorbis/dr_mp3/dr_flac) already support incremental decode; just not wired up. Eliminates ~40 MB RAM per 4-min stereo track.
+### Remaining
 
 ### API Completeness (trivial convenience wrappers)
 
-38. **Physics convenience setters** — `Body:setX/setY`, `Body:getTransform/setTransform`, `Fixture:setCategory/setMask/setGroupIndex` individual setters
+38. ~~**Physics convenience setters**~~ DONE — `Body:setX/setY`, `Body:getTransform/setTransform`, `Fixture:setCategory/setMask/setGroupIndex/getCategory/getMask/getGroupIndex`
 39. **Canvas:renderTo(fn)** — sugar for `setCanvas(c); fn(); setCanvas(null)`, extremely common love2d pattern
 40. **Image wrap mode** — `Image:setWrap/getWrap` for tiling textures (SDL3 has `SDL_SetTextureScaleMode`)
 41. **Image:replacePixels** — update GPU texture from ImageData without recreating

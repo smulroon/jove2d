@@ -365,6 +365,33 @@ export class Fixture {
     ];
   }
 
+  setCategory(categories: number): void {
+    const [, mask, group] = this.getFilterData();
+    this.setFilterData(categories, mask, group);
+  }
+
+  getCategory(): number {
+    return this.getFilterData()[0];
+  }
+
+  setMask(mask: number): void {
+    const [categories, , group] = this.getFilterData();
+    this.setFilterData(categories, mask, group);
+  }
+
+  getMask(): number {
+    return this.getFilterData()[1];
+  }
+
+  setGroupIndex(group: number): void {
+    const [categories, mask] = this.getFilterData();
+    this.setFilterData(categories, mask, group);
+  }
+
+  getGroupIndex(): number {
+    return this.getFilterData()[2];
+  }
+
   testPoint(x: number, y: number): boolean {
     if (this._shapeId < 0 || this._isChain) return false;
     return lib().jove_Shape_TestPoint(this._shapeId, toMeters(x), toMeters(y)) !== 0;
@@ -428,11 +455,31 @@ export class Body {
   getX(): number { return this.getPosition()[0]; }
   getY(): number { return this.getPosition()[1]; }
 
+  setX(x: number): void {
+    const [, y] = this.getPosition();
+    this.setPosition(x, y);
+  }
+
+  setY(y: number): void {
+    const [x] = this.getPosition();
+    this.setPosition(x, y);
+  }
+
   setPosition(x: number, y: number): void {
     const mx = toMeters(x), my = toMeters(y);
     lib().jove_Body_SetPosition(this._id, mx, my);
     this._cachedX = mx;
     this._cachedY = my;
+  }
+
+  getTransform(): [number, number, number] {
+    const [x, y] = this.getPosition();
+    return [x, y, this.getAngle()];
+  }
+
+  setTransform(x: number, y: number, angle: number): void {
+    this.setPosition(x, y);
+    this.setAngle(angle);
   }
 
   getAngle(): number {

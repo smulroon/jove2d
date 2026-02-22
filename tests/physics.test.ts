@@ -151,10 +151,29 @@ describe("jove.physics", () => {
       expect(body.getY()).toBeCloseTo(75, 0);
     });
 
+    test("setX / setY", () => {
+      const body = physics.newBody(world, 100, 200, "static");
+      body.setX(300);
+      expect(body.getX()).toBeCloseTo(300, 0);
+      expect(body.getY()).toBeCloseTo(200, 0);
+      body.setY(400);
+      expect(body.getX()).toBeCloseTo(300, 0);
+      expect(body.getY()).toBeCloseTo(400, 0);
+    });
+
     test("angle get/set", () => {
       const body = physics.newBody(world, 0, 0, "dynamic");
       body.setAngle(Math.PI / 4);
       expect(body.getAngle()).toBeCloseTo(Math.PI / 4, 2);
+    });
+
+    test("getTransform / setTransform", () => {
+      const body = physics.newBody(world, 0, 0, "dynamic");
+      body.setTransform(150, 250, Math.PI / 3);
+      const [x, y, angle] = body.getTransform();
+      expect(x).toBeCloseTo(150, 0);
+      expect(y).toBeCloseTo(250, 0);
+      expect(angle).toBeCloseTo(Math.PI / 3, 2);
     });
 
     test("velocity get/set", () => {
@@ -435,6 +454,40 @@ describe("jove.physics", () => {
       expect(fixture.testPoint(100, 100)).toBe(true); // center
       expect(fixture.testPoint(100, 120)).toBe(true); // inside
       expect(fixture.testPoint(200, 200)).toBe(false); // outside
+    });
+
+    test("setCategory / getCategory", () => {
+      const body = physics.newBody(world, 0, 0, "dynamic");
+      const shape = physics.newCircleShape(10);
+      const fixture = physics.newFixture(body, shape);
+      fixture.setCategory(2);
+      expect(fixture.getCategory()).toBe(2);
+      // mask and group should be unchanged
+      const [, mask, group] = fixture.getFilterData();
+      expect(mask).toBe(0xFFFF); // default mask
+      expect(group).toBe(0);
+    });
+
+    test("setMask / getMask", () => {
+      const body = physics.newBody(world, 0, 0, "dynamic");
+      const shape = physics.newCircleShape(10);
+      const fixture = physics.newFixture(body, shape);
+      fixture.setMask(0x00FF);
+      expect(fixture.getMask()).toBe(0x00FF);
+      // category and group should be unchanged
+      const [cat, , group] = fixture.getFilterData();
+      expect(cat).toBe(1); // default category
+      expect(group).toBe(0);
+    });
+
+    test("setGroupIndex / getGroupIndex", () => {
+      const body = physics.newBody(world, 0, 0, "dynamic");
+      const shape = physics.newCircleShape(10);
+      const fixture = physics.newFixture(body, shape);
+      fixture.setGroupIndex(-1);
+      expect(fixture.getGroupIndex()).toBe(-1);
+      fixture.setGroupIndex(5);
+      expect(fixture.getGroupIndex()).toBe(5);
     });
 
     test("destroy fixture", () => {
