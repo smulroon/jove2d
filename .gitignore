@@ -7,6 +7,8 @@ vendor/SDL_ttf/
 vendor/SDL_image/
 vendor/box2d/
 vendor/audio_decode/install/
+vendor/pl_mpeg/install/
+vendor/pl_mpeg/pl_mpeg.h
 vendor/love2d/
 
 # Build output
@@ -24,3 +26,8 @@ Thumbs.db
 
 # Test artifacts
 tests/screenshots/actual/
+
+# Examples asset files
+examples/screenshot/*.png
+*.mpg
+*.ogv
