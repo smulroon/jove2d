@@ -6,7 +6,7 @@ import type { Pointer } from "bun:ffi";
 import sdl from "../sdl/ffi.ts";
 import { loadImage } from "../sdl/ffi_image.ts";
 import {
-  SDL_PIXELFORMAT_RGBA8888,
+  SDL_PIXELFORMAT_ABGR8888,
   SDL_SURFACE_OFFSET_W,
   SDL_SURFACE_OFFSET_H,
   SDL_SURFACE_OFFSET_PITCH,
@@ -87,8 +87,8 @@ function _loadImageData(filepath: string): ImageData | null {
   const formatVal = read.u32(surface, SDL_SURFACE_OFFSET_FORMAT);
   let rgba = surface;
   let needsFree = false;
-  if (formatVal !== SDL_PIXELFORMAT_RGBA8888) {
-    rgba = sdl.SDL_ConvertSurface(surface, SDL_PIXELFORMAT_RGBA8888) as Pointer | null;
+  if (formatVal !== SDL_PIXELFORMAT_ABGR8888) {
+    rgba = sdl.SDL_ConvertSurface(surface, SDL_PIXELFORMAT_ABGR8888) as Pointer | null;
     if (!rgba) {
       sdl.SDL_DestroySurface(surface);
       return null;
@@ -195,7 +195,7 @@ function _createImageData(data: Uint8Array, width: number, height: number): Imag
     encode(format: "png" | "bmp", filepath?: string): Uint8Array | null {
       // Create surface from pixel data
       const surface = sdl.SDL_CreateSurfaceFrom(
-        width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), width * 4
+        width, height, SDL_PIXELFORMAT_ABGR8888, ptr(data), width * 4
       ) as Pointer | null;
       if (!surface) return null;
 

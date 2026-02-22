@@ -2,7 +2,7 @@
 
 import { ptr, read, type Pointer } from "bun:ffi";
 import sdl from "../sdl/ffi.ts";
-import { CURSOR_TYPE_TO_SDL, SDL_PIXELFORMAT_RGBA8888 } from "../sdl/types.ts";
+import { CURSOR_TYPE_TO_SDL, SDL_PIXELFORMAT_ABGR8888 } from "../sdl/types.ts";
 import type { CursorType } from "../sdl/types.ts";
 import type { ImageData } from "./types.ts";
 import { _getSDLWindow } from "./window.ts";
@@ -194,7 +194,7 @@ export function newCursor(imageData: ImageData, hotX: number = 0, hotY: number =
 
   // Create a temporary surface from the pixel data
   // ptr() must be called fresh since data is a JS-written buffer
-  const surface = sdl.SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), pitch);
+  const surface = sdl.SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_ABGR8888, ptr(data), pitch);
   if (!surface) {
     throw new Error(`SDL_CreateSurfaceFrom failed: ${sdl.SDL_GetError()}`);
   }

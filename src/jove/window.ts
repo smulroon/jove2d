@@ -23,7 +23,7 @@ import {
 } from "../sdl/types.ts";
 import type { WindowFlags, WindowMode } from "./types.ts";
 import { _getRenderer } from "./graphics.ts";
-import { SDL_PIXELFORMAT_RGBA8888 } from "../sdl/types.ts";
+import { SDL_PIXELFORMAT_ABGR8888 } from "../sdl/types.ts";
 
 // Pre-allocated out-param buffers to avoid per-call allocation.
 // IMPORTANT: After SDL writes to these via ptr(), we must use read.i32()
@@ -188,7 +188,7 @@ export function setIcon(imagedata: any): boolean {
   if (!data || !width || !height) return false;
 
   const surface = sdl.SDL_CreateSurfaceFrom(
-    width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), width * 4
+    width, height, SDL_PIXELFORMAT_ABGR8888, ptr(data), width * 4
   );
   if (!surface) return false;
 

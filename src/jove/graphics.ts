@@ -23,6 +23,7 @@ import {
   SDL_FLIP_NONE,
   SDL_TEXTUREACCESS_TARGET,
   SDL_PIXELFORMAT_RGBA8888,
+  SDL_PIXELFORMAT_ABGR8888,
   SDL_SCALEMODE_NEAREST,
   SDL_SCALEMODE_LINEAR,
   SDL_GPU_SHADERFORMAT_SPIRV,
@@ -1392,15 +1393,14 @@ export function newImage(pathOrData: string | BaseImageData | RichImageData): Im
   if (!_renderer) return null;
 
   // ImageData path — create texture from pixel buffer
+  // Use ABGR8888 = byte-order RGBA on little-endian (matches JS Uint8Array [R,G,B,A])
   if (typeof pathOrData !== "string") {
     const { data, width, height } = pathOrData;
-    const surface = sdl.SDL_CreateSurfaceFrom(
-      width, height, SDL_PIXELFORMAT_RGBA8888, ptr(data), width * 4
-    ) as Pointer | null;
-    if (!surface) return null;
-    const texture = sdl.SDL_CreateTextureFromSurface(_renderer, surface) as SDLTexture | null;
-    sdl.SDL_DestroySurface(surface);
+    const texture = sdl.SDL_CreateTexture(
+      _renderer, SDL_PIXELFORMAT_ABGR8888, 0, width, height
+    ) as SDLTexture | null;
     if (!texture) return null;
+    sdl.SDL_UpdateTexture(texture, null, ptr(data), width * 4);
 
     sdl.SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
     const img = _createImageObject(texture, width, height);
@@ -3487,14 +3487,12 @@ export function newImageFont(
   }
 
   // Create SDL texture from modified pixel data
-  const surface = sdl.SDL_CreateSurfaceFrom(
-    width, height, SDL_PIXELFORMAT_RGBA8888, ptr(texData), width * 4
-  ) as Pointer | null;
-  if (!surface) return null;
-
-  const texture = sdl.SDL_CreateTextureFromSurface(_renderer, surface) as SDLTexture | null;
-  sdl.SDL_DestroySurface(surface);
+  // Use ABGR8888 = byte-order RGBA on little-endian (matches JS Uint8Array [R,G,B,A])
+  const texture = sdl.SDL_CreateTexture(
+    _renderer, SDL_PIXELFORMAT_ABGR8888, 0, width, height
+  ) as SDLTexture | null;
   if (!texture) return null;
+  sdl.SDL_UpdateTexture(texture, null, ptr(texData), width * 4);
 
   sdl.SDL_SetTextureBlendMode(texture, SDL_BLENDMODE_BLEND);
   // Bitmap fonts should use nearest filtering for crisp pixel art
