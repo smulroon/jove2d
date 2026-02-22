@@ -1,8 +1,27 @@
 -- love2d equivalent of the canvas example
--- Demonstrates: newCanvas, setCanvas/getCanvas, drawing canvas with transforms
+-- Demonstrates: newCanvas, setCanvas/getCanvas, renderTo, drawing canvas with transforms
+-- Press M to toggle between setCanvas and renderTo methods.
 
 local miniScene = nil
 local t = 0
+local useRenderTo = false
+
+local function renderScene()
+  love.graphics.clear(0, 0, 0, 0) -- Clear canvas with transparency
+
+  -- Draw some shapes into the canvas
+  love.graphics.setColor(1, 100/255, 50/255)
+  love.graphics.rectangle("fill", 10, 10, 80, 80)
+
+  love.graphics.setColor(50/255, 200/255, 1)
+  love.graphics.circle("fill", 150, 50, 40)
+
+  love.graphics.setColor(100/255, 1, 100/255)
+  love.graphics.ellipse("fill", 100, 150, 60, 30)
+
+  love.graphics.setColor(1, 1, 1)
+  love.graphics.print("Canvas!", 60, 90)
+end
 
 function love.load()
   love.window.setTitle("Canvas Example")
@@ -16,26 +35,16 @@ end
 function love.update(dt)
   t = t + dt
 
-  -- Render the mini scene to the canvas
   if miniScene then
-    love.graphics.setCanvas(miniScene)
-    love.graphics.clear(0, 0, 0, 0) -- Clear canvas with transparency
-
-    -- Draw some shapes into the canvas
-    love.graphics.setColor(1, 100/255, 50/255)
-    love.graphics.rectangle("fill", 10, 10, 80, 80)
-
-    love.graphics.setColor(50/255, 200/255, 1)
-    love.graphics.circle("fill", 150, 50, 40)
-
-    love.graphics.setColor(100/255, 1, 100/255)
-    love.graphics.ellipse("fill", 100, 150, 60, 30)
-
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.print("Canvas!", 60, 90)
-
-    -- Switch back to screen rendering
-    love.graphics.setCanvas()
+    if useRenderTo then
+      -- Method 2: renderTo — sets canvas, calls fn, restores previous
+      miniScene:renderTo(renderScene)
+    else
+      -- Method 1: setCanvas/setCanvas() — manual approach
+      love.graphics.setCanvas(miniScene)
+      renderScene()
+      love.graphics.setCanvas()
+    end
   end
 end
 
@@ -71,12 +80,16 @@ function love.draw()
   love.graphics.print("0.5x scale", 590, 510)
   love.graphics.print("1.5x linear", 250, 310)
 
-  -- Show current default filter
+  -- Show current method and default filter
+  love.graphics.setColor(1, 1, 1)
+  local method = useRenderTo and "renderTo" or "setCanvas"
+  love.graphics.print("Method: " .. method .. " (M to toggle)", 10, 560)
   local fMin, fMag = love.graphics.getDefaultFilter()
   love.graphics.print("Default filter: " .. fMin .. "/" .. fMag, 10, 580)
 end
 
 function love.keypressed(key)
+  if key == "m" then useRenderTo = not useRenderTo end
   if key == "escape" then
     love.event.quit()
   end
