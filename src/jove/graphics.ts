@@ -34,6 +34,8 @@ import {
   SDL_BLENDFACTOR_DST_COLOR,
   SDL_BLENDFACTOR_SRC_COLOR,
   SDL_BLENDOPERATION_ADD,
+  SDL_TEXTURE_ADDRESS_CLAMP,
+  SDL_TEXTURE_ADDRESS_WRAP,
 } from "../sdl/types.ts";
 import type { SDLRenderer, SDLTexture } from "../sdl/types.ts";
 import { _getSDLWindow, getMode } from "./window.ts";
@@ -48,6 +50,7 @@ import type { Video } from "./video.ts";
 import { newVideo as _newVideoImpl } from "./video.ts";
 
 export type FilterMode = "nearest" | "linear";
+export type WrapMode = "clamp" | "repeat" | "mirroredrepeat" | "clampzero";
 
 // ============================================================
 // Internal renderer state
@@ -295,22 +298,30 @@ export interface Image {
   _texture: SDLTexture;
   _width: number;
   _height: number;
+  _wrapH: WrapMode;
+  _wrapV: WrapMode;
   getWidth(): number;
   getHeight(): number;
   getDimensions(): [number, number];
   setFilter(min: FilterMode, mag: FilterMode): void;
   getFilter(): [FilterMode, FilterMode];
+  setWrap(horiz: WrapMode, vert?: WrapMode): void;
+  getWrap(): [WrapMode, WrapMode];
   release(): void;
 }
 
 function _createImageObject(texture: SDLTexture, w: number, h: number): Image {
   let _filterMin: FilterMode = "nearest";
   let _filterMag: FilterMode = "nearest";
+  let _wrapH: WrapMode = "clamp";
+  let _wrapV: WrapMode = "clamp";
 
   return {
     _texture: texture,
     _width: w,
     _height: h,
+    get _wrapH() { return _wrapH; },
+    get _wrapV() { return _wrapV; },
     getWidth() { return w; },
     getHeight() { return h; },
     getDimensions() { return [w, h]; },
@@ -322,6 +333,11 @@ function _createImageObject(texture: SDLTexture, w: number, h: number): Image {
       sdl.SDL_SetTextureScaleMode(texture, mode);
     },
     getFilter() { return [_filterMin, _filterMag]; },
+    setWrap(horiz: WrapMode, vert?: WrapMode) {
+      _wrapH = horiz;
+      _wrapV = vert ?? horiz;
+    },
+    getWrap() { return [_wrapH, _wrapV]; },
     release() {
       sdl.SDL_DestroyTexture(texture);
     },
@@ -1271,6 +1287,14 @@ function _drawMesh(
 
   const texture = mesh._texture;
 
+  // Apply wrap mode from the mesh's texture image
+  const texImg = mesh.getTexture();
+  if (texImg && "_wrapH" in texImg) {
+    const u = texImg._wrapH === "repeat" ? SDL_TEXTURE_ADDRESS_WRAP : SDL_TEXTURE_ADDRESS_CLAMP;
+    const v = texImg._wrapV === "repeat" ? SDL_TEXTURE_ADDRESS_WRAP : SDL_TEXTURE_ADDRESS_CLAMP;
+    sdl.SDL_SetRenderTextureAddressMode(_renderer, u, v);
+  }
+
   if (!hasDrawTransform && !hasGlobalTransform) {
     // Fast path: no transforms, render directly
     if (texture) {
@@ -1457,6 +1481,13 @@ export function draw(
   // Apply current blend mode to the texture (SDL_RenderGeometry / SDL_RenderTexture
   // use the texture's blend mode, not the renderer's draw blend mode)
   sdl.SDL_SetTextureBlendMode(drawable._texture, _effectiveBlendModeSDL);
+
+  // Apply wrap mode (SDL3 sets this on the renderer, not per-texture)
+  if ("_wrapH" in drawable) {
+    const u = (drawable as Image)._wrapH === "repeat" ? SDL_TEXTURE_ADDRESS_WRAP : SDL_TEXTURE_ADDRESS_CLAMP;
+    const v = (drawable as Image)._wrapV === "repeat" ? SDL_TEXTURE_ADDRESS_WRAP : SDL_TEXTURE_ADDRESS_CLAMP;
+    sdl.SDL_SetRenderTextureAddressMode(_renderer, u, v);
+  }
 
   // ParticleSystem path — no quad overload, just positional args
   if ("_isParticleSystem" in drawable && drawable._isParticleSystem) {

@@ -1,13 +1,17 @@
 // jove2d mesh example — demonstrates custom vertex geometry
-// Shows: colored triangle, textured quad, vertex map, draw modes, transforms
+// Shows: colored triangle, textured quad, vertex map, draw modes, transforms, wrap mode
+// Press W to toggle wrap mode on the tiling quad (clamp vs repeat)
 
 import jove from "../../src/index.ts";
-import type { Mesh } from "../../src/index.ts";
+import type { Mesh, Image } from "../../src/index.ts";
 
 let triMesh: Mesh | null = null;
 let quadMesh: Mesh | null = null;
 let starMesh: Mesh | null = null;
 let stripMesh: Mesh | null = null;
+let tileMesh: Mesh | null = null;
+let tileTexture: Image | null = null;
+let wrapRepeat = false;
 let time = 0;
 
 await jove.run({
@@ -71,6 +75,16 @@ await jove.run({
       stripVerts.push([x, yOff, 0, 0, t, 0.5 + t * 0.5, 1 - t, 1]);
     }
     stripMesh = jove.graphics.newMesh(stripVerts, "strip");
+
+    // 5b. Tiling textured quad — UVs go to 3x3, wrap mode toggleable
+    tileTexture = canvas; // reuse checkerboard canvas
+    tileMesh = jove.graphics.newMesh(4, "triangles")!;
+    tileMesh.setVertex(1, 0, 0, 0, 0, 1, 1, 1, 1);
+    tileMesh.setVertex(2, 150, 0, 3, 0, 1, 1, 1, 1);
+    tileMesh.setVertex(3, 150, 150, 3, 3, 1, 1, 1, 1);
+    tileMesh.setVertex(4, 0, 150, 0, 3, 1, 1, 1, 1);
+    tileMesh.setVertexMap(1, 2, 3, 1, 3, 4);
+    tileMesh.setTexture(canvas);
   },
 
   update(dt) {
@@ -109,7 +123,12 @@ await jove.run({
     jove.graphics.print("Triangle Strip", 20, 290);
     if (stripMesh) jove.graphics.draw(stripMesh, 20, 320);
 
-    // 5. Dynamic mesh — sine wave
+    // 5b. Tiling quad with wrap mode toggle
+    const wrapLabel = wrapRepeat ? "repeat" : "clamp";
+    jove.graphics.print(`Tiling Quad — wrap: ${wrapLabel} (W to toggle)`, 320, 230);
+    if (tileMesh) jove.graphics.draw(tileMesh, 350, 250);
+
+    // 6. Dynamic mesh — sine wave
     jove.graphics.print("Dynamic Sine Wave (strip)", 20, 400);
     const dynMesh = jove.graphics.newMesh(40, "strip")!;
     for (let i = 0; i < 20; i++) {
@@ -128,6 +147,10 @@ await jove.run({
   },
 
   keypressed(key) {
+    if (key === "w" && tileTexture) {
+      wrapRepeat = !wrapRepeat;
+      tileTexture.setWrap(wrapRepeat ? "repeat" : "clamp");
+    }
     if (key === "escape") jove.window.close();
   },
 });

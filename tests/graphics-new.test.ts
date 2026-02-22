@@ -97,6 +97,33 @@ describe("jove.graphics — new primitives & features", () => {
     graphics.setPointSize(1); // Reset
   });
 
+  // --- Wrap mode ---
+
+  test("image setWrap/getWrap defaults to clamp", () => {
+    const canvas = graphics.newCanvas(64, 64);
+    expect(canvas).not.toBeNull();
+    expect(canvas!.getWrap()).toEqual(["clamp", "clamp"]);
+    canvas!.release();
+  });
+
+  test("image setWrap/getWrap round-trip", () => {
+    const canvas = graphics.newCanvas(64, 64);
+    expect(canvas).not.toBeNull();
+
+    canvas!.setWrap("repeat");
+    expect(canvas!.getWrap()).toEqual(["repeat", "repeat"]);
+
+    canvas!.setWrap("clamp", "repeat");
+    expect(canvas!.getWrap()).toEqual(["clamp", "repeat"]);
+
+    canvas!.setWrap("mirroredrepeat", "clampzero");
+    expect(canvas!.getWrap()).toEqual(["mirroredrepeat", "clampzero"]);
+
+    canvas!.setWrap("clamp");
+    expect(canvas!.getWrap()).toEqual(["clamp", "clamp"]);
+    canvas!.release();
+  });
+
   // --- Clear with color ---
 
   test("clear with color args doesn't throw", () => {

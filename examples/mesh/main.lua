@@ -1,8 +1,10 @@
 -- love2d equivalent of the mesh example
--- Demonstrates: colored triangle, textured quad, vertex map, draw modes, transforms
+-- Demonstrates: colored triangle, textured quad, vertex map, draw modes, transforms, wrap mode
+-- Press W to toggle wrap mode on the tiling quad (clamp vs repeat)
 
-local triMesh, quadMesh, starMesh, stripMesh
+local triMesh, quadMesh, starMesh, stripMesh, tileMesh
 local canvas
+local wrapRepeat = false
 local time = 0
 
 function love.load()
@@ -61,6 +63,15 @@ function love.load()
     table.insert(stripVerts, {x, yOff, 0, 0, t, 0.5 + t * 0.5, 1 - t, 1})
   end
   stripMesh = love.graphics.newMesh(stripVerts, "strip")
+
+  -- 5b. Tiling textured quad — UVs go to 3x3, wrap mode toggleable
+  tileMesh = love.graphics.newMesh(4, "triangles")
+  tileMesh:setVertex(1, 0, 0, 0, 0, 1, 1, 1, 1)
+  tileMesh:setVertex(2, 150, 0, 3, 0, 1, 1, 1, 1)
+  tileMesh:setVertex(3, 150, 150, 3, 3, 1, 1, 1, 1)
+  tileMesh:setVertex(4, 0, 150, 0, 3, 1, 1, 1, 1)
+  tileMesh:setVertexMap(1, 2, 3, 1, 3, 4)
+  tileMesh:setTexture(canvas)
 end
 
 function love.update(dt)
@@ -99,7 +110,12 @@ function love.draw()
   love.graphics.print("Triangle Strip", 20, 290)
   love.graphics.draw(stripMesh, 20, 320)
 
-  -- 5. Dynamic mesh — sine wave
+  -- 5b. Tiling quad with wrap mode toggle
+  local wrapLabel = wrapRepeat and "repeat" or "clamp"
+  love.graphics.print("Tiling Quad — wrap: " .. wrapLabel .. " (W to toggle)", 320, 230)
+  love.graphics.draw(tileMesh, 350, 250)
+
+  -- 6. Dynamic mesh — sine wave
   love.graphics.print("Dynamic Sine Wave (strip)", 20, 400)
   local dynMesh = love.graphics.newMesh(40, "strip")
   for i = 0, 19 do
@@ -117,6 +133,10 @@ function love.draw()
 end
 
 function love.keypressed(key)
+  if key == "w" then
+    wrapRepeat = not wrapRepeat
+    canvas:setWrap(wrapRepeat and "repeat" or "clamp")
+  end
   if key == "escape" then
     love.event.quit()
   end

@@ -472,6 +472,11 @@ const { symbols: sdl } = dlopen(libPath("SDL3", "SDL3"), {
     args: [FFIType.pointer, FFIType.i32],
     returns: FFIType.bool,
   },
+  // bool SDL_SetRenderTextureAddressMode(SDL_Renderer* renderer, SDL_TextureAddressMode u, SDL_TextureAddressMode v)
+  SDL_SetRenderTextureAddressMode: {
+    args: [FFIType.pointer, FFIType.i32, FFIType.i32],
+    returns: FFIType.bool,
+  },
 
   // bool SDL_UpdateTexture(SDL_Texture* texture, const SDL_Rect* rect, const void* pixels, int pitch)
   SDL_UpdateTexture: {

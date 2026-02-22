@@ -146,6 +146,11 @@ export const SDL_TEXTUREACCESS_TARGET = 2;
 export const SDL_SCALEMODE_NEAREST = 0;
 export const SDL_SCALEMODE_LINEAR = 1;
 
+/** SDL_TextureAddressMode constants */
+export const SDL_TEXTURE_ADDRESS_AUTO = 0;
+export const SDL_TEXTURE_ADDRESS_CLAMP = 1;
+export const SDL_TEXTURE_ADDRESS_WRAP = 2;
+
 /** SDL_RendererLogicalPresentation constants */
 export const SDL_LOGICAL_PRESENTATION_DISABLED = 0;
 export const SDL_LOGICAL_PRESENTATION_STRETCH = 1;
