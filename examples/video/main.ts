@@ -10,8 +10,11 @@
 // Video format: MPEG-1 (.mpg) — convert with:
 //   ffmpeg -i input.mp4 -c:v mpeg1video -c:a mp2 -b:v 2M -b:a 192k output.mpg
 
+import { join } from "path";
 import * as jove from "../../src/jove/index.ts";
 import type { Video } from "../../src/jove/video.ts";
+
+const DIR = import.meta.dir;
 
 let video: Video | null = null;
 let statusMsg = "";
@@ -26,8 +29,8 @@ jove.run({
   load() {
     jove.window.setTitle("jove2d — Video Playback");
 
-    // Try to load a video file
-    const path = "examples/video/sample.mpg";
+    // Try to load a video file (use absolute path so it works from any cwd)
+    const path = join(DIR, "sample.mpg");
     video = jove.graphics.newVideo(path);
     if (video) {
       video.play();
