@@ -1,5 +1,6 @@
 
 Never run `sudo` commands directly. Always prompt the user to run them in a separate terminal.
+Never run git push/pull/fetch or any GitHub operations (gh, tokens) directly. Suggest the command and prompt the user to run it in a separate terminal.
 
 Default to using Bun instead of Node.js.
 
