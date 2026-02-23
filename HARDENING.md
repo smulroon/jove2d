@@ -12,7 +12,7 @@ Stability and release-readiness tracking for jove2d. For feature status see `PRI
 **Test suite**: 689 tests across 30 files, all passing (17 skip for optional libs).
 Run headless via `SDL_VIDEODRIVER=dummy bun test`.
 
-**Visual verification**: 12/27 examples verified pixel-match against love2d.
+**Visual verification**: 27/27 examples verified against love2d (including joystick on Windows).
 
 ## Completed Hardening
 
@@ -52,8 +52,8 @@ Critical fixes already shipped, roughly ordered by severity:
 
 - [ ] Windows native testing (run tests + examples on real Windows with Bun)
 - [ ] Visual regression automation (screenshot comparison tool exists at `tools/compare-images.ts`)
-- [ ] Verify remaining 15 examples against love2d
-- [ ] Joystick testing with real hardware (needs non-WSL Linux or Windows)
+- [x] ~~Verify remaining 15 examples against love2d~~ — all 27 verified
+- [x] ~~Joystick testing with real hardware~~ — tested on Windows
 
 ### Larger items
 
