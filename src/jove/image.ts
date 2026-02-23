@@ -213,7 +213,7 @@ function _createImageData(data: Uint8Array, width: number, height: number): Imag
       }
 
       // Encode to temp file and read back
-      const tmp = `/tmp/jove2d-encode-${Date.now()}.${format}`;
+      const tmp = require("path").join(require("os").tmpdir(), `jove2d-encode-${Date.now()}.${format}`);
       const pathBuf = Buffer.from(tmp + "\0");
       const ok = format === "bmp"
         ? sdl.SDL_SaveBMP(surface, pathBuf)
