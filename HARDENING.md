@@ -52,6 +52,7 @@ Critical fixes already shipped, roughly ordered by severity:
 
 - [ ] Windows native testing (run tests + examples on real Windows with Bun)
 - [ ] Visual regression automation (screenshot comparison tool exists at `tools/compare-images.ts`)
+- [ ] Fix ~570 TypeScript strictness errors (`bun run typecheck`) — mostly `noUncheckedIndexedAccess` array access and `Pointer` type narrowing, not runtime bugs
 - [x] ~~Verify remaining 15 examples against love2d~~ — all 27 verified
 - [x] ~~Joystick testing with real hardware~~ — tested on Windows
 
