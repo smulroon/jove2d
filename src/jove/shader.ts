@@ -205,7 +205,7 @@ export function transpileFragmentShader(loveGLSL: string): TranspileResult {
 // Check if glslangValidator CLI is available (cached)
 let _cliAvailable: boolean | null = null;
 
-function _hasGlslangCLI(): boolean {
+export function _hasGlslangCLI(): boolean {
   if (_cliAvailable !== null) return _cliAvailable;
   try {
     const result = Bun.spawnSync(["glslangValidator", "--version"]);

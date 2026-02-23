@@ -1,5 +1,7 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { init, quit, window, graphics, image } from "../src/jove/index.ts";
 import { _createRenderer } from "../src/jove/graphics.ts";
 import { loadImage } from "../src/sdl/ffi_image.ts";
@@ -162,26 +164,28 @@ describe("jove.image.ImageData.paste", () => {
 });
 
 describe("jove.image.ImageData.encode", () => {
+  const TMP_PNG = join(tmpdir(), "jove2d-test-imagedata.png");
+  const TMP_BMP = join(tmpdir(), "jove2d-test-imagedata.bmp");
+
   afterEach(() => {
     quit();
-    const files = ["/tmp/jove2d-test-imagedata.png", "/tmp/jove2d-test-imagedata.bmp"];
-    for (const f of files) { try { unlinkSync(f); } catch {} }
+    for (const f of [TMP_PNG, TMP_BMP]) { try { unlinkSync(f); } catch {} }
   });
 
   test("encode to PNG file", () => {
     init();
     const d = image.newImageData(8, 8)!;
     d.mapPixel(() => [255, 0, 0, 255]);
-    d.encode("png", "/tmp/jove2d-test-imagedata.png");
-    expect(existsSync("/tmp/jove2d-test-imagedata.png")).toBe(true);
+    d.encode("png", TMP_PNG);
+    expect(existsSync(TMP_PNG)).toBe(true);
   });
 
   test("encode to BMP file", () => {
     init();
     const d = image.newImageData(8, 8)!;
     d.mapPixel(() => [0, 255, 0, 255]);
-    d.encode("bmp", "/tmp/jove2d-test-imagedata.bmp");
-    expect(existsSync("/tmp/jove2d-test-imagedata.bmp")).toBe(true);
+    d.encode("bmp", TMP_BMP);
+    expect(existsSync(TMP_BMP)).toBe(true);
   });
 
   test("encode to PNG returns bytes", () => {
@@ -215,12 +219,13 @@ describe("jove.image.newImageData from file", () => {
 
   test("loads BMP file", () => {
     init();
+    const tmpBmp = join(tmpdir(), "jove2d-test-load.bmp");
     // Create a test BMP first
     const src = image.newImageData(4, 4)!;
     src.mapPixel(() => [100, 150, 200, 255]);
-    src.encode("bmp", "/tmp/jove2d-test-load.bmp");
+    src.encode("bmp", tmpBmp);
 
-    const loaded = image.newImageData("/tmp/jove2d-test-load.bmp");
+    const loaded = image.newImageData(tmpBmp);
     expect(loaded).not.toBeNull();
     expect(loaded!.width).toBe(4);
     expect(loaded!.height).toBe(4);
@@ -229,7 +234,7 @@ describe("jove.image.newImageData from file", () => {
     expect(g).toBe(150);
     expect(b).toBe(200);
     expect(a).toBe(255);
-    try { unlinkSync("/tmp/jove2d-test-load.bmp"); } catch {}
+    try { unlinkSync(tmpBmp); } catch {}
   });
 
   test("returns null for nonexistent file", () => {
@@ -240,11 +245,12 @@ describe("jove.image.newImageData from file", () => {
   if (sdlImageAvailable) {
     test("loads PNG file", () => {
       init();
+      const tmpPng = join(tmpdir(), "jove2d-test-load.png");
       const src = image.newImageData(8, 8)!;
       src.mapPixel(() => [50, 100, 200, 255]);
-      src.encode("png", "/tmp/jove2d-test-load.png");
+      src.encode("png", tmpPng);
 
-      const loaded = image.newImageData("/tmp/jove2d-test-load.png");
+      const loaded = image.newImageData(tmpPng);
       expect(loaded).not.toBeNull();
       expect(loaded!.width).toBe(8);
       expect(loaded!.height).toBe(8);
@@ -253,7 +259,7 @@ describe("jove.image.newImageData from file", () => {
       expect(g).toBe(100);
       expect(b).toBe(200);
       expect(a).toBe(255);
-      try { unlinkSync("/tmp/jove2d-test-load.png"); } catch {}
+      try { unlinkSync(tmpPng); } catch {}
     });
   }
 });

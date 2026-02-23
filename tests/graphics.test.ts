@@ -1,11 +1,13 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { init, quit, window, graphics, math } from "../src/jove/index.ts";
 import { _flushCaptures, _createRenderer, _destroyRenderer } from "../src/jove/graphics.ts";
 import type { ImageData } from "../src/jove/types.ts";
 
-const TMP_PNG = "/tmp/jove2d-test-screenshot.png";
-const TMP_BMP = "/tmp/jove2d-test-screenshot.bmp";
+const TMP_PNG = join(tmpdir(), "jove2d-test-screenshot.png");
+const TMP_BMP = join(tmpdir(), "jove2d-test-screenshot.bmp");
 
 function cleanup(...paths: string[]) {
   for (const p of paths) {
@@ -75,14 +77,15 @@ describe("jove.graphics.captureScreenshot", () => {
   test("no window does not throw", () => {
     init();
     // No window/renderer created
-    graphics.captureScreenshot("/tmp/jove2d-should-not-exist.png");
+    const noExistPath = join(tmpdir(), "jove2d-should-not-exist.png");
+    graphics.captureScreenshot(noExistPath);
     expect(() => _flushCaptures()).not.toThrow();
-    expect(existsSync("/tmp/jove2d-should-not-exist.png")).toBe(false);
+    expect(existsSync(noExistPath)).toBe(false);
   });
 
   test("file capture defaults to PNG for unknown extension", () => {
     setupWindowAndRenderer();
-    const path = "/tmp/jove2d-test-screenshot.xyz";
+    const path = join(tmpdir(), "jove2d-test-screenshot.xyz");
     cleanup(path);
 
     graphics.captureScreenshot(path);

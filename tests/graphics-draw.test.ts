@@ -1,5 +1,7 @@
 import { describe, test, expect, afterEach } from "bun:test";
 import { existsSync, unlinkSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { init, quit, window, graphics } from "../src/jove/index.ts";
 import {
   _createRenderer,
@@ -91,7 +93,7 @@ describe("jove.graphics renderer + drawing", () => {
 
   test("captureScreenshot still works with renderer", () => {
     setupWindowAndRenderer();
-    const path = "/tmp/jove2d-draw-test-screenshot.png";
+    const path = join(tmpdir(), "jove2d-draw-test-screenshot.png");
     if (existsSync(path)) unlinkSync(path);
 
     graphics.captureScreenshot(path);

@@ -6,6 +6,7 @@ import * as graphics from "../src/jove/graphics.ts";
 import {
   transpileFragmentShader,
   compileGLSLToSPIRV,
+  _hasGlslangCLI,
 } from "../src/jove/shader.ts";
 import type { Shader } from "../src/jove/shader.ts";
 
@@ -174,7 +175,10 @@ void main() { o_color = v_color; }`;
 // ============================================================
 
 describe("SPIR-V compilation", () => {
+  const hasGlslang = _hasGlslangCLI();
+
   test("compiles valid Vulkan GLSL 450 to SPIR-V", async () => {
+    if (!hasGlslang) return; // skip — glslangValidator not installed
     const glsl = `#version 450
 layout(location = 0) in vec4 v_color;
 layout(location = 1) in vec2 v_uv;
@@ -193,6 +197,7 @@ void main() {
   });
 
   test("compiles transpiled love2d shader to SPIR-V", async () => {
+    if (!hasGlslang) return; // skip — glslangValidator not installed
     const { glsl450 } = transpileFragmentShader(`
       extern float time;
       vec4 effect(vec4 color, Image tex, vec2 tc, vec2 sc) {
@@ -208,6 +213,7 @@ void main() {
   });
 
   test("rejects invalid GLSL", async () => {
+    if (!hasGlslang) return; // skip — glslangValidator not installed
     const glsl = `#version 450
 void main() { invalid_syntax; }`;
     await expect(compileGLSLToSPIRV(glsl)).rejects.toThrow();
