@@ -16,7 +16,7 @@ Run headless via `SDL_VIDEODRIVER=dummy bun test`.
 
 ## Completed Hardening
 
-Critical fixes already shipped, roughly ordered by severity:
+Critical fixes already shipped, roughly ordered by severity. For detailed patterns and code examples, see [`docs/bun-ffi-best-practices.md`](docs/bun-ffi-best-practices.md).
 
 1. **Benchmark crash (Bun FFI u64 bug)** — Segfault at ~50% rate under high FFI volume. Fixed by moving body/shape IDs to C-side static arrays (JS uses `int` indices, not `u64` BigInt) and combining 650 FFI calls/frame into 1 (`jove_World_UpdateFull2`). See `docs/benchmark-crash-investigation.md`.
 
