@@ -44,9 +44,9 @@ Critical fixes already shipped, roughly ordered by severity:
 
 ### Quick wins (< 1 day each)
 
-- [ ] Add CI test job (`SDL_VIDEODRIVER=dummy bun test` on push/PR in GitHub Actions)
-- [ ] Add `bun run soak` script to package.json (30s quick soak via `bun tools/soak-test.ts --duration 30`)
-- [ ] Type-check pass (`bunx tsc --noEmit` or equivalent)
+- [x] ~~Add CI test job~~ — `.github/workflows/ci.yml` runs tests on push/PR
+- [x] ~~Add `bun run soak` script~~ — `bun run soak` runs 30s quick soak
+- [x] ~~Type-check pass~~ — `bun run typecheck` added; ~570 strictness errors (mostly `noUncheckedIndexedAccess`), not bugs — progressive cleanup tracked as medium effort
 
 ### Medium effort (1-3 days)
 

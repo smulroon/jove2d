@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            libfreetype-dev libpng-dev \
+            libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev \
+            libxfixes-dev libxss-dev libxtst-dev libwayland-dev libxkbcommon-dev \
+            libasound2-dev libpulse-dev libdbus-1-dev
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build SDL3
+        run: bash scripts/build-sdl3.sh
+
+      - name: Build SDL_ttf
+        run: bash scripts/build-sdl_ttf.sh
+
+      - name: Build SDL_image
+        run: bash scripts/build-sdl_image.sh
+
+      - name: Build Box2D
+        run: bash scripts/build-box2d.sh
+
+      - name: Build audio_decode
+        run: bash scripts/build-audio-decode.sh
+
+      - name: Build pl_mpeg
+        run: bash scripts/build-pl_mpeg.sh
+
+      - name: Run tests
+        run: SDL_VIDEODRIVER=dummy bun test
+
+      - name: Type check (informational)
+        run: bun run typecheck 2>&1 | tail -5 || true

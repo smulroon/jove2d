@@ -33,7 +33,9 @@
     "build-audio-decode": "bash scripts/build-audio-decode.sh",
     "build-pl_mpeg": "bash scripts/build-pl_mpeg.sh",
     "build-windows": "bash scripts/build-windows.sh",
-    "package-release": "bash scripts/package-release.sh"
+    "package-release": "bash scripts/package-release.sh",
+    "soak": "SDL_VIDEODRIVER=dummy bun tools/soak-test.ts --duration 30",
+    "typecheck": "bunx tsc --noEmit"
   },
   "type": "module"
 }
