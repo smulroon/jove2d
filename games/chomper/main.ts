@@ -153,14 +153,14 @@ function isWall(gx: number, gy: number): boolean {
   if (gy < 0 || gy >= ROWS) return true;
   // Tunnel wrap
   if (gx < 0 || gx >= COLS) return false;
-  const ch = maze[gy][gx];
+  const ch = maze[gy]![gx];
   return ch === "#" || ch === "-" || ch === "G";
 }
 
 function isWallForGhost(gx: number, gy: number, ghost: Ghost): boolean {
   if (gy < 0 || gy >= ROWS) return true;
   if (gx < 0 || gx >= COLS) return false;
-  const ch = maze[gy][gx];
+  const ch = maze[gy]![gx];
   if (ch === "#") return true;
   // Ghosts can pass through door when exiting or eaten
   if (ch === "-") return ghost.mode !== "eaten" && ghost.exitTimer > 0;
@@ -184,9 +184,9 @@ function resetMaze() {
   dots = 0;
   totalDots = 0;
   for (let r = 0; r < ROWS; r++) {
-    maze.push([...MAZE_TEMPLATE[r]]);
+    maze.push([...MAZE_TEMPLATE[r]!]);
     for (let c = 0; c < COLS; c++) {
-      if (maze[r][c] === "." || maze[r][c] === "o") totalDots++;
+      if (maze[r]![c] === "." || maze[r]![c] === "o") totalDots++;
     }
   }
   dots = 0;
@@ -251,7 +251,7 @@ function ghostTarget(g: Ghost): [number, number] {
     return [pacX + DIR_DX[pacDir] * 4, pacY + DIR_DY[pacDir] * 4];
   } else if (g.colorIdx === 2) {
     // Inky: complex — uses Blinky's position
-    const blinky = ghosts[0];
+    const blinky = ghosts[0]!;
     const ax = pacX + DIR_DX[pacDir] * 2;
     const ay = pacY + DIR_DY[pacDir] * 2;
     return [ax + (ax - Math.floor(blinky.x)), ay + (ay - Math.floor(blinky.y))];
@@ -362,7 +362,7 @@ await jove.run({
     // Ghost mode timer (scatter/chase alternation)
     if (frightenedTimer <= 0) {
       ghostModeTimer += dt;
-      if (modePhase < MODE_TIMES.length && ghostModeTimer >= MODE_TIMES[modePhase]) {
+      if (modePhase < MODE_TIMES.length && ghostModeTimer >= MODE_TIMES[modePhase]!) {
         ghostModeTimer = 0;
         modePhase++;
         globalGhostMode = modePhase % 2 === 0 ? "scatter" : "chase";
@@ -408,13 +408,13 @@ await jove.run({
         else if (pacX >= COLS) pacX = 0;
 
         // Eat dot
-        if (maze[pacY][pacX] === ".") {
-          maze[pacY][pacX] = " ";
+        if (maze[pacY]![pacX] === ".") {
+          maze[pacY]![pacX] = " ";
           dots++;
           score += 10;
           playPool(chompPool, sndChomp, 4);
-        } else if (maze[pacY][pacX] === "o") {
-          maze[pacY][pacX] = " ";
+        } else if (maze[pacY]![pacX] === "o") {
+          maze[pacY]![pacX] = " ";
           dots++;
           score += 50;
           // Power pellet — frighten ghosts
@@ -500,7 +500,7 @@ await jove.run({
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const sx = MAZE_X + c * CELL, sy = MAZE_Y + r * CELL;
-        const ch = maze[r][c];
+        const ch = maze[r]![c];
         if (ch === "#") {
           jove.graphics.setColor(33, 33, 255);
           jove.graphics.rectangle("fill", sx, sy, CELL, CELL);
@@ -589,7 +589,7 @@ await jove.run({
           jove.graphics.setColor(33, 33, 255);
         }
       } else {
-        const [cr, cg, cb] = GHOST_COLORS[g.colorIdx];
+        const [cr, cg, cb] = GHOST_COLORS[g.colorIdx]!;
         jove.graphics.setColor(cr, cg, cb);
       }
 

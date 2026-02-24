@@ -44,22 +44,22 @@ describe("shader transpiler", () => {
     expect(result.uniforms).toHaveLength(3);
 
     // float: offset 0, size 4, align 4
-    expect(result.uniforms[0].name).toBe("time");
-    expect(result.uniforms[0].type).toBe("float");
-    expect(result.uniforms[0].offset).toBe(0);
-    expect(result.uniforms[0].size).toBe(4);
+    expect(result.uniforms[0]!.name).toBe("time");
+    expect(result.uniforms[0]!.type).toBe("float");
+    expect(result.uniforms[0]!.offset).toBe(0);
+    expect(result.uniforms[0]!.size).toBe(4);
 
     // vec2: align 8, so offset 8 (not 4)
-    expect(result.uniforms[1].name).toBe("resolution");
-    expect(result.uniforms[1].type).toBe("vec2");
-    expect(result.uniforms[1].offset).toBe(8);
-    expect(result.uniforms[1].size).toBe(8);
+    expect(result.uniforms[1]!.name).toBe("resolution");
+    expect(result.uniforms[1]!.type).toBe("vec2");
+    expect(result.uniforms[1]!.offset).toBe(8);
+    expect(result.uniforms[1]!.size).toBe(8);
 
     // vec4: align 16, so offset 16
-    expect(result.uniforms[2].name).toBe("tint");
-    expect(result.uniforms[2].type).toBe("vec4");
-    expect(result.uniforms[2].offset).toBe(16);
-    expect(result.uniforms[2].size).toBe(16);
+    expect(result.uniforms[2]!.name).toBe("tint");
+    expect(result.uniforms[2]!.type).toBe("vec4");
+    expect(result.uniforms[2]!.offset).toBe(16);
+    expect(result.uniforms[2]!.size).toBe(16);
 
     // Uniform block in output
     expect(result.glsl450).toContain("layout(std140, set = 3, binding = 0) uniform Uniforms");

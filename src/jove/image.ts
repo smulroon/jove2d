@@ -90,11 +90,12 @@ function _loadImageData(filepath: string): ImageData | null {
   let rgba = surface;
   let needsFree = false;
   if (formatVal !== SDL_PIXELFORMAT_ABGR8888) {
-    rgba = sdl.SDL_ConvertSurface(surface, SDL_PIXELFORMAT_ABGR8888) as Pointer | null;
-    if (!rgba) {
+    const converted = sdl.SDL_ConvertSurface(surface, SDL_PIXELFORMAT_ABGR8888) as Pointer | null;
+    if (!converted) {
       sdl.SDL_DestroySurface(surface);
       return null;
     }
+    rgba = converted;
     needsFree = true;
   }
 
@@ -112,16 +113,17 @@ function _loadImageData(filepath: string): ImageData | null {
 
   let data: Uint8Array;
   if (pixelsPtr) {
+    const pxPtr = pixelsPtr as unknown as Pointer;
     const rowBytes = w * 4;
     if (pitch === rowBytes) {
       // Tightly packed — single copy
-      const rawBuf = toArrayBuffer(pixelsPtr, 0, rowBytes * h);
+      const rawBuf = toArrayBuffer(pxPtr, 0, rowBytes * h);
       data = new Uint8Array(rawBuf.slice(0));
     } else {
       // Pitch differs — copy row by row
       data = new Uint8Array(rowBytes * h);
       for (let row = 0; row < h; row++) {
-        const rowBuf = toArrayBuffer(pixelsPtr, row * pitch, rowBytes);
+        const rowBuf = toArrayBuffer(pxPtr, row * pitch, rowBytes);
         data.set(new Uint8Array(rowBuf), row * rowBytes);
       }
     }
@@ -145,7 +147,7 @@ function _createImageData(data: Uint8Array, width: number, height: number): Imag
 
     getPixel(x: number, y: number): [number, number, number, number] {
       const i = (y * width + x) * 4;
-      return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+      return [data[i]!, data[i + 1]!, data[i + 2]!, data[i + 3]!];
     },
 
     setPixel(x: number, y: number, r: number, g: number, b: number, a: number): void {
@@ -164,7 +166,7 @@ function _createImageData(data: Uint8Array, width: number, height: number): Imag
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
-          const [r, g, b, a] = fn(x, y, data[i], data[i + 1], data[i + 2], data[i + 3]);
+          const [r, g, b, a] = fn(x, y, data[i]!, data[i + 1]!, data[i + 2]!, data[i + 3]!);
           data[i] = r;
           data[i + 1] = g;
           data[i + 2] = b;
@@ -186,10 +188,10 @@ function _createImageData(data: Uint8Array, width: number, height: number): Imag
           if (dstX < 0 || dstX >= width || srcX < 0 || srcX >= source.width) continue;
           const si = (srcY * source.width + srcX) * 4;
           const di = (dstY * width + dstX) * 4;
-          data[di] = source.data[si];
-          data[di + 1] = source.data[si + 1];
-          data[di + 2] = source.data[si + 2];
-          data[di + 3] = source.data[si + 3];
+          data[di] = source.data[si]!;
+          data[di + 1] = source.data[si + 1]!;
+          data[di + 2] = source.data[si + 2]!;
+          data[di + 3] = source.data[si + 3]!;
         }
       }
     },

@@ -64,7 +64,7 @@ await jove.run({
   draw() {
     jove.graphics.setColor(255, 255, 255);
     for (let i = 0; i < lines.length; i++) {
-      jove.graphics.print(lines[i], 10, 10 + i * 18);
+      jove.graphics.print(lines[i]!, 10, 10 + i * 18);
     }
   },
 

@@ -20,7 +20,7 @@ let duration = 600;
 let verbose = false;
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--duration" && args[i + 1]) {
-    duration = parseInt(args[i + 1], 10);
+    duration = parseInt(args[i + 1]!, 10);
     i++;
   } else if (args[i] === "--verbose") {
     verbose = true;
@@ -65,10 +65,10 @@ function linearRegression(xs: number[], ys: number[]): { slope: number; r2: numb
   if (n < 2) return { slope: 0, r2: 0 };
   let sx = 0, sy = 0, sxy = 0, sxx = 0, syy = 0;
   for (let i = 0; i < n; i++) {
-    sx += xs[i]; sy += ys[i];
-    sxy += xs[i] * ys[i];
-    sxx += xs[i] * xs[i];
-    syy += ys[i] * ys[i];
+    sx += xs[i]!; sy += ys[i]!;
+    sxy += xs[i]! * ys[i]!;
+    sxx += xs[i]! * xs[i]!;
+    syy += ys[i]! * ys[i]!;
   }
   const denom = n * sxx - sx * sx;
   if (denom === 0) return { slope: 0, r2: 0 };
@@ -323,7 +323,7 @@ await jove.run({
     jove.graphics.setColor(100, 200, 100);
     jove.graphics.line(-50, -50, 50, 50);
     jove.graphics.setColor(200, 200, 100);
-    jove.graphics.polygon("fill", [0, -40, 30, 20, -30, 20]);
+    jove.graphics.polygon("fill", 0, -40, 30, 20, -30, 20);
     jove.graphics.pop();
 
     // Draw physics bodies
@@ -361,7 +361,7 @@ await jove.run({
 // Analysis — runs after jove.run() returns (engine cleaned up)
 // ===================================================================
 
-const totalElapsed = endTime > 0 ? endTime - startTime : (samples.length > 0 ? samples[samples.length - 1].elapsed : 0);
+const totalElapsed = endTime > 0 ? endTime - startTime : (samples.length > 0 ? samples[samples.length - 1]!.elapsed : 0);
 const avgFps = samples.length > 0 ? samples.reduce((s, x) => s + x.fps, 0) / samples.length : 0;
 
 // Minimum samples for regression analysis (20 samples = 100s of runtime).
@@ -383,8 +383,8 @@ if (samples.length >= MIN_REGRESSION_SAMPLES) {
   const ys = samples.slice(half).map(s => s.rss / 1048576); // MB
   const { slope, r2 } = linearRegression(xs, ys);
   const slopePerMin = slope * 60; // MB/min
-  const startMB = (samples[0].rss / 1048576).toFixed(0);
-  const endMB = (samples[samples.length - 1].rss / 1048576).toFixed(0);
+  const startMB = (samples[0]!.rss / 1048576).toFixed(0);
+  const endMB = (samples[samples.length - 1]!.rss / 1048576).toFixed(0);
   const memPass = !(slopePerMin > 1 && r2 > 0.7);
   const status = memPass ? "PASS" : "FAIL";
   if (memPass) passed++;
@@ -402,8 +402,8 @@ if (samples.length >= MIN_REGRESSION_SAMPLES) {
   const ys = samples.slice(half).map(s => s.heapUsed / 1048576);
   const { slope, r2 } = linearRegression(xs, ys);
   const slopePerMin = slope * 60;
-  const startMB = (samples[0].heapUsed / 1048576).toFixed(0);
-  const endMB = (samples[samples.length - 1].heapUsed / 1048576).toFixed(0);
+  const startMB = (samples[0]!.heapUsed / 1048576).toFixed(0);
+  const endMB = (samples[samples.length - 1]!.heapUsed / 1048576).toFixed(0);
   const heapPass = !(slopePerMin > 2 && r2 > 0.7);
   const status = heapPass ? "PASS" : "FAIL";
   if (heapPass) passed++;

@@ -242,7 +242,7 @@ await jove.run({
       alienShootTimer = 0;
       const bottom = getBottomAliens();
       if (bottom.length > 0) {
-        const idx = bottom[Math.floor(Math.random() * bottom.length)];
+        const idx = bottom[Math.floor(Math.random() * bottom.length)]!;
         const [ax, ay] = alienPos(idx);
         alienBullets.push({ x: ax + ALIEN_W / 2, y: ay + ALIEN_H, vy: 250 });
       }
@@ -250,7 +250,7 @@ await jove.run({
 
     // Update player bullets
     for (let i = playerBullets.length - 1; i >= 0; i--) {
-      const b = playerBullets[i];
+      const b = playerBullets[i]!;
       b.y += b.vy * dt;
       if (b.y < -10) { playerBullets.splice(i, 1); continue; }
 
@@ -262,7 +262,7 @@ await jove.run({
         if (b.x >= ax && b.x <= ax + ALIEN_W && b.y >= ay && b.y <= ay + ALIEN_H) {
           aliens[ai] = false;
           const row = Math.floor(ai / ALIEN_COLS);
-          score += ROW_POINTS[row];
+          score += ROW_POINTS[row]!;
           if (score > highScore) highScore = score;
           playPool(explodePool, sndExplode, 6);
           playerBullets.splice(i, 1);
@@ -275,7 +275,7 @@ await jove.run({
       // Hit shield?
       for (const shield of shields) {
         for (let si = shield.length - 1; si >= 0; si--) {
-          const s = shield[si];
+          const s = shield[si]!;
           if (b.x >= s.x && b.x <= s.x + SHIELD_BLOCK_SIZE &&
               b.y >= s.y && b.y <= s.y + SHIELD_BLOCK_SIZE) {
             s.hp--;
@@ -291,7 +291,7 @@ await jove.run({
 
     // Update alien bullets
     for (let i = alienBullets.length - 1; i >= 0; i--) {
-      const b = alienBullets[i];
+      const b = alienBullets[i]!;
       b.y += b.vy * dt;
       if (b.y > H + 10) { alienBullets.splice(i, 1); continue; }
 
@@ -312,7 +312,7 @@ await jove.run({
       let hit = false;
       for (const shield of shields) {
         for (let si = shield.length - 1; si >= 0; si--) {
-          const s = shield[si];
+          const s = shield[si]!;
           if (b.x >= s.x && b.x <= s.x + SHIELD_BLOCK_SIZE &&
               b.y >= s.y && b.y <= s.y + SHIELD_BLOCK_SIZE) {
             s.hp--;
@@ -381,7 +381,7 @@ await jove.run({
       if (!aliens[i]) continue;
       const row = Math.floor(i / ALIEN_COLS);
       const [ax, ay] = alienPos(i);
-      const [cr, cg, cb] = ALIEN_COLORS[row];
+      const [cr, cg, cb] = ALIEN_COLORS[row]!;
       jove.graphics.setColor(cr, cg, cb);
       jove.graphics.rectangle("fill", ax + 2, ay + 2, ALIEN_W - 4, ALIEN_H - 4);
       // Detail: eyes

@@ -598,7 +598,7 @@ export function newSpriteBatch(image: Image, maxSprites: number = 1000): SpriteB
 
     const base = spriteIndex * FLOATS_PER_SPRITE;
     for (let i = 0; i < 4; i++) {
-      const [cx, cy] = corners[i];
+      const [cx, cy] = corners[i]!;
       const scx = cx * sx;
       const scy = cy * sy;
       const rx = scx * cos - scy * sin + x;
@@ -611,8 +611,8 @@ export function newSpriteBatch(image: Image, maxSprites: number = 1000): SpriteB
       _vertexData[off + 3] = cg;
       _vertexData[off + 4] = cb;
       _vertexData[off + 5] = ca;
-      _vertexData[off + 6] = uvs[i][0];
-      _vertexData[off + 7] = uvs[i][1];
+      _vertexData[off + 6] = uvs[i]![0];
+      _vertexData[off + 7] = uvs[i]![1];
     }
   }
 
@@ -758,14 +758,14 @@ export function newMesh(
     for (let i = 0; i < _vertexCount; i++) {
       const v = verticesOrCount[i];
       const base = i * MESH_FLOATS_PER_VERTEX;
-      _vertexData[base + 0] = v[0]; // x
-      _vertexData[base + 1] = v[1]; // y
-      _vertexData[base + 2] = v[4] ?? 1; // r (love2d: index 4 = r)
-      _vertexData[base + 3] = v[5] ?? 1; // g
-      _vertexData[base + 4] = v[6] ?? 1; // b
-      _vertexData[base + 5] = v[7] ?? 1; // a
-      _vertexData[base + 6] = v[2] ?? 0; // u (love2d: index 2 = u)
-      _vertexData[base + 7] = v[3] ?? 0; // v (love2d: index 3 = v)
+      _vertexData[base + 0] = v![0]; // x
+      _vertexData[base + 1] = v![1]; // y
+      _vertexData[base + 2] = v![4] ?? 1; // r (love2d: index 4 = r)
+      _vertexData[base + 3] = v![5] ?? 1; // g
+      _vertexData[base + 4] = v![6] ?? 1; // b
+      _vertexData[base + 5] = v![7] ?? 1; // a
+      _vertexData[base + 6] = v![2] ?? 0; // u (love2d: index 2 = u)
+      _vertexData[base + 7] = v![3] ?? 0; // v (love2d: index 3 = v)
     }
   }
 
@@ -800,7 +800,7 @@ export function newMesh(
         if (n < 3) return null;
         const count = Math.floor(n / 3) * 3;
         const indices = new Int32Array(count);
-        for (let i = 0; i < count; i++) indices[i] = sequence[i];
+        for (let i = 0; i < count; i++) indices[i] = sequence[i]!;
         return indices;
       }
       case "fan": {
@@ -808,9 +808,9 @@ export function newMesh(
         const triCount = n - 2;
         const indices = new Int32Array(triCount * 3);
         for (let i = 0; i < triCount; i++) {
-          indices[i * 3 + 0] = sequence[0];
-          indices[i * 3 + 1] = sequence[i + 1];
-          indices[i * 3 + 2] = sequence[i + 2];
+          indices[i * 3 + 0] = sequence[0]!;
+          indices[i * 3 + 1] = sequence[i + 1]!;
+          indices[i * 3 + 2] = sequence[i + 2]!;
         }
         return indices;
       }
@@ -820,13 +820,13 @@ export function newMesh(
         const indices = new Int32Array(triCount * 3);
         for (let i = 0; i < triCount; i++) {
           if (i % 2 === 0) {
-            indices[i * 3 + 0] = sequence[i];
-            indices[i * 3 + 1] = sequence[i + 1];
-            indices[i * 3 + 2] = sequence[i + 2];
+            indices[i * 3 + 0] = sequence[i]!;
+            indices[i * 3 + 1] = sequence[i + 1]!;
+            indices[i * 3 + 2] = sequence[i + 2]!;
           } else {
-            indices[i * 3 + 0] = sequence[i + 1];
-            indices[i * 3 + 1] = sequence[i];
-            indices[i * 3 + 2] = sequence[i + 2];
+            indices[i * 3 + 0] = sequence[i + 1]!;
+            indices[i * 3 + 1] = sequence[i]!;
+            indices[i * 3 + 2] = sequence[i + 2]!;
           }
         }
         return indices;
@@ -864,14 +864,14 @@ export function newMesh(
       if (i < 0 || i >= _vertexCount) return [0, 0, 0, 0, 1, 1, 1, 1];
       const base = i * MESH_FLOATS_PER_VERTEX;
       return [
-        _vertexData[base + 0], // x
-        _vertexData[base + 1], // y
-        _vertexData[base + 6], // u (returned in love2d order)
-        _vertexData[base + 7], // v
-        _vertexData[base + 2], // r
-        _vertexData[base + 3], // g
-        _vertexData[base + 4], // b
-        _vertexData[base + 5], // a
+        _vertexData[base + 0]!, // x
+        _vertexData[base + 1]!, // y
+        _vertexData[base + 6]!, // u (returned in love2d order)
+        _vertexData[base + 7]!, // v
+        _vertexData[base + 2]!, // r
+        _vertexData[base + 3]!, // g
+        _vertexData[base + 4]!, // b
+        _vertexData[base + 5]!, // a
       ];
     },
 
@@ -880,7 +880,7 @@ export function newMesh(
       for (let i = 0; i < vertices.length; i++) {
         const vi = start + i;
         if (vi >= _vertexCount) break;
-        const v = vertices[i];
+        const v = vertices[i]!;
         const base = vi * MESH_FLOATS_PER_VERTEX;
         _vertexData[base + 0] = v[0]; // x
         _vertexData[base + 1] = v[1]; // y
@@ -956,8 +956,8 @@ export function newMesh(
       const ai = attributeIndex - 1;
       if (ai < 0 || ai >= attrOffsets.length) return;
       const offsets = attrOffsets[ai];
-      for (let i = 0; i < Math.min(values.length, offsets.length); i++) {
-        _vertexData[base + offsets[i]] = values[i];
+      for (let i = 0; i < Math.min(values.length, offsets!.length); i++) {
+        _vertexData[base + offsets![i]!] = values[i]!;
       }
     },
 
@@ -972,7 +972,7 @@ export function newMesh(
       ];
       const ai = attributeIndex - 1;
       if (ai < 0 || ai >= attrOffsets.length) return [];
-      return attrOffsets[ai].map(off => _vertexData[base + off]);
+      return attrOffsets[ai]!.map(off => _vertexData[base + off]!) as number[];
     },
 
     getVertexCount(): number {
@@ -1021,16 +1021,16 @@ export function newMesh(
         const verts = new Float32Array(numVerts * MESH_FLOATS_PER_VERTEX);
         const idxs = new Int32Array(numIndices);
         for (let i = 0; i < n; i++) {
-          const si = sequence[i];
+          const si = sequence[i]!;
           const srcBase = si * MESH_FLOATS_PER_VERTEX;
-          const cx = _vertexData[srcBase + 0];
-          const cy = _vertexData[srcBase + 1];
-          const cr = _vertexData[srcBase + 2];
-          const cg = _vertexData[srcBase + 3];
-          const cb = _vertexData[srcBase + 4];
-          const ca = _vertexData[srcBase + 5];
-          const cu = _vertexData[srcBase + 6];
-          const cv = _vertexData[srcBase + 7];
+          const cx = _vertexData[srcBase + 0]!;
+          const cy = _vertexData[srcBase + 1]!;
+          const cr = _vertexData[srcBase + 2]!;
+          const cg = _vertexData[srcBase + 3]!;
+          const cb = _vertexData[srcBase + 4]!;
+          const ca = _vertexData[srcBase + 5]!;
+          const cu = _vertexData[srcBase + 6]!;
+          const cv = _vertexData[srcBase + 7]!;
           // 4 corners of point quad
           const corners: [number, number][] = [
             [cx - hp, cy - hp], [cx + hp, cy - hp],
@@ -1038,8 +1038,8 @@ export function newMesh(
           ];
           for (let j = 0; j < 4; j++) {
             const dstBase = (i * 4 + j) * MESH_FLOATS_PER_VERTEX;
-            verts[dstBase + 0] = corners[j][0];
-            verts[dstBase + 1] = corners[j][1];
+            verts[dstBase + 0] = corners[j]![0];
+            verts[dstBase + 1] = corners[j]![1];
             verts[dstBase + 2] = cr;
             verts[dstBase + 3] = cg;
             verts[dstBase + 4] = cb;
@@ -1146,8 +1146,8 @@ function _drawSpriteBatch(
     const srcOff = i * 8;
     const dstOff = i * 8;
 
-    let vx = vertexData[srcOff + 0];
-    let vy = vertexData[srcOff + 1];
+    let vx = vertexData[srcOff + 0]!;
+    let vy = vertexData[srcOff + 1]!;
 
     if (hasBatchTransform) {
       // Apply batch-level transform: origin → scale → rotate → translate
@@ -1168,12 +1168,12 @@ function _drawSpriteBatch(
     _spriteBatchScratch[dstOff + 0] = vx;
     _spriteBatchScratch[dstOff + 1] = vy;
     // Copy color + UV unchanged
-    _spriteBatchScratch[dstOff + 2] = vertexData[srcOff + 2];
-    _spriteBatchScratch[dstOff + 3] = vertexData[srcOff + 3];
-    _spriteBatchScratch[dstOff + 4] = vertexData[srcOff + 4];
-    _spriteBatchScratch[dstOff + 5] = vertexData[srcOff + 5];
-    _spriteBatchScratch[dstOff + 6] = vertexData[srcOff + 6];
-    _spriteBatchScratch[dstOff + 7] = vertexData[srcOff + 7];
+    _spriteBatchScratch[dstOff + 2] = vertexData[srcOff + 2]!;
+    _spriteBatchScratch[dstOff + 3] = vertexData[srcOff + 3]!;
+    _spriteBatchScratch[dstOff + 4] = vertexData[srcOff + 4]!;
+    _spriteBatchScratch[dstOff + 5] = vertexData[srcOff + 5]!;
+    _spriteBatchScratch[dstOff + 6] = vertexData[srcOff + 6]!;
+    _spriteBatchScratch[dstOff + 7] = vertexData[srcOff + 7]!;
   }
 
   // Apply draw color modulation
@@ -1235,8 +1235,8 @@ function _drawParticleSystem(
     const srcOff = i * 8;
     const dstOff = i * 8;
 
-    let vx = vertices[srcOff + 0];
-    let vy = vertices[srcOff + 1];
+    let vx = vertices[srcOff + 0]!;
+    let vy = vertices[srcOff + 1]!;
 
     if (hasDrawTransform) {
       vx -= ox;
@@ -1256,12 +1256,12 @@ function _drawParticleSystem(
     _particleScratch[dstOff + 0] = vx;
     _particleScratch[dstOff + 1] = vy;
     // Copy color + UV unchanged
-    _particleScratch[dstOff + 2] = vertices[srcOff + 2];
-    _particleScratch[dstOff + 3] = vertices[srcOff + 3];
-    _particleScratch[dstOff + 4] = vertices[srcOff + 4];
-    _particleScratch[dstOff + 5] = vertices[srcOff + 5];
-    _particleScratch[dstOff + 6] = vertices[srcOff + 6];
-    _particleScratch[dstOff + 7] = vertices[srcOff + 7];
+    _particleScratch[dstOff + 2] = vertices[srcOff + 2]!;
+    _particleScratch[dstOff + 3] = vertices[srcOff + 3]!;
+    _particleScratch[dstOff + 4] = vertices[srcOff + 4]!;
+    _particleScratch[dstOff + 5] = vertices[srcOff + 5]!;
+    _particleScratch[dstOff + 6] = vertices[srcOff + 6]!;
+    _particleScratch[dstOff + 7] = vertices[srcOff + 7]!;
   }
 
   const [cr, cg, cb, ca] = _drawColor;
@@ -1335,8 +1335,8 @@ function _drawMesh(
     const srcOff = i * MESH_FLOATS_PER_VERTEX;
     const dstOff = i * MESH_FLOATS_PER_VERTEX;
 
-    let vx = vertices[srcOff + 0];
-    let vy = vertices[srcOff + 1];
+    let vx = vertices[srcOff + 0]!;
+    let vy = vertices[srcOff + 1]!;
 
     if (hasDrawTransform) {
       vx -= ox;
@@ -1356,12 +1356,12 @@ function _drawMesh(
     _meshScratch[dstOff + 0] = vx;
     _meshScratch[dstOff + 1] = vy;
     // Copy color + UV unchanged
-    _meshScratch[dstOff + 2] = vertices[srcOff + 2];
-    _meshScratch[dstOff + 3] = vertices[srcOff + 3];
-    _meshScratch[dstOff + 4] = vertices[srcOff + 4];
-    _meshScratch[dstOff + 5] = vertices[srcOff + 5];
-    _meshScratch[dstOff + 6] = vertices[srcOff + 6];
-    _meshScratch[dstOff + 7] = vertices[srcOff + 7];
+    _meshScratch[dstOff + 2] = vertices[srcOff + 2]!;
+    _meshScratch[dstOff + 3] = vertices[srcOff + 3]!;
+    _meshScratch[dstOff + 4] = vertices[srcOff + 4]!;
+    _meshScratch[dstOff + 5] = vertices[srcOff + 5]!;
+    _meshScratch[dstOff + 6] = vertices[srcOff + 6]!;
+    _meshScratch[dstOff + 7] = vertices[srcOff + 7]!;
   }
 
   if (texture) {
@@ -1559,8 +1559,8 @@ export function draw(
     drawW = quad._w;
     drawH = quad._h;
   } else {
-    drawW = drawable._width;
-    drawH = drawable._height;
+    drawW = (drawable as any)._width;
+    drawH = (drawable as any)._height;
   }
 
   // Apply color modulation
@@ -1624,7 +1624,7 @@ function _drawTexturedQuad(
     // Actually looking at SDL3 docs: tex_coord is normalized (0..1)
     const tw = w; // texture region width
     const th = h; // texture region height
-    u0 = srcRect[0] / (srcRect[0] + tw); // Hmm, we need the full texture size
+    u0 = srcRect[0]! / (srcRect[0]! + tw); // Hmm, we need the full texture size
     // Simpler: pass srcRect to RenderTexture variant
     // Let's use SDL_RenderTextureRotated for the simple case
   }
@@ -1645,10 +1645,10 @@ function _drawTexturedQuad(
     sdl.SDL_GetTextureSize(texture, _texWPtr, _texHPtr);
     const fullW = read.f32(_texWPtr, 0);
     const fullH = read.f32(_texHPtr, 0);
-    u0 = srcRect[0] / fullW;
-    v0 = srcRect[1] / fullH;
-    u1 = (srcRect[0] + srcRect[2]) / fullW;
-    v1 = (srcRect[1] + srcRect[3]) / fullH;
+    u0 = srcRect[0]! / fullW;
+    v0 = srcRect[1]! / fullH;
+    u1 = (srcRect[0]! + srcRect[2]!) / fullW;
+    v1 = (srcRect[1]! + srcRect[3]!) / fullH;
   }
 
   const uvs: [number, number][] = [
@@ -1659,14 +1659,14 @@ function _drawTexturedQuad(
   const vertBuf = new Float32Array(4 * 8);
   for (let i = 0; i < 4; i++) {
     const base = i * 8;
-    vertBuf[base + 0] = transformed[i][0];
-    vertBuf[base + 1] = transformed[i][1];
+    vertBuf[base + 0] = transformed[i]![0];
+    vertBuf[base + 1] = transformed[i]![1];
     vertBuf[base + 2] = cr;
     vertBuf[base + 3] = cg;
     vertBuf[base + 4] = cb;
     vertBuf[base + 5] = ca;
-    vertBuf[base + 6] = uvs[i][0];
-    vertBuf[base + 7] = uvs[i][1];
+    vertBuf[base + 6] = uvs[i]![0];
+    vertBuf[base + 7] = uvs[i]![1];
   }
 
   const indexBuf = new Int32Array([0, 1, 2, 0, 2, 3]);
@@ -2327,10 +2327,10 @@ function _wireframeIndexedTriangles(vertBuf: Float32Array, idxBuf: Int32Array, n
   const triPts = new Float32Array(8); // 4 points to close each triangle
   for (let t = 0; t < numIndices; t += 3) {
     const i0 = idxBuf[t], i1 = idxBuf[t + 1], i2 = idxBuf[t + 2];
-    triPts[0] = vertBuf[i0 * 8]; triPts[1] = vertBuf[i0 * 8 + 1];
-    triPts[2] = vertBuf[i1 * 8]; triPts[3] = vertBuf[i1 * 8 + 1];
-    triPts[4] = vertBuf[i2 * 8]; triPts[5] = vertBuf[i2 * 8 + 1];
-    triPts[6] = vertBuf[i0 * 8]; triPts[7] = vertBuf[i0 * 8 + 1];
+    triPts[0] = vertBuf[i0! * 8]!; triPts[1] = vertBuf[i0! * 8 + 1]!;
+    triPts[2] = vertBuf[i1! * 8]!; triPts[3] = vertBuf[i1! * 8 + 1]!;
+    triPts[4] = vertBuf[i2! * 8]!; triPts[5] = vertBuf[i2! * 8 + 1]!;
+    triPts[6] = vertBuf[i0! * 8]!; triPts[7] = vertBuf[i0! * 8 + 1]!;
     sdl.SDL_RenderLines(_renderer, ptr(triPts), 4);
   }
 }
@@ -2364,16 +2364,16 @@ function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): v
 
     if (hasPrev) {
       const pi = loop ? ((i - 1 + numPoints) % numPoints) : (i - 1);
-      const dx = points[i * 2] - points[pi * 2];
-      const dy = points[i * 2 + 1] - points[pi * 2 + 1];
+      const dx = points[i * 2]! - points[pi * 2]!;
+      const dy = points[i * 2 + 1]! - points[pi * 2 + 1]!;
       const len = Math.sqrt(dx * dx + dy * dy);
       if (len > 0) { nx += -dy / len; ny += dx / len; }
     }
 
     if (hasNext) {
       const ni = loop ? ((i + 1) % numPoints) : (i + 1);
-      const dx = points[ni * 2] - points[i * 2];
-      const dy = points[ni * 2 + 1] - points[i * 2 + 1];
+      const dx = points[ni * 2]! - points[i * 2]!;
+      const dy = points[ni * 2 + 1]! - points[i * 2 + 1]!;
       const len = Math.sqrt(dx * dx + dy * dy);
       if (len > 0) { nx += -dy / len; ny += dx / len; }
     }
@@ -2386,8 +2386,8 @@ function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): v
     let miterScale = 1;
     if (hasPrev && hasNext) {
       const ni = loop ? ((i + 1) % numPoints) : (i + 1);
-      const dx = points[ni * 2] - points[i * 2];
-      const dy = points[ni * 2 + 1] - points[i * 2 + 1];
+      const dx = points[ni * 2]! - points[i * 2]!;
+      const dy = points[ni * 2 + 1]! - points[i * 2 + 1]!;
       const len = Math.sqrt(dx * dx + dy * dy);
       if (len > 0) {
         const snx = -dy / len, sny = dx / len;
@@ -2397,7 +2397,7 @@ function _smoothLines(points: Float32Array, numPoints: number, loop: boolean): v
       }
     }
 
-    const px = points[i * 2], py = points[i * 2 + 1];
+    const px = points[i * 2]!, py = points[i * 2 + 1]!;
     const outerDist = (hw + fringe) * miterScale;
     const innerDist = hw * miterScale;
 
@@ -2498,8 +2498,8 @@ function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: b
   for (let s = 0; s < numSegments; s++) {
     const i0 = s;
     const i1 = loop ? ((s + 1) % numPoints) : (s + 1);
-    const dx = points[i1 * 2] - points[i0 * 2];
-    const dy = points[i1 * 2 + 1] - points[i0 * 2 + 1];
+    const dx = points[i1 * 2]! - points[i0 * 2]!;
+    const dy = points[i1 * 2 + 1]! - points[i0 * 2 + 1]!;
     const len = Math.sqrt(dx * dx + dy * dy);
     if (len > 0) { segNx[s] = -dy / len; segNy[s] = dx / len; }
   }
@@ -2507,9 +2507,9 @@ function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: b
   for (let s = 0; s < numSegments; s++) {
     const i0 = s;
     const i1 = loop ? ((s + 1) % numPoints) : (s + 1);
-    let x0 = points[i0 * 2], y0 = points[i0 * 2 + 1];
-    let x1 = points[i1 * 2], y1 = points[i1 * 2 + 1];
-    const nx = segNx[s], ny = segNy[s];
+    let x0 = points[i0 * 2]!, y0 = points[i0 * 2 + 1]!;
+    let x1 = points[i1 * 2]!, y1 = points[i1 * 2 + 1]!;
+    const nx = segNx[s]!, ny = segNy[s]!;
     const outerDist = hw + fringe;
 
     // Inset endpoints for "none" to create visible gaps
@@ -2526,7 +2526,7 @@ function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: b
     const vBase = s * 8 * 8;
     const pts = [x0, y0, x1, y1];
     for (let p = 0; p < 2; p++) {
-      const px = pts[p * 2], py = pts[p * 2 + 1];
+      const px = pts[p * 2]!, py = pts[p * 2 + 1]!;
       for (let v = 0; v < 4; v++) {
         const sign = v < 2 ? 1 : -1;
         const isOuter = v === 0 || v === 3;
@@ -2566,20 +2566,20 @@ function _smoothLinesPerSegment(points: Float32Array, numPoints: number, loop: b
     for (let j = startJ; j < endJ; j++) {
       const prevSeg = loop ? ((j - 1 + numSegments) % numSegments) : (j - 1);
       const nextSeg = loop ? (j % numSegments) : j;
-      const px = points[j * 2], py = points[j * 2 + 1];
+      const px = points[j * 2]!, py = points[j * 2 + 1]!;
 
       const pi = loop ? ((j - 1 + numPoints) % numPoints) : (j - 1);
       const ni = loop ? ((j + 1) % numPoints) : (j + 1);
-      const dAx = px - points[pi * 2], dAy = py - points[pi * 2 + 1];
-      const dBx = points[ni * 2] - px, dBy = points[ni * 2 + 1] - py;
+      const dAx = px - points[pi * 2]!, dAy = py - points[pi * 2 + 1]!;
+      const dBx = points[ni * 2]! - px, dBy = points[ni * 2 + 1]! - py;
 
       // Gap is on the SAME side of both normals
       const cross = dAx * dBy - dAy * dBx;
       if (Math.abs(cross) < 0.001) continue; // collinear, no gap
       const sign = cross > 0 ? -1 : 1;
 
-      const nAx = segNx[prevSeg], nAy = segNy[prevSeg];
-      const nBx = segNx[nextSeg], nBy = segNy[nextSeg];
+      const nAx = segNx[prevSeg]!, nAy = segNy[prevSeg]!;
+      const nBx = segNx[nextSeg]!, nBy = segNy[nextSeg]!;
 
       const vi = bv / 8;
       // Vertex 0: center (join point)
@@ -2688,10 +2688,10 @@ export function line(...coords: number[]): void {
   if (_lineStyle === "smooth") {
     const buf = new Float32Array(numPoints * 2);
     if (identity) {
-      for (let i = 0; i < coords.length; i++) buf[i] = coords[i];
+      for (let i = 0; i < coords.length; i++) buf[i] = coords[i]!;
     } else {
       for (let i = 0; i < numPoints; i++) {
-        const [tx, ty] = _transformPoint(coords[i * 2], coords[i * 2 + 1]);
+        const [tx, ty] = _transformPoint(coords[i * 2]!, coords[i * 2 + 1]!);
         buf[i * 2] = tx;
         buf[i * 2 + 1] = ty;
       }
@@ -2703,21 +2703,21 @@ export function line(...coords: number[]): void {
   // Rough path
   if (identity) {
     if (coords.length === 4) {
-      sdl.SDL_RenderLine(_renderer, coords[0], coords[1], coords[2], coords[3]);
+      sdl.SDL_RenderLine(_renderer, coords[0]!, coords[1]!, coords[2]!, coords[3]!);
       return;
     }
     const buf = new Float32Array(numPoints * 2);
-    for (let i = 0; i < coords.length; i++) buf[i] = coords[i];
+    for (let i = 0; i < coords.length; i++) buf[i] = coords[i]!;
     sdl.SDL_RenderLines(_renderer, ptr(buf), numPoints);
   } else {
     const buf = new Float32Array(numPoints * 2);
     for (let i = 0; i < numPoints; i++) {
-      const [tx, ty] = _transformPoint(coords[i * 2], coords[i * 2 + 1]);
+      const [tx, ty] = _transformPoint(coords[i * 2]!, coords[i * 2 + 1]!);
       buf[i * 2] = tx;
       buf[i * 2 + 1] = ty;
     }
     if (numPoints === 2) {
-      sdl.SDL_RenderLine(_renderer, buf[0], buf[1], buf[2], buf[3]);
+      sdl.SDL_RenderLine(_renderer, buf[0]!, buf[1]!, buf[2]!, buf[3]!);
     } else {
       sdl.SDL_RenderLines(_renderer, ptr(buf), numPoints);
     }
@@ -2945,8 +2945,8 @@ export function arc(mode: "fill" | "line", cx: number, cy: number, radius: numbe
     for (let i = 0; i <= wn; i++) {
       spokeBuf[i * 4] = tcx;
       spokeBuf[i * 4 + 1] = tcy;
-      spokeBuf[i * 4 + 2] = pts[i * 2];
-      spokeBuf[i * 4 + 3] = pts[i * 2 + 1];
+      spokeBuf[i * 4 + 2] = pts[i * 2]!;
+      spokeBuf[i * 4 + 3] = pts[i * 2 + 1]!;
     }
     sdl.SDL_RenderLines(_renderer!, ptr(spokeBuf), (wn + 1) * 2);
   } else if (mode === "line") {
@@ -3018,8 +3018,8 @@ export function arc(mode: "fill" | "line", cx: number, cy: number, radius: numbe
           buf[i * 2] = tx;
           buf[i * 2 + 1] = ty;
         }
-        buf[(n + 1) * 2] = buf[0];
-        buf[(n + 1) * 2 + 1] = buf[1];
+        buf[(n + 1) * 2] = buf[0]!;
+        buf[(n + 1) * 2 + 1] = buf[1]!;
         sdl.SDL_RenderLines(_renderer, ptr(buf), n + 2);
       } else {
         const buf = new Float32Array((n + 1) * 2);
@@ -3082,26 +3082,26 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
     const buf = new Float32Array(numPoints * 2);
     for (let i = 0; i < numPoints; i++) {
       const [tx, ty] = identity
-        ? [vertices[i * 2], vertices[i * 2 + 1]]
-        : _transformPoint(vertices[i * 2], vertices[i * 2 + 1]);
+        ? [vertices[i * 2]!, vertices[i * 2 + 1]!]
+        : _transformPoint(vertices[i * 2]!, vertices[i * 2 + 1]!);
       buf[i * 2] = tx;
       buf[i * 2 + 1] = ty;
     }
     // Outline (closed)
     const closedBuf = new Float32Array((numPoints + 1) * 2);
     closedBuf.set(buf);
-    closedBuf[numPoints * 2] = buf[0];
-    closedBuf[numPoints * 2 + 1] = buf[1];
+    closedBuf[numPoints * 2] = buf[0]!;
+    closedBuf[numPoints * 2 + 1] = buf[1]!;
     sdl.SDL_RenderLines(_renderer, ptr(closedBuf), numPoints + 1);
     // Internal fan spokes from v0 to v2..v(n-2) (v0→v1 and v0→v(n-1) are outline edges)
     if (numPoints > 3) {
       const numSpokes = numPoints - 3;
       const spokeBuf = new Float32Array(numSpokes * 4);
       for (let i = 0; i < numSpokes; i++) {
-        spokeBuf[i * 4] = buf[0];
-        spokeBuf[i * 4 + 1] = buf[1];
-        spokeBuf[i * 4 + 2] = buf[(i + 2) * 2];
-        spokeBuf[i * 4 + 3] = buf[(i + 2) * 2 + 1];
+        spokeBuf[i * 4] = buf[0]!;
+        spokeBuf[i * 4 + 1] = buf[1]!;
+        spokeBuf[i * 4 + 2] = buf[(i + 2) * 2]!;
+        spokeBuf[i * 4 + 3] = buf[(i + 2) * 2 + 1]!;
       }
       sdl.SDL_RenderLines(_renderer, ptr(spokeBuf), numSpokes * 2);
     }
@@ -3109,8 +3109,8 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
     const buf = new Float32Array(numPoints * 2);
     for (let i = 0; i < numPoints; i++) {
       const [tx, ty] = identity
-        ? [vertices[i * 2], vertices[i * 2 + 1]]
-        : _transformPoint(vertices[i * 2], vertices[i * 2 + 1]);
+        ? [vertices[i * 2]!, vertices[i * 2 + 1]!]
+        : _transformPoint(vertices[i * 2]!, vertices[i * 2 + 1]!);
       buf[i * 2] = tx;
       buf[i * 2 + 1] = ty;
     }
@@ -3120,8 +3120,8 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
       // Rough: close by appending first point
       const closedBuf = new Float32Array((numPoints + 1) * 2);
       closedBuf.set(buf);
-      closedBuf[numPoints * 2] = buf[0];
-      closedBuf[numPoints * 2 + 1] = buf[1];
+      closedBuf[numPoints * 2] = buf[0]!;
+      closedBuf[numPoints * 2 + 1] = buf[1]!;
       sdl.SDL_RenderLines(_renderer, ptr(closedBuf), numPoints + 1);
     }
   } else {
@@ -3133,17 +3133,17 @@ export function polygon(mode: "fill" | "line", ...vertices: number[]): void {
     const cr = dr / 255, cg = dg / 255, cb = db / 255, ca = da / 255;
 
     const [p0x, p0y] = identity
-      ? [vertices[0], vertices[1]]
-      : _transformPoint(vertices[0], vertices[1]);
+      ? [vertices[0]!, vertices[1]!]
+      : _transformPoint(vertices[0]!, vertices[1]!);
 
     for (let i = 0; i < numTris; i++) {
       const base = i * 3 * 8;
       const [p1x, p1y] = identity
-        ? [vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1]]
-        : _transformPoint(vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1]);
+        ? [vertices[(i + 1) * 2]!, vertices[(i + 1) * 2 + 1]!]
+        : _transformPoint(vertices[(i + 1) * 2]!, vertices[(i + 1) * 2 + 1]!);
       const [p2x, p2y] = identity
-        ? [vertices[(i + 2) * 2], vertices[(i + 2) * 2 + 1]]
-        : _transformPoint(vertices[(i + 2) * 2], vertices[(i + 2) * 2 + 1]);
+        ? [vertices[(i + 2) * 2]!, vertices[(i + 2) * 2 + 1]!]
+        : _transformPoint(vertices[(i + 2) * 2]!, vertices[(i + 2) * 2 + 1]!);
 
       vertBuf[base + 0] = p0x; vertBuf[base + 1] = p0y;
       vertBuf[base + 2] = cr; vertBuf[base + 3] = cg;
@@ -3173,8 +3173,8 @@ export function points(...coords: number[]): void {
   const identity = _isIdentity();
   for (let i = 0; i < coords.length; i += 2) {
     const [tx, ty] = identity
-      ? [coords[i], coords[i + 1]]
-      : _transformPoint(coords[i], coords[i + 1]);
+      ? [coords[i]!, coords[i + 1]!]
+      : _transformPoint(coords[i]!, coords[i + 1]!);
     sdl.SDL_RenderPoint(_renderer, tx, ty);
   }
 }
@@ -3227,7 +3227,7 @@ function _printTTF(text: string, x: number, y: number): void {
   const [dr, dg, db, da] = _drawColor;
 
   for (let i = 0; i < lines.length; i++) {
-    const lineText = lines[i];
+    const lineText = lines[i]!;
     if (lineText.length === 0) continue;
 
     const ttfText = _ttf!.TTF_CreateText(
@@ -3250,7 +3250,7 @@ function _printfTTF(text: string, x: number, y: number, limit: number, align: "l
   const [dr, dg, db, da] = _drawColor;
 
   for (let i = 0; i < wrappedLines.length; i++) {
-    const lineText = wrappedLines[i];
+    const lineText = wrappedLines[i]!;
     if (lineText.length === 0) continue;
 
     const ttfText = _ttf!.TTF_CreateText(
@@ -3295,7 +3295,7 @@ function _printBitmapFont(text: string, x: number, y: number): void {
   const dstRect = new Float32Array(4);
 
   for (let i = 0; i < lines.length; i++) {
-    const lineText = lines[i];
+    const lineText = lines[i]!;
     if (lineText.length === 0) continue;
 
     let cx = x;
@@ -3305,7 +3305,7 @@ function _printBitmapFont(text: string, x: number, y: number): void {
     // Relative offset from the line start — glyphs are placed without individual transforms
     let xOff = 0;
     for (let j = 0; j < lineText.length; j++) {
-      const glyph = glyphMap.get(lineText[j]);
+      const glyph = glyphMap.get(lineText[j]!);
       if (!glyph) continue;
 
       srcRect[0] = glyph.x;
@@ -3341,7 +3341,7 @@ function _printfBitmapFont(text: string, x: number, y: number, limit: number, al
   const dstRect = new Float32Array(4);
 
   for (let i = 0; i < wrappedLines.length; i++) {
-    const lineText = wrappedLines[i];
+    const lineText = wrappedLines[i]!;
     if (lineText.length === 0) continue;
 
     let lx = x;
@@ -3359,7 +3359,7 @@ function _printfBitmapFont(text: string, x: number, y: number, limit: number, al
 
     let xOff = 0;
     for (let j = 0; j < lineText.length; j++) {
-      const glyph = glyphMap.get(lineText[j]);
+      const glyph = glyphMap.get(lineText[j]!);
       if (!glyph) continue;
 
       srcRect[0] = glyph.x;
@@ -3473,7 +3473,7 @@ export function newImageFont(
   const glyphMap = new Map<string, GlyphInfo>();
   const numGlyphs = Math.min(glyphs.length, glyphStarts.length);
   for (let i = 0; i < numGlyphs; i++) {
-    glyphMap.set(glyphs[i], { x: glyphStarts[i], w: glyphWidths[i] });
+    glyphMap.set(glyphs[i]!, { x: glyphStarts[i]!, w: glyphWidths[i]! });
   }
 
   // Make separator pixels transparent — copy data so we don't mutate the original
@@ -3960,17 +3960,17 @@ function _wireframeFan(tcx: number, tcy: number, points: Float32Array, n: number
   if (!_renderer) return;
   // Perimeter edges (closed loop)
   const perimBuf = new Float32Array((n + 1) * 2);
-  for (let i = 0; i < n * 2; i++) perimBuf[i] = points[i];
-  perimBuf[n * 2] = points[0];
-  perimBuf[n * 2 + 1] = points[1];
+  for (let i = 0; i < n * 2; i++) perimBuf[i] = points[i]!;
+  perimBuf[n * 2] = points[0]!;
+  perimBuf[n * 2 + 1] = points[1]!;
   sdl.SDL_RenderLines(_renderer, ptr(perimBuf), n + 1);
   // Radial spokes: zigzag center→P0→center→P1→... (one SDL call)
   const spokeBuf = new Float32Array(n * 4);
   for (let i = 0; i < n; i++) {
     spokeBuf[i * 4] = tcx;
     spokeBuf[i * 4 + 1] = tcy;
-    spokeBuf[i * 4 + 2] = points[i * 2];
-    spokeBuf[i * 4 + 3] = points[i * 2 + 1];
+    spokeBuf[i * 4 + 2] = points[i * 2]!;
+    spokeBuf[i * 4 + 3] = points[i * 2 + 1]!;
   }
   sdl.SDL_RenderLines(_renderer, ptr(spokeBuf), n * 2);
 }
@@ -3980,7 +3980,7 @@ function _fillQuad(corners: [number, number][]): void {
   if (_wireframe) {
     // Outline + diagonal (matches triangulation: 0-1-2, 0-2-3)
     _strokePolygon(corners);
-    sdl.SDL_RenderLine(_renderer, corners[0][0], corners[0][1], corners[2][0], corners[2][1]);
+    sdl.SDL_RenderLine(_renderer, corners[0]![0], corners[0]![1], corners[2]![0], corners[2]![1]);
     return;
   }
   const [dr, dg, db, da] = _drawColor;
@@ -3992,8 +3992,8 @@ function _fillQuad(corners: [number, number][]): void {
   for (let t = 0; t < 6; t++) {
     const i = indices[t];
     const base = t * 8;
-    vertBuf[base + 0] = corners[i][0];
-    vertBuf[base + 1] = corners[i][1];
+    vertBuf[base + 0] = corners[i!]![0];
+    vertBuf[base + 1] = corners[i!]![1];
     vertBuf[base + 2] = cr;
     vertBuf[base + 3] = cg;
     vertBuf[base + 4] = cb;
@@ -4006,16 +4006,16 @@ function _strokePolygon(corners: [number, number][]): void {
   if (!_renderer) return;
   const buf = new Float32Array(corners.length * 2);
   for (let i = 0; i < corners.length; i++) {
-    buf[i * 2] = corners[i][0];
-    buf[i * 2 + 1] = corners[i][1];
+    buf[i * 2] = corners[i]![0];
+    buf[i * 2 + 1] = corners[i]![1];
   }
   if (_lineStyle === "smooth") {
     _smoothLines(buf, corners.length, true);
   } else {
     const closedBuf = new Float32Array((corners.length + 1) * 2);
     closedBuf.set(buf);
-    closedBuf[corners.length * 2] = corners[0][0];
-    closedBuf[corners.length * 2 + 1] = corners[0][1];
+    closedBuf[corners.length * 2] = corners[0]![0];
+    closedBuf[corners.length * 2 + 1] = corners[0]![1];
     sdl.SDL_RenderLines(_renderer, ptr(closedBuf), corners.length + 1);
   }
 }
@@ -4089,7 +4089,7 @@ export function _flushCaptures(): void {
 
       if (pixelsPtr) {
         const size = pitch * h;
-        const rawBuf = toArrayBuffer(pixelsPtr, 0, size);
+        const rawBuf = toArrayBuffer(pixelsPtr as unknown as Pointer, 0, size);
         const data = new Uint8Array(rawBuf.slice(0));
         req.fn({ data, width: w, height: h, format });
       }

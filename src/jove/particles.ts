@@ -355,25 +355,25 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
   }
 
   function _copyParticle(from: number, to: number): void {
-    _posXArr[to] = _posXArr[from];
-    _posYArr[to] = _posYArr[from];
-    _originXArr[to] = _originXArr[from];
-    _originYArr[to] = _originYArr[from];
-    _velXArr[to] = _velXArr[from];
-    _velYArr[to] = _velYArr[from];
-    _accelXArr[to] = _accelXArr[from];
-    _accelYArr[to] = _accelYArr[from];
-    _radAccArr[to] = _radAccArr[from];
-    _tanAccArr[to] = _tanAccArr[from];
-    _dampingArr[to] = _dampingArr[from];
-    _lifeArr[to] = _lifeArr[from];
-    _lifetimeArr[to] = _lifetimeArr[from];
-    _rotationArr[to] = _rotationArr[from];
-    _spinStartArr[to] = _spinStartArr[from];
-    _spinEndArr[to] = _spinEndArr[from];
-    _sizeOffsetArr[to] = _sizeOffsetArr[from];
-    _sizeIntervalArr[to] = _sizeIntervalArr[from];
-    _quadIdxArr[to] = _quadIdxArr[from];
+    _posXArr[to] = _posXArr[from]!;
+    _posYArr[to] = _posYArr[from]!;
+    _originXArr[to] = _originXArr[from]!;
+    _originYArr[to] = _originYArr[from]!;
+    _velXArr[to] = _velXArr[from]!;
+    _velYArr[to] = _velYArr[from]!;
+    _accelXArr[to] = _accelXArr[from]!;
+    _accelYArr[to] = _accelYArr[from]!;
+    _radAccArr[to] = _radAccArr[from]!;
+    _tanAccArr[to] = _tanAccArr[from]!;
+    _dampingArr[to] = _dampingArr[from]!;
+    _lifeArr[to] = _lifeArr[from]!;
+    _lifetimeArr[to] = _lifetimeArr[from]!;
+    _rotationArr[to] = _rotationArr[from]!;
+    _spinStartArr[to] = _spinStartArr[from]!;
+    _spinEndArr[to] = _spinEndArr[from]!;
+    _sizeOffsetArr[to] = _sizeOffsetArr[from]!;
+    _sizeIntervalArr[to] = _sizeIntervalArr[from]!;
+    _quadIdxArr[to] = _quadIdxArr[from]!;
   }
 
   function _removeParticle(idx: number): void {
@@ -386,14 +386,14 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
 
   function _resizeArrays(newSize: number): void {
     const copyCount = Math.min(_count, newSize);
-    function resize(old: Float32Array): Float32Array {
+    function resize(old: Float32Array<ArrayBuffer>): Float32Array<ArrayBuffer> {
       const arr = new Float32Array(newSize);
-      arr.set(old.subarray(0, copyCount));
+      arr.set(old.subarray(0, copyCount) as Float32Array<ArrayBuffer>);
       return arr;
     }
-    function resizeI32(old: Int32Array): Int32Array {
+    function resizeI32(old: Int32Array<ArrayBuffer>): Int32Array<ArrayBuffer> {
       const arr = new Int32Array(newSize);
-      arr.set(old.subarray(0, copyCount));
+      arr.set(old.subarray(0, copyCount) as Int32Array<ArrayBuffer>);
       return arr;
     }
     _posXArr = resize(_posXArr);
@@ -424,7 +424,7 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
 
   function _interpolateColor(t: number): [number, number, number, number] {
     if (_numColors === 1) {
-      return [_colors[0], _colors[1], _colors[2], _colors[3]];
+      return [_colors[0]!, _colors[1]!, _colors[2]!, _colors[3]!];
     }
     const segment = t * (_numColors - 1);
     const i = Math.min(Math.floor(segment), _numColors - 2);
@@ -432,22 +432,22 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
     const i0 = i * 4;
     const i1 = (i + 1) * 4;
     return [
-      _colors[i0] + (_colors[i1] - _colors[i0]) * frac,
-      _colors[i0 + 1] + (_colors[i1 + 1] - _colors[i0 + 1]) * frac,
-      _colors[i0 + 2] + (_colors[i1 + 2] - _colors[i0 + 2]) * frac,
-      _colors[i0 + 3] + (_colors[i1 + 3] - _colors[i0 + 3]) * frac,
+      _colors[i0]! + (_colors[i1]! - _colors[i0]!) * frac,
+      _colors[i0 + 1]! + (_colors[i1 + 1]! - _colors[i0 + 1]!) * frac,
+      _colors[i0 + 2]! + (_colors[i1 + 2]! - _colors[i0 + 2]!) * frac,
+      _colors[i0 + 3]! + (_colors[i1 + 3]! - _colors[i0 + 3]!) * frac,
     ];
   }
 
   function _interpolateSize(t: number, sizeOffset: number, sizeInterval: number): number {
     const adjT = sizeOffset + t * sizeInterval;
     if (_numSizes === 1) {
-      return _sizes[0];
+      return _sizes[0]!;
     }
     const segment = adjT * (_numSizes - 1);
     const i = Math.min(Math.floor(segment), _numSizes - 2);
     const frac = segment - i;
-    return _sizes[i] + (_sizes[i + 1] - _sizes[i]) * frac;
+    return _sizes[i]! + (_sizes[i + 1]! - _sizes[i]!) * frac;
   }
 
   function _buildVertices(): number {
@@ -458,8 +458,8 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
     const texH = _image._height;
 
     for (let i = 0; i < _count; i++) {
-      const life = _lifeArr[i];
-      const lifetime = _lifetimeArr[i];
+      const life = _lifeArr[i]!;
+      const lifetime = _lifetimeArr[i]!;
       const t = lifetime > 0 ? 1 - life / lifetime : 0; // 0=born, 1=dead
 
       // Color interpolation (0-255 internally, convert to 0-1 for vertex data)
@@ -470,13 +470,13 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
       const a01 = ca / 255;
 
       // Size interpolation
-      const size = _interpolateSize(t, _sizeOffsetArr[i], _sizeIntervalArr[i]);
+      const size = _interpolateSize(t, _sizeOffsetArr[i]!, _sizeIntervalArr[i]!);
 
       // Quad region
       let srcX = 0, srcY = 0, srcW = texW, srcH = texH;
-      const qi = _quadIdxArr[i];
+      const qi = _quadIdxArr[i]!;
       if (qi >= 0 && qi < _quads.length) {
-        const q = _quads[qi];
+        const q = _quads[qi]!;
         srcX = q._x; srcY = q._y; srcW = q._w; srcH = q._h;
       }
 
@@ -490,13 +490,13 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
       const hh = (srcH * size) / 2;
 
       // Rotation
-      const rot = _rotationArr[i];
+      const rot = _rotationArr[i]!;
       const cos = Math.cos(rot);
       const sin = Math.sin(rot);
 
       // Position with offset
-      const px = _posXArr[i];
-      const py = _posYArr[i];
+      const px = _posXArr[i]!;
+      const py = _posYArr[i]!;
 
       // 4 corners: TL, TR, BR, BL (relative to center, with offset)
       const cx0 = -hw - _offsetX * size;
@@ -825,56 +825,56 @@ export function createParticleSystem(image: Image, maxParticles: number): Partic
 
       // Age and kill particles (iterate backwards for compact-swap)
       for (let i = _count - 1; i >= 0; i--) {
-        _lifeArr[i] -= dt;
-        if (_lifeArr[i] <= 0) {
+        _lifeArr[i] = _lifeArr[i]! - dt;
+        if (_lifeArr[i]! <= 0) {
           _removeParticle(i);
           continue;
         }
 
         // Physics: radial + tangential acceleration
-        const radAcc = _radAccArr[i];
-        const tanAcc = _tanAccArr[i];
+        const radAcc = _radAccArr[i]!;
+        const tanAcc = _tanAccArr[i]!;
         if (radAcc !== 0 || tanAcc !== 0) {
-          let rdx = _posXArr[i] - _originXArr[i];
-          let rdy = _posYArr[i] - _originYArr[i];
+          let rdx = _posXArr[i]! - _originXArr[i]!;
+          let rdy = _posYArr[i]! - _originYArr[i]!;
           const dist = Math.sqrt(rdx * rdx + rdy * rdy);
           if (dist > 0.0001) {
             rdx /= dist;
             rdy /= dist;
           }
           // Radial acceleration (outward from origin)
-          _velXArr[i] += rdx * radAcc * dt;
-          _velYArr[i] += rdy * radAcc * dt;
+          _velXArr[i] = _velXArr[i]! + rdx * radAcc * dt;
+          _velYArr[i] = _velYArr[i]! + rdy * radAcc * dt;
           // Tangential acceleration (perpendicular to radial)
-          _velXArr[i] += -rdy * tanAcc * dt;
-          _velYArr[i] += rdx * tanAcc * dt;
+          _velXArr[i] = _velXArr[i]! + -rdy * tanAcc * dt;
+          _velYArr[i] = _velYArr[i]! + rdx * tanAcc * dt;
         }
 
         // Linear acceleration
-        _velXArr[i] += _accelXArr[i] * dt;
-        _velYArr[i] += _accelYArr[i] * dt;
+        _velXArr[i] = _velXArr[i]! + _accelXArr[i]! * dt;
+        _velYArr[i] = _velYArr[i]! + _accelYArr[i]! * dt;
 
         // Damping
-        const damp = _dampingArr[i];
+        const damp = _dampingArr[i]!;
         if (damp !== 0) {
           const factor = 1 / (1 + damp * dt);
-          _velXArr[i] *= factor;
-          _velYArr[i] *= factor;
+          _velXArr[i] = _velXArr[i]! * factor;
+          _velYArr[i] = _velYArr[i]! * factor;
         }
 
         // Position integration
-        _posXArr[i] += _velXArr[i] * dt;
-        _posYArr[i] += _velYArr[i] * dt;
+        _posXArr[i] = _posXArr[i]! + _velXArr[i]! * dt;
+        _posYArr[i] = _posYArr[i]! + _velYArr[i]! * dt;
 
         // Spin (interpolate between start and end spin)
-        const lifetime = _lifetimeArr[i];
-        const ageT = lifetime > 0 ? 1 - _lifeArr[i] / lifetime : 0;
-        const spin = _spinStartArr[i] + (_spinEndArr[i] - _spinStartArr[i]) * ageT;
-        _rotationArr[i] += spin * dt;
+        const lifetime = _lifetimeArr[i]!;
+        const ageT = lifetime > 0 ? 1 - _lifeArr[i]! / lifetime : 0;
+        const spin = _spinStartArr[i]! + (_spinEndArr[i]! - _spinStartArr[i]!) * ageT;
+        _rotationArr[i] = _rotationArr[i]! + spin * dt;
 
         // Relative rotation: face velocity direction
         if (_relativeRotation) {
-          _rotationArr[i] = Math.atan2(_velYArr[i], _velXArr[i]);
+          _rotationArr[i] = Math.atan2(_velYArr[i]!, _velXArr[i]!);
         }
       }
 

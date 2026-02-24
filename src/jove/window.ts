@@ -395,8 +395,8 @@ export function getFullscreenModes(displayIndex: number = 1): { width: number; h
   for (let i = 0; i < modeCount; i++) {
     const modeStructPtr = read.ptr(modesPtr, i * 8);
     if (!modeStructPtr) continue;
-    const w = read.i32(modeStructPtr, 8);
-    const h = read.i32(modeStructPtr, 12);
+    const w = read.i32(modeStructPtr as unknown as Pointer, 8);
+    const h = read.i32(modeStructPtr as unknown as Pointer, 12);
     modes.push({ width: w, height: h });
   }
 

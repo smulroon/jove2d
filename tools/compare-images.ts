@@ -20,9 +20,9 @@ const files: string[] = [];
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === "--threshold" && args[i + 1]) {
-    threshold = parseInt(args[++i], 10);
+    threshold = parseInt(args[++i]!, 10);
   } else {
-    files.push(args[i]);
+    files.push(args[i]!);
   }
 }
 
@@ -55,7 +55,7 @@ function getPixels(surface: Pointer, h: number, pitch: number): Uint8Array {
   sdl.SDL_LockSurface(surface);
   const pixelsPtr = read.ptr(surface, SDL_SURFACE_OFFSET_PIXELS);
   const size = pitch * h;
-  const raw = toArrayBuffer(pixelsPtr!, 0, size);
+  const raw = toArrayBuffer(pixelsPtr as unknown as Pointer, 0, size);
   const pixels = new Uint8Array(raw.slice(0));
   sdl.SDL_UnlockSurface(surface);
   return pixels;
@@ -113,7 +113,7 @@ for (let y = 0; y < h; y++) {
     const off2 = y * ci2.pitch + x * bpp;
     let pixelDiff = false;
     for (let c = 0; c < bpp; c++) {
-      const d = Math.abs(pixels1[off1 + c] - pixels2[off2 + c]);
+      const d = Math.abs(pixels1[off1 + c]! - pixels2[off2 + c]!);
       if (d > 0) {
         exactDiffs++;
         maxDiff = Math.max(maxDiff, d);

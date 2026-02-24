@@ -62,7 +62,7 @@ export function getAverageDelta(): number {
   if (_dtHistory.length === 0) return 0;
   let sum = 0;
   for (let i = 0; i < _dtHistory.length; i++) {
-    sum += _dtHistory[i];
+    sum += _dtHistory[i]!;
   }
   return sum / _dtHistory.length;
 }

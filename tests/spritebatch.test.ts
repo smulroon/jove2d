@@ -48,7 +48,7 @@ describe("jove.graphics — SpriteBatch", () => {
 
   test("getTexture returns the source image", () => {
     const batch = graphics.newSpriteBatch(img!);
-    expect(batch!.getTexture()).toBe(img);
+    expect(batch!.getTexture()).toBe(img!);
   });
 
   // --- add() ---
@@ -166,7 +166,7 @@ describe("jove.graphics — SpriteBatch", () => {
     const batch = graphics.newSpriteBatch(img!);
     const img2 = graphics.newCanvas(32, 32);
     batch!.setTexture(img2!);
-    expect(batch!.getTexture()).toBe(img2);
+    expect(batch!.getTexture()).toBe(img2!);
     img2!.release();
   });
 

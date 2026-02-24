@@ -106,7 +106,7 @@ await jove.run({
         jove.graphics.print("Gamepad mapped:", baseX, gpY);
         const gpAxes = ["leftx", "lefty", "rightx", "righty", "triggerleft", "triggerright"];
         for (let i = 0; i < gpAxes.length; i++) {
-          const val = joy.getGamepadAxis(gpAxes[i]);
+          const val = joy.getGamepadAxis(gpAxes[i]!);
           jove.graphics.print("  " + gpAxes[i] + ": " + val.toFixed(2), baseX, gpY + 18 + i * 16);
         }
       }

@@ -112,7 +112,7 @@ function makeLayout(num: number): number[][] {
       }
       // Increase difficulty on higher levels
       if (hp === 1 && num > 2 && Math.random() < 0.1 * (num - 2)) hp = 2;
-      grid[r][c] = hp;
+      grid[r]![c] = hp;
     }
   }
   return grid;
@@ -132,8 +132,8 @@ function resetBall() {
 function launchBall() {
   if (!serving || balls.length === 0) return;
   const angle = (-60 + Math.random() * 120) * Math.PI / 180;
-  balls[0].vx = Math.sin(angle) * BALL_SPEED;
-  balls[0].vy = -Math.cos(angle) * BALL_SPEED;
+  balls[0]!.vx = Math.sin(angle) * BALL_SPEED;
+  balls[0]!.vy = -Math.cos(angle) * BALL_SPEED;
   serving = false;
 }
 
@@ -193,14 +193,14 @@ await jove.run({
 
     // Serving — ball follows paddle
     if (serving && balls.length > 0) {
-      balls[0].x = paddleX;
-      balls[0].y = PADDLE_Y - BALL_R - 1;
+      balls[0]!.x = paddleX;
+      balls[0]!.y = PADDLE_Y - BALL_R - 1;
       return;
     }
 
     // Update balls
     for (let bi = balls.length - 1; bi >= 0; bi--) {
-      const b = balls[bi];
+      const b = balls[bi]!;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
 
@@ -238,7 +238,7 @@ await jove.run({
       // Brick collision
       for (let r = 0; r < BRICK_ROWS; r++) {
         for (let c = 0; c < BRICK_COLS; c++) {
-          if (bricks[r][c] === 0) continue;
+          if (bricks[r]![c] === 0) continue;
           const [bx, by, bw, bh] = brickRect(r, c);
           // AABB vs circle
           const closestX = Math.max(bx, Math.min(b.x, bx + bw));
@@ -258,18 +258,18 @@ await jove.run({
               b.vy = overlapT < overlapB ? -Math.abs(b.vy) : Math.abs(b.vy);
             }
 
-            if (bricks[r][c] === 3) {
+            if (bricks[r]![c] === 3) {
               // unbreakable — just bounce
             } else {
-              bricks[r][c]--;
-              if (bricks[r][c] === 0) {
+              bricks[r]![c]!--;
+              if (bricks[r]![c] === 0) {
                 score += 10 * levelNum;
                 // Powerup drop
                 if (Math.random() < 0.15) {
                   const kinds: Powerup["kind"][] = ["wide", "multi", "life"];
                   powerups.push({
                     x: bx + bw / 2, y: by + bh / 2, vy: 120,
-                    kind: kinds[Math.floor(Math.random() * kinds.length)],
+                    kind: kinds[Math.floor(Math.random() * kinds.length)]!,
                   });
                 }
               }
@@ -283,7 +283,7 @@ await jove.run({
 
     // Update powerups
     for (let i = powerups.length - 1; i >= 0; i--) {
-      const p = powerups[i];
+      const p = powerups[i]!;
       p.y += p.vy * dt;
       if (p.y > H) { powerups.splice(i, 1); continue; }
       // Catch with paddle
@@ -329,16 +329,16 @@ await jove.run({
     // Draw bricks
     for (let r = 0; r < BRICK_ROWS; r++) {
       for (let c = 0; c < BRICK_COLS; c++) {
-        if (bricks[r][c] === 0) continue;
+        if (bricks[r]![c] === 0) continue;
         const [bx, by, bw, bh] = brickRect(r, c);
-        const [cr, cg, cb] = ROW_COLORS[r];
-        if (bricks[r][c] === 3) {
+        const [cr, cg, cb] = ROW_COLORS[r]!;
+        if (bricks[r]![c] === 3) {
           jove.graphics.setColor(80, 80, 90);
         } else {
           jove.graphics.setColor(cr, cg, cb);
         }
         jove.graphics.rectangle("fill", bx + 1, by + 1, bw - 2, bh - 2);
-        if (bricks[r][c] === 2) {
+        if (bricks[r]![c] === 2) {
           // Silver border for strong bricks
           jove.graphics.setColor(200, 200, 220);
           jove.graphics.rectangle("line", bx + 1, by + 1, bw - 2, bh - 2);

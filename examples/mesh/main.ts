@@ -5,6 +5,7 @@
 import jove from "../../src/index.ts";
 import type { Mesh, Image } from "../../src/index.ts";
 
+
 let triMesh: Mesh | null = null;
 let quadMesh: Mesh | null = null;
 let starMesh: Mesh | null = null;

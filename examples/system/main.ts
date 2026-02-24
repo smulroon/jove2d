@@ -90,7 +90,7 @@ await jove.run({
     // Display system info
     jove.graphics.setColor(200, 220, 200);
     for (let i = 0; i < messages.length; i++) {
-      jove.graphics.print(messages[i], 10, 40 + i * 16);
+      jove.graphics.print(messages[i]!, 10, 40 + i * 16);
     }
 
     // Gamma/linear color ramp visualization

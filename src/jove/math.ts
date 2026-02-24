@@ -11,14 +11,14 @@ function _rotl(x: number, k: number): number {
 
 function _next(): number {
   const s = _seed;
-  const result = (_rotl((s[1] * 5) >>> 0, 7) * 9) >>> 0;
-  const t = (s[1] << 9) >>> 0;
-  s[2] ^= s[0];
-  s[3] ^= s[1];
-  s[1] ^= s[2];
-  s[0] ^= s[3];
-  s[2] ^= t;
-  s[3] = _rotl(s[3], 11);
+  const result = (_rotl((s[1]! * 5) >>> 0, 7) * 9) >>> 0;
+  const t = (s[1]! << 9) >>> 0;
+  s[2] = s[2]! ^ s[0]!;
+  s[3] = s[3]! ^ s[1]!;
+  s[1] = s[1]! ^ s[2]!;
+  s[0] = s[0]! ^ s[3]!;
+  s[2] = s[2]! ^ t;
+  s[3] = _rotl(s[3]!, 11);
   return result;
 }
 
@@ -38,7 +38,7 @@ export function setRandomSeed(seed: number): void {
 
 /** Get the current random seed state (as a single number for simplicity). */
 export function getRandomSeed(): number {
-  return _seed[0];
+  return _seed[0]!;
 }
 
 /** Generate a random number. No args: [0,1). One arg: [1,max]. Two args: [min,max]. */
@@ -90,14 +90,14 @@ export function newRandomGenerator(seed?: number): RandomGenerator {
   }
 
   function next(): number {
-    const result = (_rotl((state[1] * 5) >>> 0, 7) * 9) >>> 0;
-    const t = (state[1] << 9) >>> 0;
-    state[2] ^= state[0];
-    state[3] ^= state[1];
-    state[1] ^= state[2];
-    state[0] ^= state[3];
-    state[2] ^= t;
-    state[3] = _rotl(state[3], 11);
+    const result = (_rotl((state[1]! * 5) >>> 0, 7) * 9) >>> 0;
+    const t = (state[1]! << 9) >>> 0;
+    state[2] = state[2]! ^ state[0]!;
+    state[3] = state[3]! ^ state[1]!;
+    state[1] = state[1]! ^ state[2]!;
+    state[0] = state[0]! ^ state[3]!;
+    state[2] = state[2]! ^ t;
+    state[3] = _rotl(state[3]!, 11);
     return result;
   }
 
@@ -120,7 +120,7 @@ export function newRandomGenerator(seed?: number): RandomGenerator {
       init(s);
     },
     getSeed(): number {
-      return state[0];
+      return state[0]!;
     },
     getState(): string {
       return state.map(v => (v >>> 0).toString(16).padStart(8, "0")).join("");
@@ -165,8 +165,8 @@ const _grad3: [number, number, number][] = [
     222, 114, 67, 29, 24, 72, 243, 141, 128, 195, 78, 66, 215, 61, 156, 180,
   ];
   for (let i = 0; i < 256; i++) {
-    _perm[i] = p[i];
-    _perm[i + 256] = p[i];
+    _perm[i] = p[i]!;
+    _perm[i + 256] = p[i]!;
   }
 })();
 
@@ -214,23 +214,23 @@ function _noise2(xin: number, yin: number): number {
 
   const ii = (i & 255) >>> 0;
   const jj = (j & 255) >>> 0;
-  const gi0 = _perm[ii + _perm[jj]] % 12;
-  const gi1 = _perm[ii + i1 + _perm[jj + j1]] % 12;
-  const gi2 = _perm[ii + 1 + _perm[jj + 1]] % 12;
+  const gi0 = _perm[ii + _perm[jj]!]! % 12;
+  const gi1 = _perm[ii + i1 + _perm[jj + j1]!]! % 12;
+  const gi2 = _perm[ii + 1 + _perm[jj + 1]!]! % 12;
 
   let n0: number, n1: number, n2: number;
 
   let t0 = 0.5 - x0 * x0 - y0 * y0;
   if (t0 < 0) n0 = 0;
-  else { t0 *= t0; n0 = t0 * t0 * _dot2(_grad3[gi0], x0, y0); }
+  else { t0 *= t0; n0 = t0 * t0 * _dot2(_grad3[gi0]!, x0, y0); }
 
   let t1 = 0.5 - x1 * x1 - y1 * y1;
   if (t1 < 0) n1 = 0;
-  else { t1 *= t1; n1 = t1 * t1 * _dot2(_grad3[gi1], x1, y1); }
+  else { t1 *= t1; n1 = t1 * t1 * _dot2(_grad3[gi1]!, x1, y1); }
 
   let t2 = 0.5 - x2 * x2 - y2 * y2;
   if (t2 < 0) n2 = 0;
-  else { t2 *= t2; n2 = t2 * t2 * _dot2(_grad3[gi2], x2, y2); }
+  else { t2 *= t2; n2 = t2 * t2 * _dot2(_grad3[gi2]!, x2, y2); }
 
   return 70.0 * (n0 + n1 + n2);
 }
@@ -278,28 +278,28 @@ function _noise3(xin: number, yin: number, zin: number): number {
   const ii = (i & 255) >>> 0;
   const jj = (j & 255) >>> 0;
   const kk = (k & 255) >>> 0;
-  const gi0 = _perm[ii + _perm[jj + _perm[kk]]] % 12;
-  const gi1 = _perm[ii + i1 + _perm[jj + j1 + _perm[kk + k1]]] % 12;
-  const gi2 = _perm[ii + i2 + _perm[jj + j2 + _perm[kk + k2]]] % 12;
-  const gi3 = _perm[ii + 1 + _perm[jj + 1 + _perm[kk + 1]]] % 12;
+  const gi0 = _perm[ii + _perm[jj + _perm[kk]!]!]! % 12;
+  const gi1 = _perm[ii + i1 + _perm[jj + j1 + _perm[kk + k1]!]!]! % 12;
+  const gi2 = _perm[ii + i2 + _perm[jj + j2 + _perm[kk + k2]!]!]! % 12;
+  const gi3 = _perm[ii + 1 + _perm[jj + 1 + _perm[kk + 1]!]!]! % 12;
 
   let n0: number, n1: number, n2: number, n3: number;
 
   let t0 = 0.6 - x0 * x0 - y0 * y0 - z0 * z0;
   if (t0 < 0) n0 = 0;
-  else { t0 *= t0; n0 = t0 * t0 * _dot3(_grad3[gi0], x0, y0, z0); }
+  else { t0 *= t0; n0 = t0 * t0 * _dot3(_grad3[gi0]!, x0, y0, z0); }
 
   let t1 = 0.6 - x1 * x1 - y1 * y1 - z1 * z1;
   if (t1 < 0) n1 = 0;
-  else { t1 *= t1; n1 = t1 * t1 * _dot3(_grad3[gi1], x1, y1, z1); }
+  else { t1 *= t1; n1 = t1 * t1 * _dot3(_grad3[gi1]!, x1, y1, z1); }
 
   let t2 = 0.6 - x2 * x2 - y2 * y2 - z2 * z2;
   if (t2 < 0) n2 = 0;
-  else { t2 *= t2; n2 = t2 * t2 * _dot3(_grad3[gi2], x2, y2, z2); }
+  else { t2 *= t2; n2 = t2 * t2 * _dot3(_grad3[gi2]!, x2, y2, z2); }
 
   let t3 = 0.6 - x3 * x3 - y3 * y3 - z3 * z3;
   if (t3 < 0) n3 = 0;
-  else { t3 *= t3; n3 = t3 * t3 * _dot3(_grad3[gi3], x3, y3, z3); }
+  else { t3 *= t3; n3 = t3 * t3 * _dot3(_grad3[gi3]!, x3, y3, z3); }
 
   return 32.0 * (n0 + n1 + n2 + n3);
 }
@@ -442,7 +442,7 @@ export function triangulate(vertices: number[]): number[][] {
   // Returns array of triangles, each triangle is [x1, y1, x2, y2, x3, y3].
   const n = vertices.length / 2;
   if (n < 3) return [];
-  if (n === 3) return [[vertices[0], vertices[1], vertices[2], vertices[3], vertices[4], vertices[5]]];
+  if (n === 3) return [[vertices[0]!, vertices[1]!, vertices[2]!, vertices[3]!, vertices[4]!, vertices[5]!]];
 
   // Build circular linked list via next/prev index arrays
   const nextIdx = new Array<number>(n);
@@ -457,24 +457,24 @@ export function triangulate(vertices: number[]): number[][] {
   // Find leftmost vertex to determine winding
   let lm = 0;
   for (let i = 1; i < n; i++) {
-    if (vertices[i * 2] < vertices[lm * 2] ||
-        (vertices[i * 2] === vertices[lm * 2] && vertices[i * 2 + 1] < vertices[lm * 2 + 1])) {
+    if (vertices[i * 2]! < vertices[lm * 2]! ||
+        (vertices[i * 2]! === vertices[lm * 2]! && vertices[i * 2 + 1]! < vertices[lm * 2 + 1]!)) {
       lm = i;
     }
   }
 
   // Check if CCW at leftmost vertex
-  const lmPrev = prevIdx[lm], lmNext = nextIdx[lm];
+  const lmPrev = prevIdx[lm]!, lmNext = nextIdx[lm]!;
   const isCCW = _isCCW(
-    vertices[lmPrev * 2], vertices[lmPrev * 2 + 1],
-    vertices[lm * 2], vertices[lm * 2 + 1],
-    vertices[lmNext * 2], vertices[lmNext * 2 + 1],
+    vertices[lmPrev * 2]!, vertices[lmPrev * 2 + 1]!,
+    vertices[lm * 2]!, vertices[lm * 2 + 1]!,
+    vertices[lmNext * 2]!, vertices[lmNext * 2 + 1]!,
   );
 
   // If clockwise, swap prev/next to reverse traversal (matches love2d)
   if (!isCCW) {
     const tmp = nextIdx.slice();
-    for (let i = 0; i < n; i++) { nextIdx[i] = prevIdx[i]; prevIdx[i] = tmp[i]; }
+    for (let i = 0; i < n; i++) { nextIdx[i] = prevIdx[i]!; prevIdx[i] = tmp[i]!; }
   }
 
   const triangles: number[][] = [];
@@ -485,23 +485,23 @@ export function triangulate(vertices: number[]): number[][] {
   let skipped = 0;
 
   while (nVerts > 3) {
-    const prev = prevIdx[current];
-    const next = nextIdx[current];
+    const prev = prevIdx[current]!;
+    const next = nextIdx[current]!;
 
-    const ax = vertices[prev * 2], ay = vertices[prev * 2 + 1];
-    const bx = vertices[current * 2], by = vertices[current * 2 + 1];
-    const cx = vertices[next * 2], cy = vertices[next * 2 + 1];
+    const ax = vertices[prev * 2]!, ay = vertices[prev * 2 + 1]!;
+    const bx = vertices[current * 2]!, by = vertices[current * 2 + 1]!;
+    const cx = vertices[next * 2]!, cy = vertices[next * 2 + 1]!;
 
     if (_isCCW(ax, ay, bx, by, cx, cy)) {
       let isEar = true;
-      let test = nextIdx[next];
+      let test = nextIdx[next]!;
       while (test !== prev) {
-        const tx = vertices[test * 2], ty = vertices[test * 2 + 1];
+        const tx = vertices[test * 2]!, ty = vertices[test * 2 + 1]!;
         if (_pointInTriangle(tx, ty, ax, ay, bx, by, cx, cy)) {
           isEar = false;
           break;
         }
-        test = nextIdx[test];
+        test = nextIdx[test]!;
       }
       if (isEar) {
         triangles.push([ax, ay, bx, by, cx, cy]);
@@ -515,19 +515,19 @@ export function triangulate(vertices: number[]): number[][] {
       }
     }
 
-    current = nextIdx[current];
+    current = nextIdx[current]!;
     skipped++;
     if (skipped > nVerts) break; // no ear found, bail
   }
 
   // Final triangle
   if (nVerts === 3) {
-    const prev = prevIdx[current];
-    const next = nextIdx[current];
+    const prev = prevIdx[current]!;
+    const next = nextIdx[current]!;
     triangles.push([
-      vertices[prev * 2], vertices[prev * 2 + 1],
-      vertices[current * 2], vertices[current * 2 + 1],
-      vertices[next * 2], vertices[next * 2 + 1],
+      vertices[prev * 2]!, vertices[prev * 2 + 1]!,
+      vertices[current * 2]!, vertices[current * 2 + 1]!,
+      vertices[next * 2]!, vertices[next * 2 + 1]!,
     ]);
   }
 
@@ -559,9 +559,9 @@ export function isConvex(vertices: number[]): boolean {
 
   let sign = 0;
   for (let i = 0; i < n; i++) {
-    const x1 = vertices[i * 2], y1 = vertices[i * 2 + 1];
-    const x2 = vertices[((i + 1) % n) * 2], y2 = vertices[((i + 1) % n) * 2 + 1];
-    const x3 = vertices[((i + 2) % n) * 2], y3 = vertices[((i + 2) % n) * 2 + 1];
+    const x1 = vertices[i * 2]!, y1 = vertices[i * 2 + 1]!;
+    const x2 = vertices[((i + 1) % n) * 2]!, y2 = vertices[((i + 1) % n) * 2 + 1]!;
+    const x3 = vertices[((i + 2) % n) * 2]!, y3 = vertices[((i + 2) % n) * 2 + 1]!;
     const cross = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2);
     if (cross !== 0) {
       if (sign === 0) sign = cross > 0 ? 1 : -1;
@@ -645,11 +645,11 @@ export function newBezierCurve(points: number[]): BezierCurve {
     const work = pts.slice();
     for (let r = 1; r < n; r++) {
       for (let i = 0; i < n - r; i++) {
-        work[i * 2] = (1 - t) * work[i * 2] + t * work[(i + 1) * 2];
-        work[i * 2 + 1] = (1 - t) * work[i * 2 + 1] + t * work[(i + 1) * 2 + 1];
+        work[i * 2] = (1 - t) * work[i * 2]! + t * work[(i + 1) * 2]!;
+        work[i * 2 + 1] = (1 - t) * work[i * 2 + 1]! + t * work[(i + 1) * 2 + 1]!;
       }
     }
-    return [work[0], work[1]];
+    return [work[0]!, work[1]!];
   }
 
   function subdivide(pts: number[], depth: number, out: number[]): void {
@@ -665,22 +665,22 @@ export function newBezierCurve(points: number[]): BezierCurve {
     const right: number[] = [];
     const work = pts.slice();
 
-    left.push(work[0], work[1]);
-    right.push(work[(n - 1) * 2], work[(n - 1) * 2 + 1]);
+    left.push(work[0]!, work[1]!);
+    right.push(work[(n - 1) * 2]!, work[(n - 1) * 2 + 1]!);
 
     for (let r = 1; r < n; r++) {
       for (let i = 0; i < n - r; i++) {
-        work[i * 2] = 0.5 * work[i * 2] + 0.5 * work[(i + 1) * 2];
-        work[i * 2 + 1] = 0.5 * work[i * 2 + 1] + 0.5 * work[(i + 1) * 2 + 1];
+        work[i * 2] = 0.5 * work[i * 2]! + 0.5 * work[(i + 1) * 2]!;
+        work[i * 2 + 1] = 0.5 * work[i * 2 + 1]! + 0.5 * work[(i + 1) * 2 + 1]!;
       }
-      left.push(work[0], work[1]);
-      right.push(work[(n - 1 - r) * 2], work[(n - 1 - r) * 2 + 1]);
+      left.push(work[0]!, work[1]!);
+      right.push(work[(n - 1 - r) * 2]!, work[(n - 1 - r) * 2 + 1]!);
     }
 
     // Reverse right to get correct order
     const rightOrdered: number[] = [];
     for (let i = right.length / 2 - 1; i >= 0; i--) {
-      rightOrdered.push(right[i * 2], right[i * 2 + 1]);
+      rightOrdered.push(right[i * 2]!, right[i * 2 + 1]!);
     }
 
     subdivide(left, depth - 1, out);
@@ -696,10 +696,10 @@ export function newBezierCurve(points: number[]): BezierCurve {
     let work = cp.slice();
     const rightPts: number[] = [];
     for (let r = 1; r < n; r++) {
-      rightPts.push(work[(n - r) * 2], work[(n - r) * 2 + 1]); // will be reversed
+      rightPts.push(work[(n - r) * 2]!, work[(n - r) * 2 + 1]!); // will be reversed
       for (let i = 0; i < n - r; i++) {
-        work[i * 2] = (1 - t1) * work[i * 2] + t1 * work[(i + 1) * 2];
-        work[i * 2 + 1] = (1 - t1) * work[i * 2 + 1] + t1 * work[(i + 1) * 2 + 1];
+        work[i * 2] = (1 - t1) * work[i * 2]! + t1 * work[(i + 1) * 2]!;
+        work[i * 2 + 1] = (1 - t1) * work[i * 2 + 1]! + t1 * work[(i + 1) * 2 + 1]!;
       }
     }
     // Right half control points: work[0] + collected from top-right of triangle
@@ -709,22 +709,22 @@ export function newBezierCurve(points: number[]): BezierCurve {
     function splitAt(pts: number[], t: number): { left: number[]; right: number[] } {
       const nn = pts.length / 2;
       const w = pts.slice();
-      const left: number[] = [w[0], w[1]];
-      const right: number[] = [w[(nn - 1) * 2], w[(nn - 1) * 2 + 1]];
+      const left: number[] = [w[0]!, w[1]!];
+      const right: number[] = [w[(nn - 1) * 2]!, w[(nn - 1) * 2 + 1]!];
 
       for (let r = 1; r < nn; r++) {
         for (let i = 0; i < nn - r; i++) {
-          w[i * 2] = (1 - t) * w[i * 2] + t * w[(i + 1) * 2];
-          w[i * 2 + 1] = (1 - t) * w[i * 2 + 1] + t * w[(i + 1) * 2 + 1];
+          w[i * 2] = (1 - t) * w[i * 2]! + t * w[(i + 1) * 2]!;
+          w[i * 2 + 1] = (1 - t) * w[i * 2 + 1]! + t * w[(i + 1) * 2 + 1]!;
         }
-        left.push(w[0], w[1]);
-        right.push(w[(nn - 1 - r) * 2], w[(nn - 1 - r) * 2 + 1]);
+        left.push(w[0]!, w[1]!);
+        right.push(w[(nn - 1 - r) * 2]!, w[(nn - 1 - r) * 2 + 1]!);
       }
 
       // Reverse right
       const ro: number[] = [];
       for (let i = right.length / 2 - 1; i >= 0; i--) {
-        ro.push(right[i * 2], right[i * 2 + 1]);
+        ro.push(right[i * 2]!, right[i * 2 + 1]!);
       }
       return { left, right: ro };
     }
@@ -742,14 +742,14 @@ export function newBezierCurve(points: number[]): BezierCurve {
     },
 
     render(depth: number = 5): number[] {
-      const out: number[] = [cp[0], cp[1]]; // Start point
+      const out: number[] = [cp[0]!, cp[1]!]; // Start point
       subdivide(cp, depth, out);
       return out;
     },
 
     renderSegment(startT: number, endT: number, depth: number = 5): number[] {
       const segPts = getSegmentPoints(startT, endT);
-      const out: number[] = [segPts[0], segPts[1]];
+      const out: number[] = [segPts[0]!, segPts[1]!];
       subdivide(segPts, depth, out);
       return out;
     },
@@ -761,8 +761,8 @@ export function newBezierCurve(points: number[]): BezierCurve {
       const deriv: number[] = [];
       for (let i = 0; i < degree; i++) {
         deriv.push(
-          degree * (cp[(i + 1) * 2] - cp[i * 2]),
-          degree * (cp[(i + 1) * 2 + 1] - cp[i * 2 + 1]),
+          degree * (cp[(i + 1) * 2]! - cp[i * 2]!),
+          degree * (cp[(i + 1) * 2 + 1]! - cp[i * 2 + 1]!),
         );
       }
       return newBezierCurve(deriv);
@@ -770,7 +770,7 @@ export function newBezierCurve(points: number[]): BezierCurve {
 
     getControlPoint(index: number): [number, number] {
       if (index < 0 || index >= cp.length / 2) throw new Error("Control point index out of range");
-      return [cp[index * 2], cp[index * 2 + 1]];
+      return [cp[index * 2]!, cp[index * 2 + 1]!];
     },
 
     setControlPoint(index: number, x: number, y: number): void {
@@ -804,8 +804,8 @@ export function newBezierCurve(points: number[]): BezierCurve {
 
     translate(dx: number, dy: number): void {
       for (let i = 0; i < cp.length; i += 2) {
-        cp[i] += dx;
-        cp[i + 1] += dy;
+        cp[i] = cp[i]! + dx;
+        cp[i + 1] = cp[i + 1]! + dy;
       }
     },
 
@@ -813,8 +813,8 @@ export function newBezierCurve(points: number[]): BezierCurve {
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
       for (let i = 0; i < cp.length; i += 2) {
-        const x = cp[i] - ox;
-        const y = cp[i + 1] - oy;
+        const x = cp[i]! - ox;
+        const y = cp[i + 1]! - oy;
         cp[i] = x * cos - y * sin + ox;
         cp[i + 1] = x * sin + y * cos + oy;
       }
@@ -822,8 +822,8 @@ export function newBezierCurve(points: number[]): BezierCurve {
 
     scale(s: number, ox: number = 0, oy: number = 0): void {
       for (let i = 0; i < cp.length; i += 2) {
-        cp[i] = (cp[i] - ox) * s + ox;
-        cp[i + 1] = (cp[i + 1] - oy) * s + oy;
+        cp[i] = (cp[i]! - ox) * s + ox;
+        cp[i + 1] = (cp[i + 1]! - oy) * s + oy;
       }
     },
   };

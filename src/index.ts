@@ -8,7 +8,7 @@ export {
 export type { GameCallbacks, WindowFlags, WindowMode, JoveEvent } from "./jove/types.ts";
 export type { ImageData } from "./jove/image.ts";
 export type { Font } from "./jove/font.ts";
-export type { SpriteBatch, Mesh } from "./jove/graphics.ts";
+export type { SpriteBatch, Mesh, Image, Text, Canvas, Quad } from "./jove/graphics.ts";
 export type { ParticleSystem } from "./jove/particles.ts";
 export type { Shader } from "./jove/shader.ts";
 export type { Source, QueueableSource } from "./jove/audio.ts";

@@ -112,7 +112,7 @@ await jove.run({
       const colors: [number, number, number][] = [[45, 45, 55], [40, 40, 50], [50, 50, 60], [35, 35, 45]];
       for (let ty = 0; ty < 2; ty++) {
         for (let tx = 0; tx < 2; tx++) {
-          const c = colors[ty * 2 + tx];
+          const c = colors[ty * 2 + tx]!;
           jove.graphics.setColor(c[0], c[1], c[2]);
           jove.graphics.rectangle("fill", tx * 32, ty * 32, 32, 32);
           jove.graphics.setColor(c[0] + 15, c[1] + 15, c[2] + 15);
@@ -132,7 +132,7 @@ await jove.run({
       if (batch) {
         for (let y = 0; y < GRID_H; y++) {
           for (let x = 0; x < GRID_W; x++) {
-            batch.add(quads[(x + y) % 4], x * TILE_SIZE, y * TILE_SIZE);
+            batch.add(quads[(x + y) % 4]!, x * TILE_SIZE, y * TILE_SIZE);
           }
         }
       }
@@ -184,7 +184,7 @@ await jove.run({
 
         // Emit particles
         if (particles.length > 0) {
-          const ps = particles[particleIdx % particles.length];
+          const ps = particles[particleIdx % particles.length]!;
           ps.setPosition(mx, my);
           ps.emit(20);
           ps.start();
@@ -349,7 +349,7 @@ function drawHUD() {
   let minDt = Infinity, maxDt = 0;
   const count = Math.min(frameIdx, FRAME_HISTORY);
   for (let i = 0; i < count; i++) {
-    const dt = frameTimes[i];
+    const dt = frameTimes[i]!;
     if (dt < minDt) minDt = dt;
     if (dt > maxDt) maxDt = dt;
   }
@@ -387,7 +387,7 @@ function drawHUD() {
 
   for (let i = 0; i < FRAME_HISTORY; i++) {
     const idx = (frameIdx - FRAME_HISTORY + i + FRAME_HISTORY * 2) % FRAME_HISTORY;
-    const dt = frameTimes[idx];
+    const dt = frameTimes[idx]!;
     const ms = dt * 1000;
     const barH = Math.min(graphH, (ms / 33) * graphH);
 

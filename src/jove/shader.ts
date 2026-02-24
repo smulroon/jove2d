@@ -446,30 +446,30 @@ function _writeUniform(
 
   switch (type) {
     case "float":
-      view.setFloat32(offset, values[0], true);
+      view.setFloat32(offset, values[0]!, true);
       break;
     case "int":
     case "bool":
-      view.setInt32(offset, values[0], true);
+      view.setInt32(offset, values[0]!, true);
       break;
     case "vec2":
-      view.setFloat32(offset, values[0], true);
-      view.setFloat32(offset + 4, values[1], true);
+      view.setFloat32(offset, values[0]!, true);
+      view.setFloat32(offset + 4, values[1]!, true);
       break;
     case "vec3":
-      view.setFloat32(offset, values[0], true);
-      view.setFloat32(offset + 4, values[1], true);
-      view.setFloat32(offset + 8, values[2], true);
+      view.setFloat32(offset, values[0]!, true);
+      view.setFloat32(offset + 4, values[1]!, true);
+      view.setFloat32(offset + 8, values[2]!, true);
       break;
     case "vec4":
-      view.setFloat32(offset, values[0], true);
-      view.setFloat32(offset + 4, values[1], true);
-      view.setFloat32(offset + 8, values[2], true);
-      view.setFloat32(offset + 12, values[3], true);
+      view.setFloat32(offset, values[0]!, true);
+      view.setFloat32(offset + 4, values[1]!, true);
+      view.setFloat32(offset + 8, values[2]!, true);
+      view.setFloat32(offset + 12, values[3]!, true);
       break;
     case "mat4":
       for (let i = 0; i < 16; i++) {
-        view.setFloat32(offset + i * 4, values[i], true);
+        view.setFloat32(offset + i * 4, values[i]!, true);
       }
       break;
   }

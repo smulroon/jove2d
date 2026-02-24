@@ -76,7 +76,7 @@ await jove.run({
     jove.graphics.setLineStyle("smooth");
     const joins = ["miter", "bevel", "none"] as const;
     for (let j = 0; j < 3; j++) {
-      jove.graphics.setLineJoin(joins[j]);
+      jove.graphics.setLineJoin(joins[j]!);
       jove.graphics.setColor(j === 0 ? 50 : j === 1 ? 255 : 180,
                              j === 0 ? 220 : j === 1 ? 160 : 100,
                              j === 0 ? 220 : j === 1 ? 50 : 255);

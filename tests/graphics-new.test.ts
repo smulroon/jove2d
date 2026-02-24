@@ -133,7 +133,7 @@ describe("jove.graphics — new primitives & features", () => {
     // Create a simple ImageData-like object
     const data = new Uint8Array(64 * 64 * 4);
     data.fill(255); // all white
-    canvas!.replacePixels({ data, width: 64, height: 64 });
+    canvas!.replacePixels({ data, width: 64, height: 64, format: "rgba8888" });
     canvas!.release();
   });
 
@@ -144,7 +144,7 @@ describe("jove.graphics — new primitives & features", () => {
     // Update a 16x16 region at offset (8, 8)
     const data = new Uint8Array(16 * 16 * 4);
     data.fill(128);
-    canvas!.replacePixels({ data, width: 16, height: 16 }, 8, 8);
+    canvas!.replacePixels({ data, width: 16, height: 16, format: "rgba8888" }, 8, 8);
     canvas!.release();
   });
 

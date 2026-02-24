@@ -163,8 +163,8 @@ function _tryDecode(path: string): { data: Uint8Array; channels: number; freq: n
 
   // Copy PCM data to JS buffer, then free C buffer
   const byteLen = Number(frames) * channels * 2; // S16 = 2 bytes per sample
-  const data = new Uint8Array(toArrayBuffer(dataPtr, 0, byteLen).slice(0));
-  lib.jove_audio_free(dataPtr);
+  const data = new Uint8Array(toArrayBuffer(dataPtr as unknown as Pointer, 0, byteLen).slice(0));
+  lib.jove_audio_free(dataPtr as unknown as Pointer);
 
   return { data, channels, freq };
 }
@@ -205,8 +205,8 @@ export function _decodeFile(path: string): { data: Uint8Array; format: number; c
   if (!audioBufPtrVal || audioLen === 0) return null;
 
   // Copy the audio data to a JS buffer so we can free the SDL buffer
-  const audioData = new Uint8Array(toArrayBuffer(audioBufPtrVal, 0, audioLen).slice(0));
-  sdl.SDL_free(audioBufPtrVal);
+  const audioData = new Uint8Array(toArrayBuffer(audioBufPtrVal as unknown as Pointer, 0, audioLen).slice(0));
+  sdl.SDL_free(audioBufPtrVal as unknown as Pointer);
 
   return { data: audioData, format, channels, freq };
 }

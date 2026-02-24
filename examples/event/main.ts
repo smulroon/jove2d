@@ -46,7 +46,7 @@ await jove.run({
     // Event log
     jove.graphics.setColor(160, 220, 160);
     for (let i = 0; i < log.length; i++) {
-      jove.graphics.print(log[i], 10, 60 + i * 18);
+      jove.graphics.print(log[i]!, 10, 60 + i * 18);
     }
   },
 

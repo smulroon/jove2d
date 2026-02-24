@@ -131,7 +131,7 @@ function shuffleBag(): number[] {
   const a = [0, 1, 2, 3, 4, 5, 6];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    [a[i], a[j]] = [a[j]!, a[i]!];
   }
   return a;
 }
@@ -149,14 +149,14 @@ function resetBoard() {
 }
 
 function cells(type: number, rot: number): [number, number][] {
-  return PIECES[type][rot] as [number, number][];
+  return PIECES[type]![rot]! as [number, number][];
 }
 
 function fits(type: number, rot: number, x: number, y: number): boolean {
   for (const [dr, dc] of cells(type, rot)) {
     const r = y + dr, c = x + dc;
     if (c < 0 || c >= COLS || r >= ROWS) return false;
-    if (r >= 0 && board[r][c] !== 0) return false;
+    if (r >= 0 && board[r]![c] !== 0) return false;
   }
   return true;
 }
@@ -165,13 +165,13 @@ function lockPiece() {
   for (const [dr, dc] of cells(curType, curRot)) {
     const r = curY + dr, c = curX + dc;
     if (r >= 0 && r < ROWS && c >= 0 && c < COLS) {
-      board[r][c] = curType + 1;
+      board[r]![c] = curType + 1;
     }
   }
   // Check for line clears
   clearLines = [];
   for (let r = ROWS - 1; r >= 0; r--) {
-    if (board[r].every(c => c !== 0)) {
+    if (board[r]!.every(c => c !== 0)) {
       clearLines.push(r);
     }
   }
@@ -268,7 +268,7 @@ function startGame() {
 }
 
 function drawCell(x: number, y: number, colorIdx: number, alpha: number = 255) {
-  const [r, g, b] = COLORS[colorIdx - 1];
+  const [r, g, b] = COLORS[colorIdx - 1]!;
   jove.graphics.setColor(r, g, b, alpha);
   jove.graphics.rectangle("fill", x + 1, y + 1, CELL - 2, CELL - 2);
   // lighter border
@@ -374,7 +374,7 @@ await jove.run({
     // Draw locked cells (skip top 2 hidden rows)
     for (let r = 2; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
-        if (board[r][c] !== 0) {
+        if (board[r]![c] !== 0) {
           const flash = clearLines.includes(r) && clearTimer > 0;
           if (flash) {
             const blink = Math.floor(clearTimer * 20) % 2 === 0;
@@ -383,7 +383,7 @@ await jove.run({
               jove.graphics.rectangle("fill", BOARD_X + c * CELL + 1, BOARD_Y + (r - 2) * CELL + 1, CELL - 2, CELL - 2);
             }
           } else {
-            drawCell(BOARD_X + c * CELL, BOARD_Y + (r - 2) * CELL, board[r][c]);
+            drawCell(BOARD_X + c * CELL, BOARD_Y + (r - 2) * CELL, board[r]![c]!);
           }
         }
       }

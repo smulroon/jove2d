@@ -47,12 +47,12 @@ jove.run({
 
     // One-way platforms
     for (let i = 0; i < PLAT_YS.length; i++) {
-      const body = jove.physics.newBody(world, PLAT_XS[i], PLAT_YS[i], "static");
-      const shape = jove.physics.newRectangleShape(PLAT_WIDTHS[i], PLAT_H);
+      const body = jove.physics.newBody(world, PLAT_XS[i]!, PLAT_YS[i]!, "static");
+      const shape = jove.physics.newRectangleShape(PLAT_WIDTHS[i]!, PLAT_H);
       const fixture = jove.physics.newFixture(body, shape);
       fixture.setUserData("oneway");
       fixture.setFriction(0.5);
-      platforms.push({ body, fixture, w: PLAT_WIDTHS[i], h: PLAT_H });
+      platforms.push({ body, fixture, w: PLAT_WIDTHS[i]!, h: PLAT_H });
     }
 
     // preSolve callback — disable contact when ball is below the platform
@@ -111,9 +111,9 @@ jove.run({
 
     // Remove balls that fall off screen
     for (let i = balls.length - 1; i >= 0; i--) {
-      const [, by] = balls[i].body.getPosition();
+      const [, by] = balls[i]!.body.getPosition();
       if (by > 700) {
-        balls[i].body.destroy();
+        balls[i]!.body.destroy();
         balls.splice(i, 1);
       }
     }

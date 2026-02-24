@@ -139,8 +139,8 @@ await jove.run({
 
     // Fade flashes
     for (let i = flashes.length - 1; i >= 0; i--) {
-      flashes[i].timer -= dt;
-      if (flashes[i].timer <= 0) flashes.splice(i, 1);
+      flashes[i]!.timer -= dt;
+      if (flashes[i]!.timer <= 0) flashes.splice(i, 1);
     }
   },
 

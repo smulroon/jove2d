@@ -224,7 +224,7 @@ function mapEvent(eventType: number, p: Pointer): JoveEvent | null {
     case SDL_EVENT_TEXT_EDITING: {
       const textPtr = read.ptr(p, SDL_TEXT_EDITING_TEXT);
       if (!textPtr) return null;
-      const text = new CString(textPtr);
+      const text = new CString(textPtr as unknown as Pointer);
       return {
         type: "textedited",
         text: text.toString(),
@@ -238,7 +238,7 @@ function mapEvent(eventType: number, p: Pointer): JoveEvent | null {
       const textPtr = read.ptr(p, SDL_TEXT_INPUT_TEXT);
       if (!textPtr) return null;
       // Read the text as a cstring
-      const text = new CString(textPtr);
+      const text = new CString(textPtr as unknown as Pointer);
       return { type: "textinput", text: text.toString() };
     }
 
@@ -282,7 +282,7 @@ function mapEvent(eventType: number, p: Pointer): JoveEvent | null {
     case SDL_EVENT_DROP_FILE: {
       const dataPtr = read.ptr(p, SDL_DROP_EVENT_DATA);
       if (!dataPtr) return null;
-      const filePath = new Bun.CString(dataPtr);
+      const filePath = new CString(dataPtr as unknown as Pointer);
       return { type: "filedropped", path: filePath.toString() };
     }
 

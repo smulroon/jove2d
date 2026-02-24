@@ -182,7 +182,7 @@ export function _createBitmapFont(
   function _measureText(text: string): number {
     let w = 0;
     for (let i = 0; i < text.length; i++) {
-      const cw = _getCharWidth(text[i]);
+      const cw = _getCharWidth(text[i]!);
       if (cw > 0) {
         if (w > 0) w += extraSpacing;
         w += cw;

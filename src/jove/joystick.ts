@@ -86,14 +86,16 @@ export function _onJoystickAdded(instanceId: number): Joystick | null {
   if (isGp) {
     gamepadPtr = sdl.SDL_OpenGamepad(instanceId);
     if (!gamepadPtr) return null;
-    joystickPtr = sdl.SDL_GetGamepadJoystick(gamepadPtr);
-    if (!joystickPtr) {
+    const jpResult = sdl.SDL_GetGamepadJoystick(gamepadPtr);
+    if (!jpResult) {
       sdl.SDL_CloseGamepad(gamepadPtr);
       return null;
     }
+    joystickPtr = jpResult;
   } else {
-    joystickPtr = sdl.SDL_OpenJoystick(instanceId);
-    if (!joystickPtr) return null;
+    const jpResult = sdl.SDL_OpenJoystick(instanceId);
+    if (!jpResult) return null;
+    joystickPtr = jpResult;
   }
 
   const seqId = _nextId++;

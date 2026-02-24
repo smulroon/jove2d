@@ -88,8 +88,8 @@ jove.run({
 
     // Fade contact flashes
     for (let i = contactFlashes.length - 1; i >= 0; i--) {
-      contactFlashes[i].timer -= dt;
-      if (contactFlashes[i].timer <= 0) {
+      contactFlashes[i]!.timer -= dt;
+      if (contactFlashes[i]!.timer <= 0) {
         contactFlashes.splice(i, 1);
       }
     }
@@ -169,7 +169,7 @@ jove.run({
     if (key === "t" && balls.length > 0) {
       // Teleport nearest ball to mouse position using setX/setY
       const [mx, my] = jove.mouse.getPosition();
-      let nearest = balls[0];
+      let nearest = balls[0]!;
       let bestDist = Infinity;
       for (const ball of balls) {
         const dx = ball.body.getX() - mx;
@@ -199,11 +199,11 @@ jove.run({
       // Load saved transforms using setTransform
       const count = Math.min(balls.length, savedTransforms.length);
       for (let i = 0; i < count; i++) {
-        const t = savedTransforms[i];
-        balls[i].body.setTransform(t.x, t.y, t.angle);
-        balls[i].body.setLinearVelocity(0, 0);
-        balls[i].body.setAngularVelocity(0);
-        balls[i].body.setAwake(true);
+        const t = savedTransforms[i]!;
+        balls[i]!.body.setTransform(t.x, t.y, t.angle);
+        balls[i]!.body.setLinearVelocity(0, 0);
+        balls[i]!.body.setAngularVelocity(0);
+        balls[i]!.body.setAwake(true);
       }
     }
 

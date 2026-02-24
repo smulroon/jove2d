@@ -38,13 +38,13 @@ describe("jove.joystick — connected device tests", () => {
   const joysticks = jove.joystick.getJoysticks();
 
   test.skipIf(joysticks.length === 0)("joystick has valid name", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(typeof joy.getName()).toBe("string");
     expect(joy.getName().length).toBeGreaterThan(0);
   });
 
   test.skipIf(joysticks.length === 0)("joystick getID returns [number, number]", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     const [id, instanceId] = joy.getID();
     expect(typeof id).toBe("number");
     expect(typeof instanceId).toBe("number");
@@ -52,32 +52,32 @@ describe("jove.joystick — connected device tests", () => {
   });
 
   test.skipIf(joysticks.length === 0)("joystick isConnected returns true", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(joy.isConnected()).toBe(true);
   });
 
   test.skipIf(joysticks.length === 0)("joystick getAxisCount returns non-negative", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(joy.getAxisCount()).toBeGreaterThanOrEqual(0);
   });
 
   test.skipIf(joysticks.length === 0)("joystick getButtonCount returns non-negative", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(joy.getButtonCount()).toBeGreaterThanOrEqual(0);
   });
 
   test.skipIf(joysticks.length === 0)("joystick getHatCount returns non-negative", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(joy.getHatCount()).toBeGreaterThanOrEqual(0);
   });
 
   test.skipIf(joysticks.length === 0)("joystick isGamepad returns boolean", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(typeof joy.isGamepad()).toBe("boolean");
   });
 
   test.skipIf(joysticks.length === 0)("joystick getDeviceInfo returns [number, number, number]", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     const [vendor, product, version] = joy.getDeviceInfo();
     expect(typeof vendor).toBe("number");
     expect(typeof product).toBe("number");
@@ -85,12 +85,12 @@ describe("jove.joystick — connected device tests", () => {
   });
 
   test.skipIf(joysticks.length === 0)("joystick isVibrationSupported returns boolean", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     expect(typeof joy.isVibrationSupported()).toBe("boolean");
   });
 
   test.skipIf(joysticks.length === 0)("joystick getAxis returns -1 to 1", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     if (joy.getAxisCount() > 0) {
       const val = joy.getAxis(0);
       expect(val).toBeGreaterThanOrEqual(-1);
@@ -99,14 +99,14 @@ describe("jove.joystick — connected device tests", () => {
   });
 
   test.skipIf(joysticks.length === 0)("joystick isDown returns boolean", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     if (joy.getButtonCount() > 0) {
       expect(typeof joy.isDown(1)).toBe("boolean");
     }
   });
 
   test.skipIf(joysticks.length === 0)("joystick getHat returns direction string", () => {
-    const joy = joysticks[0];
+    const joy = joysticks[0]!;
     if (joy.getHatCount() > 0) {
       const dir = joy.getHat(0);
       expect(["c", "u", "r", "d", "l", "ru", "rd", "lu", "ld"]).toContain(dir);

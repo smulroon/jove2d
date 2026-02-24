@@ -3,6 +3,7 @@
 import jove from "../../src/index.ts";
 import type { Font, Text } from "../../src/index.ts";
 
+
 let smallFont: Font;
 let defaultFont: Font;
 let largeFont: Font;

@@ -95,8 +95,8 @@ function makeTriangle(): LevelShape {
     corners.push([Math.cos(a) * R, Math.sin(a) * R]);
   }
   for (let s = 0; s < 3; s++) {
-    const [sx, sy] = corners[s];
-    const [ex, ey] = corners[(s + 1) % 3];
+    const [sx, sy] = corners[s]!;
+    const [ex, ey] = corners[(s + 1) % 3]!
     for (let i = 0; i < 5; i++) {
       const t = i / 5;
       pts.push([sx + (ex - sx) * t, sy + (ey - sy) * t]);
@@ -220,12 +220,12 @@ function playPool(pool: Source[], src: Source | null, max: number) {
 // Geometry helpers — get screen position from lane + depth
 function nearPt(lane: number): [number, number] {
   const idx = lane % shape.points.length;
-  return [CX + shape.points[idx][0], CY + shape.points[idx][1]];
+  return [CX + shape.points[idx]![0], CY + shape.points[idx]![1]];
 }
 
 function farPt(lane: number): [number, number] {
   const idx = lane % shape.points.length;
-  return [CX + shape.points[idx][0] * FAR_SCALE, CY + shape.points[idx][1] * FAR_SCALE];
+  return [CX + shape.points[idx]![0] * FAR_SCALE, CY + shape.points[idx]![1] * FAR_SCALE];
 }
 
 function lerpPt(lane: number, depth: number): [number, number] {
@@ -245,7 +245,7 @@ function laneMid(lane: number, depth: number): [number, number] {
 function initLevel(num: number) {
   levelNum = num;
   const shapeIdx = (num - 1) % SHAPES.length;
-  shape = SHAPES[shapeIdx]();
+  shape = SHAPES[shapeIdx]!();
   numLanes = shape.closed ? shape.points.length : shape.points.length - 1;
   playerLane = Math.floor(numLanes / 2);
   enemies = [];
@@ -300,10 +300,10 @@ function spawnParticles(x: number, y: number, r: number, g: number, b: number, c
 }
 
 function killEnemy(idx: number) {
-  const e = enemies[idx];
+  const e = enemies[idx]!;
   const [mx, my] = laneMid(e.lane, e.depth);
   const ci = e.lane % LANE_COLORS.length;
-  const [cr, cg, cb] = LANE_COLORS[ci];
+  const [cr, cg, cb] = LANE_COLORS[ci]!;
 
   if (e.kind === "tanker") {
     // Split into 2 flippers
@@ -371,14 +371,14 @@ await jove.run({
 
     // Update bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
-      const b = bullets[i];
+      const b = bullets[i]!;
       b.depth -= 2.0 * dt; // bullets travel fast toward far end
       if (b.depth <= 0) { bullets.splice(i, 1); continue; }
 
       // Hit enemy?
       let hit = false;
       for (let ei = enemies.length - 1; ei >= 0; ei--) {
-        const e = enemies[ei];
+        const e = enemies[ei]!;
         if (e.lane === b.lane && Math.abs(e.depth - b.depth) < 0.06) {
           killEnemy(ei);
           bullets.splice(i, 1);
@@ -390,7 +390,7 @@ await jove.run({
 
       // Hit spike?
       for (let si = spikes.length - 1; si >= 0; si--) {
-        const s = spikes[si];
+        const s = spikes[si]!;
         if (s.lane === b.lane && b.depth <= s.depth) {
           // Destroy spike segment
           s.depth -= 0.1;
@@ -404,7 +404,7 @@ await jove.run({
 
     // Update enemies
     for (let i = enemies.length - 1; i >= 0; i--) {
-      const e = enemies[i];
+      const e = enemies[i]!;
       e.depth += e.speed * dt;
 
       if (e.kind === "spiker") {
@@ -453,7 +453,7 @@ await jove.run({
 
     // Check player collision with enemies at near rim (same lane, depth > 0.9)
     for (let i = enemies.length - 1; i >= 0; i--) {
-      const e = enemies[i];
+      const e = enemies[i]!;
       if (e.lane === playerLane && e.depth > 0.9) {
         enemies.splice(i, 1);
         lives--;
@@ -469,7 +469,7 @@ await jove.run({
 
     // Update particles
     for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
+      const p = particles[i]!;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;
@@ -634,10 +634,10 @@ await jove.run({
       // Superzapper — destroy all visible enemies
       zapAvailable = false;
       for (let i = enemies.length - 1; i >= 0; i--) {
-        const e = enemies[i];
+        const e = enemies[i]!;
         const [mx, my] = laneMid(e.lane, e.depth);
         const ci = e.lane % LANE_COLORS.length;
-        spawnParticles(mx, my, LANE_COLORS[ci][0], LANE_COLORS[ci][1], LANE_COLORS[ci][2], 5);
+        spawnParticles(mx, my, LANE_COLORS[ci]![0], LANE_COLORS[ci]![1], LANE_COLORS[ci]![2], 5);
         score += 50;
       }
       enemies = [];
@@ -660,7 +660,7 @@ function drawTube(alpha: number) {
   // Draw lane lines (near to far)
   for (let i = 0; i < n; i++) {
     const ci = i % LANE_COLORS.length;
-    const [cr, cg, cb] = LANE_COLORS[ci];
+    const [cr, cg, cb] = LANE_COLORS[ci]!;
     jove.graphics.setColor(cr, cg, cb, Math.floor(a * 0.5));
     const [nx, ny] = nearPt(i);
     const [fx, fy] = farPt(i);
@@ -670,7 +670,7 @@ function drawTube(alpha: number) {
   // Draw near rim
   for (let i = 0; i < lanes; i++) {
     const ci = i % LANE_COLORS.length;
-    const [cr, cg, cb] = LANE_COLORS[ci];
+    const [cr, cg, cb] = LANE_COLORS[ci]!;
     jove.graphics.setColor(cr, cg, cb, a);
     const [x1, y1] = nearPt(i);
     const [x2, y2] = nearPt((i + 1) % n);
@@ -680,7 +680,7 @@ function drawTube(alpha: number) {
   // Draw far rim
   for (let i = 0; i < lanes; i++) {
     const ci = i % LANE_COLORS.length;
-    const [cr, cg, cb] = LANE_COLORS[ci];
+    const [cr, cg, cb] = LANE_COLORS[ci]!;
     jove.graphics.setColor(cr, cg, cb, Math.floor(a * 0.6));
     const [x1, y1] = farPt(i);
     const [x2, y2] = farPt((i + 1) % n);

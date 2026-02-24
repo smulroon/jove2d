@@ -197,14 +197,14 @@ describe("jove.graphics — ParticleSystem", () => {
 
   test("getTexture returns the source image", () => {
     const ps = graphics.newParticleSystem(img!, 100)!;
-    expect(ps.getTexture()).toBe(img);
+    expect(ps.getTexture()).toBe(img!);
   });
 
   test("setTexture changes the texture", () => {
     const ps = graphics.newParticleSystem(img!, 100)!;
     const img2 = graphics.newCanvas(32, 32);
     ps.setTexture(img2!);
-    expect(ps.getTexture()).toBe(img2);
+    expect(ps.getTexture()).toBe(img2!);
     img2!.release();
   });
 
@@ -354,7 +354,7 @@ describe("jove.graphics — ParticleSystem", () => {
     expect(data).not.toBeNull();
     // Vertex Y values should be positive (moved down)
     // Average Y of the 4 vertices
-    const avgY = (data!.vertices[1] + data!.vertices[9] + data!.vertices[17] + data!.vertices[25]) / 4;
+    const avgY = (data!.vertices[1]! + data!.vertices[9]! + data!.vertices[17]! + data!.vertices[25]!) / 4;
     expect(avgY).toBeGreaterThan(0);
   });
 
@@ -372,7 +372,7 @@ describe("jove.graphics — ParticleSystem", () => {
     ps.update(1);
     const data = ps._getVertexData();
     expect(data).not.toBeNull();
-    const avgX = (data!.vertices[0] + data!.vertices[8] + data!.vertices[16] + data!.vertices[24]) / 4;
+    const avgX = (data!.vertices[0]! + data!.vertices[8]! + data!.vertices[16]! + data!.vertices[24]!) / 4;
     // With heavy damping, should be much less than 100
     expect(avgX).toBeGreaterThan(0);
     expect(avgX).toBeLessThan(100);
@@ -482,10 +482,10 @@ describe("jove.graphics — ParticleSystem", () => {
     ps.emit(1);
     const data = ps._getVertexData()!;
     // Check vertex color (r, g, b, a are at offsets 2,3,4,5)
-    expect(data.vertices[2]).toBeCloseTo(1.0, 1);       // r = 255/255
-    expect(data.vertices[3]).toBeCloseTo(128 / 255, 1);  // g
-    expect(data.vertices[4]).toBeCloseTo(64 / 255, 1);   // b
-    expect(data.vertices[5]).toBeCloseTo(200 / 255, 1);  // a
+    expect(data.vertices[2]!).toBeCloseTo(1.0, 1);       // r = 255/255
+    expect(data.vertices[3]!).toBeCloseTo(128 / 255, 1);  // g
+    expect(data.vertices[4]!).toBeCloseTo(64 / 255, 1);   // b
+    expect(data.vertices[5]!).toBeCloseTo(200 / 255, 1);  // a
   });
 
   // --- Emission area distributions ---
@@ -501,8 +501,8 @@ describe("jove.graphics — ParticleSystem", () => {
     // Check that all particle centers are within bounds (roughly)
     for (let i = 0; i < 100; i++) {
       const base = i * 32;
-      const cx = (data.vertices[base] + data.vertices[base + 8] + data.vertices[base + 16] + data.vertices[base + 24]) / 4;
-      const cy = (data.vertices[base + 1] + data.vertices[base + 9] + data.vertices[base + 17] + data.vertices[base + 25]) / 4;
+      const cx = (data.vertices[base]! + data.vertices[base + 8]! + data.vertices[base + 16]! + data.vertices[base + 24]!) / 4;
+      const cy = (data.vertices[base + 1]! + data.vertices[base + 9]! + data.vertices[base + 17]! + data.vertices[base + 25]!) / 4;
       expect(cx).toBeGreaterThanOrEqual(-60);
       expect(cx).toBeLessThanOrEqual(60);
       expect(cy).toBeGreaterThanOrEqual(-60);
@@ -520,8 +520,8 @@ describe("jove.graphics — ParticleSystem", () => {
     const data = ps._getVertexData()!;
     for (let i = 0; i < 50; i++) {
       const base = i * 32;
-      const cx = (data.vertices[base] + data.vertices[base + 8] + data.vertices[base + 16] + data.vertices[base + 24]) / 4;
-      const cy = (data.vertices[base + 1] + data.vertices[base + 9] + data.vertices[base + 17] + data.vertices[base + 25]) / 4;
+      const cx = (data.vertices[base]! + data.vertices[base + 8]! + data.vertices[base + 16]! + data.vertices[base + 24]!) / 4;
+      const cy = (data.vertices[base + 1]! + data.vertices[base + 9]! + data.vertices[base + 17]! + data.vertices[base + 25]!) / 4;
       const dist = Math.sqrt(cx * cx + cy * cy);
       // Should be within the ellipse radius (with some margin for particle size)
       expect(dist).toBeLessThan(50);

@@ -241,7 +241,7 @@ function drawKeyboard(x: number, y: number, w: number, h: number) {
 
   for (let i = 0; i < whiteKeys.length; i++) {
     const kx = x + i * whiteW;
-    const key = whiteKeys[i];
+    const key = whiteKeys[i]!;
     const isActive = jove.keyboard.isDown(key);
 
     if (isActive) {

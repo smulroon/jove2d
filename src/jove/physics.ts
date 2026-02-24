@@ -1431,9 +1431,9 @@ export function newCircleShape(radius: number): Shape;
 export function newCircleShape(x: number, y: number, radius: number): Shape;
 export function newCircleShape(...args: number[]): Shape {
   if (args.length === 1) {
-    return new Shape("circle", args[0], [0, 0]);
+    return new Shape("circle", args[0]!, [0, 0]);
   }
-  return new Shape("circle", args[2], [args[0], args[1]]);
+  return new Shape("circle", args[2]!, [args[0]!, args[1]!]);
 }
 
 export function newRectangleShape(width: number, height: number): Shape;
@@ -1441,9 +1441,13 @@ export function newRectangleShape(x: number, y: number, width: number, height: n
 export function newRectangleShape(...args: number[]): Shape {
   let x = 0, y = 0, w: number, h: number;
   if (args.length === 2) {
-    [w, h] = args;
+    w = args[0]!;
+    h = args[1]!;
   } else {
-    [x, y, w, h] = args;
+    x = args[0]!;
+    y = args[1]!;
+    w = args[2]!;
+    h = args[3]!;
   }
   // Rectangle as 4-vertex polygon (centered at x,y)
   const hw = w / 2, hh = h / 2;
@@ -1489,8 +1493,8 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
 
   switch (type) {
     case "circle": {
-      const cx = pts.length >= 2 ? toMeters(pts[0]) : 0;
-      const cy = pts.length >= 2 ? toMeters(pts[1]) : 0;
+      const cx = pts.length >= 2 ? toMeters(pts[0]!) : 0;
+      const cy = pts.length >= 2 ? toMeters(pts[1]!) : 0;
       shapeIdx = b2.jove_CreateCircleShape(
         body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents,
         cx, cy, toMeters(shape._radius)
@@ -1500,7 +1504,8 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
     case "polygon": {
       if (pts.length === 8) {
         // Check if it's an axis-aligned rectangle (from newRectangleShape)
-        const [x0, y0, x1, y1, x2, y2, x3, y3] = pts;
+        const x0 = pts[0]!, y0 = pts[1]!, x1 = pts[2]!, y1 = pts[3]!;
+        const x2 = pts[4]!, y2 = pts[5]!, x3 = pts[6]!, y3 = pts[7]!;
         const isRect = x0 === x3 && x1 === x2 && y0 === y1 && y2 === y3;
         if (isRect) {
           const hw = toMeters(Math.abs(x1 - x0) / 2);
@@ -1514,7 +1519,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
       // General polygon
       const vertBuf = new Float32Array(pts.length);
       for (let i = 0; i < pts.length; i++) {
-        vertBuf[i] = toMeters(pts[i]);
+        vertBuf[i] = toMeters(pts[i]!);
       }
       shapeIdx = b2.jove_CreatePolygonShape(
         body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents,
@@ -1525,8 +1530,8 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
     case "edge": {
       shapeIdx = b2.jove_CreateEdgeShape(
         body._id, density, 0.2, 0, 0, hitEvents, preSolveEvents,
-        toMeters(pts[0]), toMeters(pts[1]),
-        toMeters(pts[2]), toMeters(pts[3])
+        toMeters(pts[0]!), toMeters(pts[1]!),
+        toMeters(pts[2]!), toMeters(pts[3]!)
       );
       break;
     }
@@ -1534,7 +1539,7 @@ export function newFixture(body: Body, shape: Shape, density: number = 1): Fixtu
       isChain = true;
       const vertBuf = new Float32Array(pts.length);
       for (let i = 0; i < pts.length; i++) {
-        vertBuf[i] = toMeters(pts[i]);
+        vertBuf[i] = toMeters(pts[i]!);
       }
       shapeIdx = b2.jove_CreateChainShape(
         body._id, 0.2, 0,

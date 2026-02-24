@@ -70,7 +70,7 @@ function tryConvert(wavPath: string, ext: string, ffmpegArgs: string[]): boolean
 }
 
 function switchFormat(index: number, force: boolean = false) {
-  if (index < 0 || index >= formats.length || !formats[index].available) return;
+  if (index < 0 || index >= formats.length || !formats[index]!.available) return;
   if (index === currentFormat && source && !force) return;
 
   // Stop and release current source
@@ -80,7 +80,7 @@ function switchFormat(index: number, force: boolean = false) {
   }
 
   currentFormat = index;
-  const fmt = formats[currentFormat];
+  const fmt = formats[currentFormat]!;
   source = jove.audio.newSource(fmt.path, sourceType);
   if (source) {
     statusMsg = `Loaded ${fmt.label} (${sourceType}) — press SPACE to play`;
@@ -160,7 +160,7 @@ await jove.run({
     jove.graphics.setColor(150, 200, 255);
     jove.graphics.print("Format (F1-F4):", x, y + 216);
     for (let i = 0; i < formats.length; i++) {
-      const f = formats[i];
+      const f = formats[i]!;
       if (i === currentFormat) {
         jove.graphics.setColor(100, 255, 100);
       } else if (f.available) {

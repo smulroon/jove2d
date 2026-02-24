@@ -91,7 +91,7 @@ await jove.run({
     jove.graphics.setColor(200, 220, 200);
     let y = 40;
     for (let i = 0; i < messages.length; i++) {
-      jove.graphics.print(messages[i], 10, y);
+      jove.graphics.print(messages[i]!, 10, y);
       y += 18;
     }
   },

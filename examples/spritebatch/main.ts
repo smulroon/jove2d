@@ -71,7 +71,7 @@ await jove.run({
     for (let y = 0; y < GRID_H; y++) {
       for (let x = 0; x < GRID_W; x++) {
         const tileIdx = (x + y) % 4;
-        batch.add(quads[tileIdx], x * TILE_SIZE, y * TILE_SIZE + 60);
+        batch.add(quads[tileIdx]!, x * TILE_SIZE, y * TILE_SIZE + 60);
       }
     }
   },

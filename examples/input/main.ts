@@ -72,14 +72,14 @@ await jove.run({
     if (compositionText.length > 0) {
       // Draw committed text, then composition with underline
       jove.graphics.print(typedText, 10, 100);
-      const committedWidth = jove.graphics.getFont().getWidth(typedText);
+      const committedWidth = jove.graphics.getFont()!.getWidth(typedText);
       // Draw composition text in yellow with underline
       jove.graphics.setColor(255, 255, 100);
       jove.graphics.print(compositionText, 10 + committedWidth, 100);
-      const compWidth = jove.graphics.getFont().getWidth(compositionText);
+      const compWidth = jove.graphics.getFont()!.getWidth(compositionText);
       jove.graphics.line(10 + committedWidth, 114, 10 + committedWidth + compWidth, 114);
       // Draw cursor within composition
-      const cursorOffset = jove.graphics.getFont().getWidth(compositionText.substring(0, compositionStart));
+      const cursorOffset = jove.graphics.getFont()!.getWidth(compositionText.substring(0, compositionStart));
       jove.graphics.setColor(255, 255, 255);
       jove.graphics.line(10 + committedWidth + cursorOffset, 100, 10 + committedWidth + cursorOffset, 114);
       // Draw trailing cursor after composition
@@ -118,7 +118,7 @@ await jove.run({
       jove.mouse.setGrabbed(mouseGrabbed);
     } else if (key === "c") {
       cursorIndex = (cursorIndex + 1) % cursorTypes.length;
-      jove.mouse.setCursor(jove.mouse.getSystemCursor(cursorTypes[cursorIndex]));
+      jove.mouse.setCursor(jove.mouse.getSystemCursor(cursorTypes[cursorIndex]!));
     } else if (key === "backspace") {
       typedText = typedText.slice(0, -1);
     }

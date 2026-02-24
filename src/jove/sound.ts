@@ -96,10 +96,10 @@ export function _createSoundData(
       const ch = channel - 1; // 1-based → 0-based
       if (i < 0 || i >= frameCount || ch < 0 || ch >= channels) return 0;
       if (view16) {
-        return view16[i * channels + ch] / 32768;
+        return view16[i * channels + ch]! / 32768;
       } else {
         // 8-bit unsigned: 0-255 → -1..1
-        return (data[i * channels + ch] - 128) / 128;
+        return (data[i * channels + ch]! - 128) / 128;
       }
     },
 
@@ -137,7 +137,7 @@ export function _createSoundData(
     getString(): string {
       let str = "";
       for (let i = 0; i < data.length; i++) {
-        str += String.fromCharCode(data[i]);
+        str += String.fromCharCode(data[i]!);
       }
       return str;
     },
@@ -195,9 +195,9 @@ export function newDecoder(path: string, bufferSize: number = 4096): Decoder {
   const outTotal = new BigInt64Array(1);
   lib.jove_decoder_get_info(idx, outCh, outRate, outTotal);
 
-  const channels = outCh[0];
-  const sampleRate = outRate[0];
-  const totalFrames = Number(outTotal[0]);
+  const channels = outCh[0]!;
+  const sampleRate = outRate[0]!;
+  const totalFrames = Number(outTotal[0]!);
 
   // Get C-side buffer pointer (avoids ptr() Windows bug)
   const bufPtr = lib.jove_decoder_get_buf() as Pointer;

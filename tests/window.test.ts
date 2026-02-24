@@ -166,10 +166,10 @@ describe("jove.window", () => {
     const modes = window.getFullscreenModes(1);
     expect(Array.isArray(modes)).toBe(true);
     if (modes.length > 0) {
-      expect(typeof modes[0].width).toBe("number");
-      expect(typeof modes[0].height).toBe("number");
-      expect(modes[0].width).toBeGreaterThan(0);
-      expect(modes[0].height).toBeGreaterThan(0);
+      expect(typeof modes[0]!.width).toBe("number");
+      expect(typeof modes[0]!.height).toBe("number");
+      expect(modes[0]!.width).toBeGreaterThan(0);
+      expect(modes[0]!.height).toBeGreaterThan(0);
     }
   });
 

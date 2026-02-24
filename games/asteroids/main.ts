@@ -212,7 +212,7 @@ await jove.run({
 
     // Update bullets
     for (let i = bullets.length - 1; i >= 0; i--) {
-      const b = bullets[i];
+      const b = bullets[i]!;
       b.x += b.vx * dt;
       b.y += b.vy * dt;
       [b.x, b.y] = wrap(b.x, b.y);
@@ -221,7 +221,7 @@ await jove.run({
 
       // Hit asteroid?
       for (let ai = asteroids.length - 1; ai >= 0; ai--) {
-        const a = asteroids[ai];
+        const a = asteroids[ai]!;
         if (wrapDist(b.x, b.y, a.x, a.y) < a.radius) {
           // Split or destroy
           if (a.radius >= 30) {
@@ -274,7 +274,7 @@ await jove.run({
 
     // Update particles
     for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
+      const p = particles[i]!;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
       p.life -= dt;

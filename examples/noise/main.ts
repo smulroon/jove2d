@@ -101,9 +101,9 @@ await jove.run({
 
     for (let i = 0; i < triangles.length; i++) {
       const tri = triangles[i];
-      const [cr, cg, cb] = colors[i % colors.length];
+      const [cr, cg, cb] = colors[i % colors.length]!;
       jove.graphics.setColor(cr, cg, cb, 80);
-      jove.graphics.polygon("fill", ...tri);
+      jove.graphics.polygon("fill", ...tri!);
     }
 
     // --- 3D noise time slice ---
@@ -127,7 +127,7 @@ await jove.run({
     const curvePts = bezier.render(6);
     jove.graphics.setColor(255, 200, 50);
     for (let i = 0; i < curvePts.length - 2; i += 2) {
-      jove.graphics.line(curvePts[i], curvePts[i + 1], curvePts[i + 2], curvePts[i + 3]);
+      jove.graphics.line(curvePts[i]!, curvePts[i + 1]!, curvePts[i + 2]!, curvePts[i + 3]!);
     }
 
     // Draw control points
