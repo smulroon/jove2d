@@ -1,10 +1,13 @@
 import { suffix } from "bun:ffi";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { join, dirname } from "path";
 
 const ROOT = join(import.meta.dir, "..", "..");
-const EXE_DIR = typeof Bun !== "undefined" && Bun.argv[0]
-  ? dirname(Bun.argv[0])
+
+// In compiled binaries, import.meta.dir is /$bunfs/root/ (virtual FS).
+// Use process.execPath (always the real exe path) for EXE_DIR.
+const EXE_DIR = typeof Bun !== "undefined" && process.execPath
+  ? dirname(realpathSync(process.execPath))
   : import.meta.dir;
 
 export function libPath(vendorSubdir: string, libName: string): string {
