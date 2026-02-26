@@ -44,7 +44,10 @@ cp -r "$PROJECT_DIR/assets" "$STAGING_DIR/"
 cp -r "$PROJECT_DIR/examples" "$STAGING_DIR/"
 cp "$PROJECT_DIR/package.json" "$STAGING_DIR/"
 cp "$PROJECT_DIR/tsconfig.json" "$STAGING_DIR/"
+cp -r "$PROJECT_DIR/cli" "$STAGING_DIR/"
+cp -r "$PROJECT_DIR/docs" "$STAGING_DIR/"
 cp "$PROJECT_DIR/README.md" "$STAGING_DIR/"
+cp "$PROJECT_DIR/CHANGELOG.md" "$STAGING_DIR/"
 cp "$PROJECT_DIR/LICENSE" "$STAGING_DIR/"
 
 # Remove love2d .lua files from examples (not needed in release)

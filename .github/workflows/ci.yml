@@ -51,5 +51,5 @@ jobs:
       - name: Run tests
         run: SDL_VIDEODRIVER=dummy bun test
 
-      - name: Type check (informational)
-        run: bun run typecheck 2>&1 | tail -5 || true
+      - name: Type check
+        run: bun run typecheck

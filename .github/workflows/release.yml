@@ -16,6 +16,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -44,6 +47,18 @@ jobs:
 
       - name: Build audio_decode (Linux)
         run: bash scripts/build-audio-decode.sh
+
+      - name: Build pl_mpeg (Linux)
+        run: bash scripts/build-pl_mpeg.sh
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run tests
+        run: SDL_VIDEODRIVER=dummy bun test
+
+      - name: Type check
+        run: bun run typecheck
 
       # ─── Windows cross-compilation ─────────────────────────────────────
 
