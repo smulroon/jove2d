@@ -1,5 +1,5 @@
 // jove CLI — run command
-import { existsSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, readlinkSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, rmSync, symlinkSync, realpathSync } from "node:fs";
 import { join, resolve, dirname, basename } from "path";
 import { tmpdir } from "os";
 
@@ -73,10 +73,9 @@ function ensureSymlink(gameDir: string): void {
   // Already points to the right place?
   if (existsSync(symlinkPath)) {
     try {
-      const target = readlinkSync(symlinkPath);
-      if (resolve(dirname(symlinkPath), target) === JOVE_ROOT || target === JOVE_ROOT) return;
+      if (realpathSync(symlinkPath) === realpathSync(JOVE_ROOT)) return;
     } catch {
-      // Not a symlink or broken — recreate
+      // Broken symlink/junction — recreate
     }
     rmSync(symlinkPath, { recursive: true, force: true });
   }
