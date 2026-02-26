@@ -1,6 +1,6 @@
 {
   "name": "jove2d",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "module": "src/index.ts",
   "bin": {
     "jove": "cli/jove.ts"

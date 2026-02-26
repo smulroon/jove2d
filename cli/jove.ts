@@ -5,7 +5,7 @@ import { run } from "./run.ts";
 import { pack } from "./pack.ts";
 import { build } from "./build.ts";
 
-const VERSION = "0.5.0";
+const VERSION = "0.6.0";
 
 const HELP = `\
 jove2d ${VERSION} — love2d-style game engine for TypeScript

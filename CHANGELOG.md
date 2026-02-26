@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+### CI/CD
+
+- Release workflow now runs tests and type checking before packaging
+- CI type check is blocking (was informational)
+- Release builds include pl_mpeg for Linux video support
+- Release packages include CLI, docs, and changelog
+
 ## 0.5.0 — Initial Release
 
 ### Engine
