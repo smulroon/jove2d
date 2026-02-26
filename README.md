@@ -4,7 +4,7 @@ A 2D game engine mirroring the [love2d](https://love2d.org/) API, built with Typ
 
 ## What is jove2d?
 
-jove2d reimplements love2d's API in TypeScript so you can write 2D games with the same familiar interface — `love.graphics.draw()`, `love.physics.newWorld()`, `love.audio.newSource()` — but running on Bun with direct SDL3 bindings instead of Lua and C++.
+jove2d reimplements love2d's API in TypeScript so you can write 2D games with the same familiar interface — `jove.graphics.draw()`, `jove.physics.newWorld()`, `jove.audio.newSource()` — but running on Bun with direct SDL3 bindings instead of Lua and C++.
 
 Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so you can compare output side-by-side.
 
@@ -34,7 +34,34 @@ Every example ships with both a `main.ts` (jove2d) and `main.lua` (love2d) so yo
 
 ## Quick Start
 
-### Option A: Download a release (recommended)
+### Option A: Using the CLI (recommended)
+
+The `jove` CLI runs, packs, and builds games — just like love2d's `love` command.
+
+```bash
+# Clone and set up
+git clone https://github.com/smulroon/jove2d.git
+cd jove2d
+bun install
+
+# Build SDL3 (required)
+bun run build-sdl3
+
+# Run an example
+bun cli/jove.ts examples/hello/
+```
+
+CLI commands:
+
+```bash
+bun cli/jove.ts <folder/>           # Run game from folder
+bun cli/jove.ts <file.ts>           # Run a TypeScript file directly
+bun cli/jove.ts <game.jove>         # Run a .jove archive
+bun cli/jove.ts pack <folder/>      # Create a .jove archive
+bun cli/jove.ts build <folder/>     # Build standalone executable
+```
+
+### Option B: Download a release
 
 Prebuilt binaries for Linux x64 and Windows x64 are available on the [Releases page](https://github.com/smulroon/jove2d/releases). No build tools required — just [Bun](https://bun.sh/).
 
@@ -45,15 +72,15 @@ tar xzf jove2d-linux-x64.tar.gz
 cd jove2d
 
 # Run an example
-bun examples/hello/main.ts
+bun cli/jove.ts examples/hello/
 ```
 
-### Option B: Build from source
+### Option C: Build from source
 
 #### Prerequisites
 
 - [Bun](https://bun.sh/) (v1.0+)
-- Linux (tested on Ubuntu/WSL2)
+- Linux (tested on Ubuntu/WSL2) or Windows
 - Build tools: `cmake`, `ninja-build`, `build-essential`
 - X11 dev libraries (for SDL3):
   ```bash
@@ -74,11 +101,55 @@ bun install
 bun run build-sdl3
 ```
 
-#### Run an example
+## Create Your First Game
+
+Create a folder for your game with a `main.ts`:
+
+```
+mygame/
+  main.ts
+```
+
+```ts
+// mygame/main.ts
+import jove from "jove2d";
+
+let x = 400;
+let y = 300;
+const speed = 200;
+
+await jove.run({
+  load() {
+    jove.window.setTitle("My First Game");
+  },
+
+  update(dt) {
+    if (jove.keyboard.isDown("left"))  x -= speed * dt;
+    if (jove.keyboard.isDown("right")) x += speed * dt;
+    if (jove.keyboard.isDown("up"))    y -= speed * dt;
+    if (jove.keyboard.isDown("down"))  y += speed * dt;
+  },
+
+  draw() {
+    jove.graphics.setColor(255, 100, 100);
+    jove.graphics.circle("fill", x, y, 20);
+    jove.graphics.setColor(255, 255, 255);
+    jove.graphics.print("Arrow keys to move!", 10, 10);
+  },
+
+  keypressed(key) {
+    if (key === "escape") jove.window.close();
+  },
+});
+```
+
+Run it:
 
 ```bash
-bun examples/hello/main.ts
+bun cli/jove.ts mygame/
 ```
+
+Games use `import jove from "jove2d"` — the CLI automatically sets up the import path. See the [API Reference](docs/API.md) for all available functions.
 
 ## Building Native Libraries
 
@@ -157,7 +228,7 @@ All 27 examples have both `main.ts` (jove2d) and `main.lua` (love2d) versions.
 Run any example:
 
 ```bash
-bun examples/<name>/main.ts
+bun cli/jove.ts examples/<name>/
 ```
 
 ### Comparing with love2d
@@ -185,15 +256,9 @@ jove2d auto-detects WSL2 and sets `SDL_VIDEODRIVER=x11` to avoid Wayland hangs. 
 
 **Feature complete.** All 42 planned priorities have been implemented. 16 of 20 love2d modules are implemented with 12 at 100% coverage. The 4 unimplemented modules (touch, thread, sensor, font-standalone) are either mobile-only or already covered by existing functionality.
 
-Key differences from love2d:
-- Colors use 0-255 range (SDL convention) instead of love2d's 0-1 range
-- `newShader()` is async (SPIR-V compilation via CLI subprocess)
-- Only fragment shaders are supported (no vertex/compute)
-- Audio supports WAV/OGG/MP3/FLAC (OGG/MP3/FLAC require building `libaudio_decode.so`)
-- Bitmap fonts (`newImageFont`) use the same separator-color convention as love2d
-- Video uses MPEG-1 format (.mpg) instead of love2d's Ogg Theora (.ogv)
+The `jove` CLI supports running games from folders, `.ts` files, or `.jove` archives, packing games into distributable archives, and building standalone executables with `bun build --compile`.
 
-See [PRIORITIES.md](PRIORITIES.md) for the full module gap analysis and implementation history.
+See [docs/MIGRATION.md](docs/MIGRATION.md) for key differences from love2d, [docs/API.md](docs/API.md) for the full API reference, and [ROADMAP.md](ROADMAP.md) for what's next.
 
 ## License
 
