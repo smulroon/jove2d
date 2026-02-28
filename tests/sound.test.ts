@@ -213,6 +213,14 @@ describe("jove.sound — SoundData", () => {
 describe("jove.audio — QueueableSource", () => {
   beforeAll(() => {
     audioAvailable = audio._init();
+    if (audioAvailable) {
+      const probe = audio.newQueueableSource(44100, 16, 1);
+      if (!probe) {
+        audioAvailable = false;
+      } else {
+        (probe as QueueableSource).release();
+      }
+    }
   });
 
   afterAll(() => {
