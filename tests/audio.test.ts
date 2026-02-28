@@ -60,8 +60,16 @@ describe("jove.audio", () => {
     const wav = generateWav(0.5, 440); // 0.5 second, 440 Hz
     writeFileSync(wavPath, wav);
 
-    // Try to init audio
+    // Try to init audio — also verify newSource works (CI may init OK but fail to create streams)
     audioAvailable = audio._init();
+    if (audioAvailable) {
+      const probe = audio.newSource(wavPath, "static");
+      if (!probe) {
+        audioAvailable = false;
+      } else {
+        probe.release();
+      }
+    }
   });
 
   afterAll(() => {
