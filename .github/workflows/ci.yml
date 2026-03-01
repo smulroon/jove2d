@@ -48,6 +48,9 @@ jobs:
       - name: Build pl_mpeg
         run: bash scripts/build-pl_mpeg.sh
 
+      - name: Build shaderc
+        run: bash scripts/build-shaderc.sh
+
       - name: Run tests
         run: SDL_VIDEODRIVER=dummy bun test
 

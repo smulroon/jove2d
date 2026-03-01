@@ -51,6 +51,9 @@ jobs:
       - name: Build pl_mpeg (Linux)
         run: bash scripts/build-pl_mpeg.sh
 
+      - name: Build shaderc (Linux)
+        run: bash scripts/build-shaderc.sh
+
       - name: Install dependencies
         run: bun install
 
