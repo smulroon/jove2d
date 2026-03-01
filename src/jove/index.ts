@@ -18,6 +18,7 @@ import * as physics from "./physics.ts";
 import * as image from "./image.ts";
 import * as sound from "./sound.ts";
 import * as video from "./video.ts";
+import { quitShaderc } from "./shader.ts";
 import { pollEvents } from "./event.ts";
 import type { GameCallbacks } from "./types.ts";
 
@@ -67,6 +68,7 @@ export function quit(): void {
   joystick._quit();
   mouse._destroyCursors();
   audio._quit();
+  quitShaderc();
   graphics._destroyRenderer();
   window.close();
   sdl.SDL_Quit();

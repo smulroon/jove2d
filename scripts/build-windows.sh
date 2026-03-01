@@ -24,7 +24,7 @@ SDL3_BUILD="$BUILD_ROOT/SDL3-build"
 SDL3_INSTALL="$PROJECT_DIR/vendor/SDL3/install"
 
 echo ""
-echo "=== [1/5] Building SDL3 ==="
+echo "=== [1/7] Building SDL3 ==="
 
 if [ ! -d "$SDL3_SOURCE" ]; then
   echo "Cloning SDL3..."
@@ -58,7 +58,7 @@ SDL_TTF_BUILD="$BUILD_ROOT/SDL_ttf-build"
 SDL_TTF_INSTALL="$PROJECT_DIR/vendor/SDL_ttf/install"
 
 echo ""
-echo "=== [2/5] Building SDL_ttf ==="
+echo "=== [2/7] Building SDL_ttf ==="
 
 if [ ! -d "$SDL_TTF_SOURCE" ]; then
   echo "Cloning SDL_ttf (with vendored deps)..."
@@ -92,7 +92,7 @@ SDL_IMAGE_BUILD="$BUILD_ROOT/SDL_image-build"
 SDL_IMAGE_INSTALL="$PROJECT_DIR/vendor/SDL_image/install"
 
 echo ""
-echo "=== [3/5] Building SDL_image ==="
+echo "=== [3/7] Building SDL_image ==="
 
 if [ ! -d "$SDL_IMAGE_SOURCE" ]; then
   echo "Cloning SDL_image (with vendored deps)..."
@@ -131,7 +131,7 @@ BOX2D_INSTALL="$PROJECT_DIR/vendor/box2d/install"
 BOX2D_TAG="v3.1.1"
 
 echo ""
-echo "=== [4/5] Building Box2D + wrapper ==="
+echo "=== [4/7] Building Box2D + wrapper ==="
 
 if [ ! -d "$BOX2D_SOURCE" ]; then
   echo "Cloning Box2D $BOX2D_TAG..."
@@ -180,7 +180,7 @@ AUDIO_BUILD="$BUILD_ROOT/audio_decode-build"
 AUDIO_INSTALL="$AUDIO_SOURCE/install"
 
 echo ""
-echo "=== [5/5] Building audio_decode ==="
+echo "=== [5/7] Building audio_decode ==="
 
 cmake -S "$AUDIO_SOURCE" -B "$AUDIO_BUILD" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
@@ -202,7 +202,7 @@ echo "audio_decode done: $(ls "$AUDIO_INSTALL"/lib/audio_decode.dll 2>/dev/null 
 # ─── 6. pl_mpeg ──────────────────────────────────────────────────────────────
 
 echo ""
-echo "--- Building pl_mpeg (video decoder) ---"
+echo "=== [6/7] Building pl_mpeg ==="
 
 PLMPEG_SOURCE="$PROJECT_DIR/vendor/pl_mpeg"
 PLMPEG_BUILD="$BUILD_ROOT/pl_mpeg"
@@ -231,6 +231,62 @@ done
 
 echo "pl_mpeg done: $(ls "$PLMPEG_INSTALL"/lib/pl_mpeg_jove.dll 2>/dev/null || echo 'not found')"
 
+# ─── 7. shaderc + shaderc_jove wrapper ──────────────────────────────────────
+
+SHADERC_SOURCE="$BUILD_ROOT/shaderc-source"
+SHADERC_BUILD="$BUILD_ROOT/shaderc-build"
+SHADERC_WRAPPER_BUILD="$BUILD_ROOT/shaderc_jove-build"
+SHADERC_INSTALL="$PROJECT_DIR/vendor/shaderc/install"
+
+echo ""
+echo "=== [7/7] Building shaderc + wrapper ==="
+
+if ! command -v python3 &>/dev/null; then
+  echo "WARNING: python3 not found — skipping shaderc build"
+else
+  if [ ! -d "$SHADERC_SOURCE" ]; then
+    echo "Cloning google/shaderc..."
+    git clone https://github.com/google/shaderc.git "$SHADERC_SOURCE"
+  fi
+
+  echo "Syncing shaderc dependencies..."
+  pushd "$SHADERC_SOURCE" > /dev/null
+  python3 utils/git-sync-deps
+  popd > /dev/null
+
+  # Build shaderc as static lib
+  cmake -S "$SHADERC_SOURCE" -B "$SHADERC_BUILD" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DSHADERC_SKIP_TESTS=ON \
+    -DSHADERC_SKIP_EXAMPLES=ON \
+    -DSHADERC_SKIP_COPYRIGHT_CHECK=ON \
+    -DSPIRV_SKIP_TESTS=ON \
+    -DSPIRV_SKIP_EXECUTABLES=ON
+
+  ninja -C "$SHADERC_BUILD" -j"$(nproc)"
+
+  # Build C wrapper as shared DLL
+  cmake -S "$PROJECT_DIR/vendor/shaderc_jove" -B "$SHADERC_WRAPPER_BUILD" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DSHADERC_BUILD_DIR="$SHADERC_BUILD" \
+    -DSHADERC_SOURCE_DIR="$SHADERC_SOURCE"
+
+  ninja -C "$SHADERC_WRAPPER_BUILD" -j"$(nproc)"
+
+  mkdir -p "$SHADERC_INSTALL/lib"
+  for dll in "$SHADERC_WRAPPER_BUILD"/libshaderc_jove.dll "$SHADERC_WRAPPER_BUILD"/shaderc_jove.dll; do
+    if [ -f "$dll" ]; then
+      cp "$dll" "$SHADERC_INSTALL/lib/shaderc_jove.dll"
+      break
+    fi
+  done
+fi
+
+echo "shaderc done: $(ls "$SHADERC_INSTALL"/lib/shaderc_jove.dll 2>/dev/null || echo 'not found')"
+
 # ─── Summary ────────────────────────────────────────────────────────────────
 
 echo ""
@@ -242,7 +298,8 @@ for f in \
   "$SDL_IMAGE_INSTALL/lib/SDL3_image.dll" \
   "$BOX2D_INSTALL/lib/box2d_jove.dll" \
   "$AUDIO_INSTALL/lib/audio_decode.dll" \
-  "$PLMPEG_INSTALL/lib/pl_mpeg_jove.dll"; do
+  "$PLMPEG_INSTALL/lib/pl_mpeg_jove.dll" \
+  "$SHADERC_INSTALL/lib/shaderc_jove.dll"; do
   if [ -f "$f" ]; then
     echo "  ✓ $f"
   else

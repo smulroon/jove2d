@@ -13,6 +13,7 @@ const NATIVE_LIBS: [string, string][] = [
   ["box2d", "box2d_jove"],
   ["audio_decode", "audio_decode"],
   ["pl_mpeg", "pl_mpeg_jove"],
+  ["shaderc", "shaderc_jove"],
 ];
 
 // Engine assets to copy

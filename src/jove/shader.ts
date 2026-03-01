@@ -1,6 +1,6 @@
 // jove2d shader module — love2d GLSL transpiler, SPIR-V compilation, Shader objects
 
-import { ptr } from "bun:ffi";
+import { ptr, toBuffer } from "bun:ffi";
 import type { Pointer } from "bun:ffi";
 import { readFileSync } from "fs";
 import sdl from "../sdl/ffi.ts";
@@ -199,8 +199,51 @@ export function transpileFragmentShader(loveGLSL: string): TranspileResult {
 }
 
 // ============================================================
-// SPIR-V compilation (WASM glslang with CLI fallback)
+// SPIR-V compilation (shaderc FFI with glslangValidator CLI fallback)
 // ============================================================
+
+import loadShaderc from "../sdl/ffi_shaderc.ts";
+
+// Shaderc FFI state (lazy init)
+let _shadercLib: ReturnType<typeof loadShaderc> = null;
+let _shadercInited = false;
+
+function _ensureShaderc(): boolean {
+  if (_shadercInited) return _shadercLib !== null;
+  _shadercLib = loadShaderc();
+  if (_shadercLib) {
+    _shadercLib.jove_shaderc_init();
+  }
+  _shadercInited = true;
+  return _shadercLib !== null;
+}
+
+/** Release shaderc compiler resources. Call during engine quit. */
+export function quitShaderc(): void {
+  if (_shadercLib && _shadercInited) {
+    _shadercLib.jove_shaderc_quit();
+  }
+  _shadercInited = false;
+}
+
+function _compileWithShaderc(glsl: string): Uint8Array {
+  const lib = _shadercLib!;
+  const sourceBuf = Buffer.from(glsl + "\0");
+  const ok = lib.jove_shaderc_compile(sourceBuf, glsl.length, 0);
+  if (!ok) {
+    const errMsg = lib.jove_shaderc_get_error();
+    throw new Error(`GLSL compilation failed:\n${errMsg}`);
+  }
+  const bytesPtr = lib.jove_shaderc_get_bytes();
+  const length = lib.jove_shaderc_get_length();
+  if (!bytesPtr || length <= 0) {
+    throw new Error("shaderc produced empty SPIR-V output");
+  }
+  // Copy SPIR-V bytes out (result is owned by shaderc, freed on next compile)
+  const spirv = new Uint8Array(length);
+  spirv.set(new Uint8Array(toBuffer(bytesPtr, 0, length)));
+  return spirv;
+}
 
 // Check if glslangValidator CLI is available (cached)
 let _cliAvailable: boolean | null = null;
@@ -243,16 +286,26 @@ async function _compileWithCLI(glsl: string): Promise<Uint8Array> {
   }
 }
 
+/** Check whether any SPIR-V compiler is available (shaderc lib or glslangValidator CLI). */
+export function hasCompiler(): boolean {
+  return _ensureShaderc() || _hasGlslangCLI();
+}
+
 /** Compile Vulkan GLSL 450 fragment shader to SPIR-V bytecode. */
 export async function compileGLSLToSPIRV(
   glsl: string
 ): Promise<Uint8Array> {
-  if (!_hasGlslangCLI()) {
-    throw new Error(
-      "glslangValidator not found. Install with: sudo apt install glslang-tools"
-    );
+  // Prefer shaderc FFI (sync, no external dependency)
+  if (_ensureShaderc()) {
+    return _compileWithShaderc(glsl);
   }
-  return _compileWithCLI(glsl);
+  // Fall back to glslangValidator CLI
+  if (_hasGlslangCLI()) {
+    return _compileWithCLI(glsl);
+  }
+  throw new Error(
+    "No SPIR-V compiler available. Build shaderc (bun run build-shaderc) or install glslangValidator (sudo apt install glslang-tools)"
+  );
 }
 
 // ============================================================
